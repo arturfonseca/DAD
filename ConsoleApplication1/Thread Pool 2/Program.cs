@@ -35,10 +35,11 @@ class ThrPool
         ThrWork w;
         while (true)
         {
-            sem.WaitOne();
             lock (tasks)
-            {                
-                w = tasks.Dequeue();            
+            {
+                while (tasks.Count == 0)
+                    Monitor.Wait(tasks);
+                w = tasks.Dequeue();
             }
             w(); // work here so other threads can keep going
         }
@@ -48,21 +49,22 @@ class ThrPool
     {
         lock (tasks)
         {
-            if(tasks.Count < bufSize)
+            if (tasks.Count < bufSize)
             {
                 tasks.Enqueue(action);
-                sem.Release();
+                Monitor.Pulse(tasks);
+                //sem.Release();
             }
             else
             {
                 ; // buffer is full, discard action
-            }                     
+            }
         }
     }
 
     internal void stop()
     {
-        foreach(Thread t in threads)
+        foreach (Thread t in threads)
         {
             t.Abort();
             t.Join();
@@ -121,7 +123,7 @@ class Test
         Console.ReadLine();
         tpool.stop();
         Console.WriteLine("Thread Pool stopped successfully!\npress any key");
-        Console.ReadLine(); 
+        Console.ReadLine();
 
     }
 }
