@@ -1,0 +1,43 @@
+3 projetos:
+-server
+-client
+-interfaces que resultam em dll
+
+
+No projeto servidor incluir o codigo host e o codigo que implementa as classes remote
+
+No cliente usar a interface do dll
+
+No dll apenas ter uma interface que corresponde ás classes remote.
+
+
+________
+
+chat..
+qd cliente envia mensage:
+- fazer assincr
+- one way
+- server cria thread para enviar aos clientes
+- nao enviar para o client
+
+_______
+
+No cliente, o remoting cria um remote object que serve para receber as mensagens do server, quando se faz server.registar(nick,URI) podia ser feito registar(nick,clientRemoteObject).
+
+TCP channel
+registar channel
+new ClientChat(Form <que é a janela>)
+activator.getObject ddo "tcp://localhost:8080/chatServer"
+
+delegate void AddChat(string);
+Form{
+
+void addChat(string m){
+ caixaTextoChar.text += m + "\r\n";
+}
+
+}
+
+recebeMsg(m){
+
+form.Invoke(new AddChat(form.addMessage), new Object[]{m});

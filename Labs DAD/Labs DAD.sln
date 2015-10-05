@@ -1,0 +1,69 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 14
+VisualStudioVersion = 14.0.23107.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Thread Pools", "Thread Pools", "{6300C3DE-F59D-4110-B144-F95565A8E689}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Events", "Events\Events.csproj", "{0CB44090-EC13-49E0-8289-3EB7FC061397}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Chat", "Chat", "{9B5559EA-AE7D-4FCC-B35F-CD82FB72E3D3}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ChatGUI", "ChatGUI\ChatGUI.csproj", "{FE9C93A9-49C2-4803-9882-FDF5ED9BA4B3}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ChatServer", "ChatServer\ChatServer.csproj", "{590164F3-427A-4619-9AE9-3F629E59A48D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ChatInterfaces", "Interfaces\ChatInterfaces.csproj", "{4713459C-DA67-4FC7-B51F-21233F0FDB19}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Thread Pool Monitor", "Thread Pool Monitor\Thread Pool Monitor.csproj", "{44F4B8EA-F7E5-4743-946F-1AE6AB5A8B32}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Thread Pool Semaphore", "Thread Pool Semaphores\Thread Pool Semaphore.csproj", "{5D26A15E-CDC2-4237-9794-2D4581D842CE}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AsynchCalcPi", "AsynchCalcPi\AsynchCalcPi.csproj", "{1257DAA4-3164-43C4-8702-07DAF090B5D6}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{0CB44090-EC13-49E0-8289-3EB7FC061397}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0CB44090-EC13-49E0-8289-3EB7FC061397}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0CB44090-EC13-49E0-8289-3EB7FC061397}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0CB44090-EC13-49E0-8289-3EB7FC061397}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FE9C93A9-49C2-4803-9882-FDF5ED9BA4B3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FE9C93A9-49C2-4803-9882-FDF5ED9BA4B3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FE9C93A9-49C2-4803-9882-FDF5ED9BA4B3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FE9C93A9-49C2-4803-9882-FDF5ED9BA4B3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{590164F3-427A-4619-9AE9-3F629E59A48D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{590164F3-427A-4619-9AE9-3F629E59A48D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{590164F3-427A-4619-9AE9-3F629E59A48D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{590164F3-427A-4619-9AE9-3F629E59A48D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4713459C-DA67-4FC7-B51F-21233F0FDB19}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4713459C-DA67-4FC7-B51F-21233F0FDB19}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4713459C-DA67-4FC7-B51F-21233F0FDB19}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4713459C-DA67-4FC7-B51F-21233F0FDB19}.Release|Any CPU.Build.0 = Release|Any CPU
+		{44F4B8EA-F7E5-4743-946F-1AE6AB5A8B32}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{44F4B8EA-F7E5-4743-946F-1AE6AB5A8B32}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{44F4B8EA-F7E5-4743-946F-1AE6AB5A8B32}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{44F4B8EA-F7E5-4743-946F-1AE6AB5A8B32}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5D26A15E-CDC2-4237-9794-2D4581D842CE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5D26A15E-CDC2-4237-9794-2D4581D842CE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5D26A15E-CDC2-4237-9794-2D4581D842CE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5D26A15E-CDC2-4237-9794-2D4581D842CE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1257DAA4-3164-43C4-8702-07DAF090B5D6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1257DAA4-3164-43C4-8702-07DAF090B5D6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1257DAA4-3164-43C4-8702-07DAF090B5D6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1257DAA4-3164-43C4-8702-07DAF090B5D6}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{FE9C93A9-49C2-4803-9882-FDF5ED9BA4B3} = {9B5559EA-AE7D-4FCC-B35F-CD82FB72E3D3}
+		{590164F3-427A-4619-9AE9-3F629E59A48D} = {9B5559EA-AE7D-4FCC-B35F-CD82FB72E3D3}
+		{4713459C-DA67-4FC7-B51F-21233F0FDB19} = {9B5559EA-AE7D-4FCC-B35F-CD82FB72E3D3}
+		{44F4B8EA-F7E5-4743-946F-1AE6AB5A8B32} = {6300C3DE-F59D-4110-B144-F95565A8E689}
+		{5D26A15E-CDC2-4237-9794-2D4581D842CE} = {6300C3DE-F59D-4110-B144-F95565A8E689}
+	EndGlobalSection
+EndGlobal
