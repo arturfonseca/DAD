@@ -8,7 +8,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace ChatGUI.Properties
+namespace WindowsFormsApplication1.Properties
 {
 
 
