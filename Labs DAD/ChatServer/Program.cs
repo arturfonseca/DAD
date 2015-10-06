@@ -8,6 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Interfaces;
 using System.Runtime.Remoting;
+using System.Collections;
 
 namespace ChatServer
 {
@@ -31,7 +32,7 @@ namespace ChatServer
 
         public void enviaMsg(string msg) //called by the client
         {
-            _server.enviaMsg(_nick, msg);
+            _server.enviaMsg(this, msg);
         }
 
         internal void recebeMsg(string nick, string msg)
@@ -49,15 +50,17 @@ namespace ChatServer
             sessions = new List<ChatSessionRemote>();
         }
 
-        public void enviaMsg(string nick, string msg)
-        {            
-            foreach(ChatSessionRemote s in sessions){
-                if(s.getNick() != nick)
+        public void enviaMsg(ChatSessionRemote session, string msg)
+        {
+            Console.WriteLine("Sending message \"{0}:{1}\"", session.getNick(), msg);
+            foreach (ChatSessionRemote s in sessions){
+                if(s != session)
                 {
-                    s.recebeMsg(nick, msg);
+                    s.recebeMsg(s.getNick(), msg);
+                    Console.WriteLine("Sent to \"{0}\"", s.getNick());                    
                 }
             }
-            Console.WriteLine("{0}:{1}", nick, msg);
+            
         }
 
         public IChatSessionRemote regista(string nick, IChatClientRemote myremote)
@@ -75,14 +78,23 @@ namespace ChatServer
     {
         static void Main(string[] args)
         {
-            TcpChannel channel = new TcpChannel(8787);
+            //create process channel
+            BinaryServerFormatterSinkProvider ssp = new BinaryServerFormatterSinkProvider();            
+            BinaryClientFormatterSinkProvider csp = new BinaryClientFormatterSinkProvider();
+            ssp.TypeFilterLevel = System.Runtime.Serialization.Formatters.TypeFilterLevel.Full;
+            IDictionary props = new Hashtable();
+            props["port"] = 8787;
+            TcpChannel channel = new TcpChannel(props, csp, ssp);
+            ChannelServices.RegisterChannel(channel, true);
+
+            // print uris
             Console.WriteLine("Opened channel at uris:");
             ChannelDataStore cds = (ChannelDataStore)channel.ChannelData;
             foreach(string url in cds.ChannelUris)
             {
                 Console.WriteLine(" - '{0}'", url);
             }
-            ChannelServices.RegisterChannel(channel, false);
+            
             ChatServerRemote cs = new ChatServerRemote();
             RemotingServices.Marshal(cs, "ChatServer", typeof(IChatServerRemote));
             Console.WriteLine("Server started. enter \"chatquit\" to exit");

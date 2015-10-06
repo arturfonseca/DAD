@@ -29,6 +29,8 @@
         private void InitializeComponent()
         {
             this.panel1 = new System.Windows.Forms.Panel();
+            this._nick = new System.Windows.Forms.TextBox();
+            this.label3 = new System.Windows.Forms.Label();
             this.button1 = new System.Windows.Forms.Button();
             this._port = new System.Windows.Forms.TextBox();
             this.label2 = new System.Windows.Forms.Label();
@@ -37,8 +39,6 @@
             this.panel2 = new System.Windows.Forms.Panel();
             this._log = new System.Windows.Forms.TextBox();
             this._send_input = new System.Windows.Forms.TextBox();
-            this._nick = new System.Windows.Forms.TextBox();
-            this.label3 = new System.Windows.Forms.Label();
             this.panel1.SuspendLayout();
             this.panel2.SuspendLayout();
             this.SuspendLayout();
@@ -58,6 +58,24 @@
             this.panel1.Size = new System.Drawing.Size(659, 27);
             this.panel1.TabIndex = 0;
             // 
+            // _nick
+            // 
+            this._nick.Location = new System.Drawing.Point(38, 4);
+            this._nick.MaxLength = 10;
+            this._nick.Name = "_nick";
+            this._nick.Size = new System.Drawing.Size(100, 20);
+            this._nick.TabIndex = 1;
+            this._nick.Text = "rui";
+            // 
+            // label3
+            // 
+            this.label3.AutoSize = true;
+            this.label3.Location = new System.Drawing.Point(3, 7);
+            this.label3.Name = "label3";
+            this.label3.Size = new System.Drawing.Size(29, 13);
+            this.label3.TabIndex = 7;
+            this.label3.Text = "Nick";
+            // 
             // button1
             // 
             this.button1.Location = new System.Drawing.Point(342, 1);
@@ -74,7 +92,7 @@
             this._port.Name = "_port";
             this._port.Size = new System.Drawing.Size(40, 20);
             this._port.TabIndex = 3;
-            this._port.Text = "yyyyy";
+            this._port.Text = "8787";
             // 
             // label2
             // 
@@ -102,8 +120,8 @@
             this._ip.Location = new System.Drawing.Point(169, 4);
             this._ip.Name = "_ip";
             this._ip.Size = new System.Drawing.Size(87, 20);
-            this._ip.TabIndex = 0;
-            this._ip.Text = "xxx.xxx.xxx.xxx";
+            this._ip.TabIndex = 2;
+            this._ip.Text = "192.168.1.64";
             this._ip.TextChanged += new System.EventHandler(this.textBox1_TextChanged);
             // 
             // panel2
@@ -113,52 +131,38 @@
             this.panel2.Dock = System.Windows.Forms.DockStyle.Fill;
             this.panel2.Location = new System.Drawing.Point(0, 27);
             this.panel2.Name = "panel2";
-            this.panel2.Size = new System.Drawing.Size(659, 253);
+            this.panel2.Size = new System.Drawing.Size(659, 280);
             this.panel2.TabIndex = 1;
             // 
             // _log
             // 
+            this._log.BackColor = System.Drawing.SystemColors.Window;
             this._log.Cursor = System.Windows.Forms.Cursors.IBeam;
             this._log.Dock = System.Windows.Forms.DockStyle.Fill;
             this._log.Location = new System.Drawing.Point(0, 0);
             this._log.Multiline = true;
             this._log.Name = "_log";
+            this._log.ReadOnly = true;
             this._log.ScrollBars = System.Windows.Forms.ScrollBars.Both;
-            this._log.Size = new System.Drawing.Size(659, 233);
-            this._log.TabIndex = 2;
+            this._log.Size = new System.Drawing.Size(659, 260);
+            this._log.TabIndex = 4;
             this._log.TextChanged += new System.EventHandler(this.textBox3_TextChanged);
             // 
             // _send_input
             // 
             this._send_input.Dock = System.Windows.Forms.DockStyle.Bottom;
-            this._send_input.Location = new System.Drawing.Point(0, 233);
+            this._send_input.Location = new System.Drawing.Point(0, 260);
             this._send_input.Name = "_send_input";
+            this._send_input.ScrollBars = System.Windows.Forms.ScrollBars.Both;
             this._send_input.Size = new System.Drawing.Size(659, 20);
-            this._send_input.TabIndex = 1;
+            this._send_input.TabIndex = 5;
             this._send_input.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.send_click);
-            // 
-            // _nick
-            // 
-            this._nick.Location = new System.Drawing.Point(38, 4);
-            this._nick.MaxLength = 10;
-            this._nick.Name = "_nick";
-            this._nick.Size = new System.Drawing.Size(100, 20);
-            this._nick.TabIndex = 5;
-            // 
-            // label3
-            // 
-            this.label3.AutoSize = true;
-            this.label3.Location = new System.Drawing.Point(3, 7);
-            this.label3.Name = "label3";
-            this.label3.Size = new System.Drawing.Size(29, 13);
-            this.label3.TabIndex = 7;
-            this.label3.Text = "Nick";
             // 
             // Form2
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(659, 280);
+            this.ClientSize = new System.Drawing.Size(659, 307);
             this.Controls.Add(this.panel2);
             this.Controls.Add(this.panel1);
             this.Name = "Form2";

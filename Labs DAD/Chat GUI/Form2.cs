@@ -1,5 +1,6 @@
 ﻿using Interfaces;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -35,12 +36,32 @@ namespace WindowsFormsApplication1
         {
             writeLine(string.Format("{0}:{1}", nick, msg));
         }
+
+        public void Log(string msg)
+        {
+            recebeMsg("System", msg);
+        }
             
         private void connect_click(object sender, EventArgs e)
         {
-            //TODO input validation and sanitation            
-            TcpChannel channel = new TcpChannel();
-            ChannelServices.RegisterChannel(channel, false);
+            //create process channel
+            BinaryServerFormatterSinkProvider ssp = new BinaryServerFormatterSinkProvider();
+            BinaryClientFormatterSinkProvider csp = new BinaryClientFormatterSinkProvider();
+            ssp.TypeFilterLevel = System.Runtime.Serialization.Formatters.TypeFilterLevel.Full;
+            IDictionary props = new Hashtable();
+            props["port"] = 0; // 0 means choose a random port
+            TcpChannel channel = new TcpChannel(props, csp, ssp);
+            ChannelServices.RegisterChannel(channel, true);
+
+            // print uris
+            Log("Opened channel at uris:");
+            ChannelDataStore cds = (ChannelDataStore)channel.ChannelData;
+            foreach (string url in cds.ChannelUris)
+            {
+               Log(string.Format(" - '{0}'", url));
+            }
+
+            //TODO input validation and sanitation          
             try
             {
                 string uri = string.Format("tcp://{0}:{1}/{2}", _ip.Text, _port.Text, "ChatServer");
@@ -50,6 +71,7 @@ namespace WindowsFormsApplication1
                 _client = client;
                 IChatSessionRemote session = server.regista(_nick.Text, client);
                 _session = session;
+                _chatState = chatState.On;
 
             }
             catch(Exception exc)
@@ -62,8 +84,20 @@ namespace WindowsFormsApplication1
         }
 
         private void send_click(object sender, KeyPressEventArgs e)
-        {
-
+        {            
+            if(e.KeyChar == (char)Keys.Enter){
+                e.Handled = true;
+                if (chatState.Off == _chatState)
+                {
+                    recebeMsg("System", "Not connected. Can not send message");
+                    return;
+                }
+                if (_send_input.Text == "") return;
+                _session.enviaMsg(_send_input.Text);
+                recebeMsg(_nick.Text, _send_input.Text);
+                _send_input.Clear();
+                
+            }
         }
 
         private void textBox3_TextChanged(object sender, EventArgs e)
