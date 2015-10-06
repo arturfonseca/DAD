@@ -13,7 +13,12 @@ namespace Interfaces
 
     public interface IChatServerRemote
     {
-        void regista(string nick, IChatClientRemote myremote);
-        void enviaMsg(string nick, string msg);
+        IChatSessionRemote regista(string nick, IChatClientRemote myremote);        
+    }
+
+    public interface IChatSessionRemote
+    {
+        void enviaMsg(string msg);
+        string getNick();
     }
 }
