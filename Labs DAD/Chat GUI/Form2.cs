@@ -44,6 +44,7 @@ namespace WindowsFormsApplication1
             
         private void connect_click(object sender, EventArgs e)
         {
+            // TODO only one channel can be created, avoid created one each time button is clicked
             //create process channel
             BinaryServerFormatterSinkProvider ssp = new BinaryServerFormatterSinkProvider();
             BinaryClientFormatterSinkProvider csp = new BinaryClientFormatterSinkProvider();
@@ -65,6 +66,7 @@ namespace WindowsFormsApplication1
             try
             {
                 string uri = string.Format("tcp://{0}:{1}/{2}", _ip.Text, _port.Text, "ChatServer");
+                Log(String.Format("Trying to connect to {0}", uri));
                 IChatServerRemote server = (IChatServerRemote)Activator.GetObject(typeof(IChatServerRemote), uri);
                 ChatClientRemote client = new ChatClientRemote(this);
                 RemotingServices.Marshal(client);

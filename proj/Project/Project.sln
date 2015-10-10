@@ -3,7 +3,17 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 14
 VisualStudioVersion = 14.0.23107.0
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Interfaces", "Interfaces\Interfaces.csproj", "{9FE55E1B-CCA2-4BC0-BF4A-96B0B02F6556}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DADInterfaces", "Interfaces\DADInterfaces.csproj", "{9FE55E1B-CCA2-4BC0-BF4A-96B0B02F6556}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BrokerConsole", "BrokerConsole\BrokerConsole.csproj", "{B10DEF6E-CF39-4E0A-8B21-296F5E69F753}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PublisherConsole", "PublisherConsole\PublisherConsole.csproj", "{EE936650-84C7-4C76-9718-49B1FA9AF584}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SubscriberConsole", "SubscriberConsole\SubscriberConsole.csproj", "{960579A9-AE54-4E99-A422-73E437065FC7}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PuppetMasterConsole", "PuppetMasterConsole\PuppetMasterConsole.csproj", "{AAA516E0-0857-43F4-A311-C96B049DC68F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PuppetMastersCoordinatorGUI", "PuppetMastersCoordinatorGUI\PuppetMastersCoordinatorGUI.csproj", "{03000CAA-3C15-48E0-A3EE-1B2CA4CEDD99}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,6 +25,26 @@ Global
 		{9FE55E1B-CCA2-4BC0-BF4A-96B0B02F6556}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9FE55E1B-CCA2-4BC0-BF4A-96B0B02F6556}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{9FE55E1B-CCA2-4BC0-BF4A-96B0B02F6556}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B10DEF6E-CF39-4E0A-8B21-296F5E69F753}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B10DEF6E-CF39-4E0A-8B21-296F5E69F753}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B10DEF6E-CF39-4E0A-8B21-296F5E69F753}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B10DEF6E-CF39-4E0A-8B21-296F5E69F753}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EE936650-84C7-4C76-9718-49B1FA9AF584}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EE936650-84C7-4C76-9718-49B1FA9AF584}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EE936650-84C7-4C76-9718-49B1FA9AF584}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EE936650-84C7-4C76-9718-49B1FA9AF584}.Release|Any CPU.Build.0 = Release|Any CPU
+		{960579A9-AE54-4E99-A422-73E437065FC7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{960579A9-AE54-4E99-A422-73E437065FC7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{960579A9-AE54-4E99-A422-73E437065FC7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{960579A9-AE54-4E99-A422-73E437065FC7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AAA516E0-0857-43F4-A311-C96B049DC68F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AAA516E0-0857-43F4-A311-C96B049DC68F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AAA516E0-0857-43F4-A311-C96B049DC68F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AAA516E0-0857-43F4-A311-C96B049DC68F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{03000CAA-3C15-48E0-A3EE-1B2CA4CEDD99}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{03000CAA-3C15-48E0-A3EE-1B2CA4CEDD99}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{03000CAA-3C15-48E0-A3EE-1B2CA4CEDD99}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{03000CAA-3C15-48E0-A3EE-1B2CA4CEDD99}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
