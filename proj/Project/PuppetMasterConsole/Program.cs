@@ -11,15 +11,16 @@ using System.Runtime.Remoting;
 using DADInterfaces;
 using System.Collections;
 using System.Threading;
+using System.Configuration;
 
 namespace PuppetMasterConsole
 {
     static class Constants
     {
         public static string PuppetMasterURI { get { return "PuppetMaster"; } }
-        public static string BrokerExecutableLocation { get { return "..\\..\\..\\BrokerConsole\\bin\\Debug\\BrokerConsole.exe"; } }
-        public static string PublisherExecutableLocation { get { return "..\\..\\..\\PublisherConsole\\bin\\Debug\\PublisherConsole.exe"; } }
-        public static string SubscriberExecutableLocation { get { return "..\\..\\..\\SubscriberConsole\\bin\\Debug\\SubscriberConsole.exe"; } }
+        public static string BrokerExecutableLocation { get { return ConfigurationManager.AppSettings["BrokerPath"]; } }
+        public static string PublisherExecutableLocation { get { return ConfigurationManager.AppSettings["PublisherPath"]; } }
+        public static string SubscriberExecutableLocation { get { return ConfigurationManager.AppSettings["SubscriberPath"]; } }
 
     }
     class PuppetMasterRemote:MarshalByRefObject, PuppetMaster
