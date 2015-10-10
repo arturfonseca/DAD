@@ -66,6 +66,7 @@ namespace PuppetMasterConsole
             //start processes
             Process p = new Process();
             p.StartInfo.FileName = Constants.BrokerExecutableLocation;
+            Console.WriteLine(Constants.BrokerExecutableLocation);
             p.StartInfo.Arguments = string.Format("{0} {1}",URI,name);
             p.Start();
             Broker b = null;
