@@ -25,108 +25,142 @@ namespace PuppetMasterConsole
     }
     class PuppetMasterRemote:MarshalByRefObject, PuppetMaster
     {
-        private List<Broker> brokers = new List<Broker>();
-        private List<Publisher> publishers = new List<Publisher>();
-        private List<Subscriber> subscribers = new List<Subscriber>();
+        private List<Broker> _brokers = new List<Broker>();
+        private List<Publisher> _publishers = new List<Publisher>();
+        private List<Subscriber> _subscribers = new List<Subscriber>();
 
         private string _uri = "";
         public string URI { get { return _uri; } set { _uri = value; } }
 
         static void Main(string[] args)
         {
-            //create process channel
-            BinaryServerFormatterSinkProvider ssp = new BinaryServerFormatterSinkProvider();
-            BinaryClientFormatterSinkProvider csp = new BinaryClientFormatterSinkProvider();
-            ssp.TypeFilterLevel = System.Runtime.Serialization.Formatters.TypeFilterLevel.Full;
-            IDictionary props = new Hashtable();
-            props["port"] = 0;
-            TcpChannel channel = new TcpChannel(props, csp, ssp);
-            ChannelServices.RegisterChannel(channel, true);
-
-            // print uris
-            ChannelDataStore cds = (ChannelDataStore)channel.ChannelData;
-            string channelURI = cds.ChannelUris[0];
-            Console.WriteLine("Opened remoting channel at \"{0}\"", channelURI);
+            Console.WriteLine("Started PuppetMaster");
+            string channelURI = Utility.setupChannel();
 
             PuppetMasterRemote puppetMaster = new PuppetMasterRemote();
             //we need to register each remote object
             ObjRef o = RemotingServices.Marshal(puppetMaster, Constants.PuppetMasterURI, typeof(PuppetMaster));
             puppetMaster.URI = string.Format("{0}/{1}", channelURI, Constants.PuppetMasterURI);
             Console.WriteLine("Created PuppetMaster at \"{0}\"", puppetMaster.URI);
-            // testing code
-            Broker b = puppetMaster.createBroker("broker1", "a", "a", null);
-            Console.WriteLine("Got broker object '{0}'",b.getURI()); 
 
-            Console.WriteLine("Press any key");           
+
+            // testing code
+            Broker b = puppetMaster.createBroker("broker1");
+            Publisher p = puppetMaster.createPublisher("publisher1");
+ 
+            Console.WriteLine("Press key to leave");
             Console.Read();
         }
 
-        public Broker createBroker(string name, string site, string parent_site, List<string> children_sites)
+        public Broker createBroker(string name)
         {
             //start processes
             Process p = new Process();
             p.StartInfo.FileName = Constants.BrokerExecutableLocation;
-            Console.WriteLine(Constants.BrokerExecutableLocation);
+            Console.WriteLine("launching Broker at '{0}'",Constants.BrokerExecutableLocation);
             p.StartInfo.Arguments = string.Format("{0} {1}",URI,name);
             p.Start();
             Broker b = null;
-            lock (brokers)
+            lock (_brokers)
             {
                 while (true)
                 {
-                    b = brokers.Find(x => x.getName() == name);
+                    b = _brokers.Find(x => x.getName() == name);
                     if(b != null)
                         break;
-                    Monitor.Wait(brokers);
+                    Monitor.Wait(_brokers);
                 }
             }
             return b;
         }
 
-        public Publisher createPublisher(string name, string site, string uri)
+        public Publisher createPublisher(string name)
         {
-            throw new NotImplementedException();
+            //start processes
+            Process p = new Process();
+            p.StartInfo.FileName = Constants.PublisherExecutableLocation;
+            Console.WriteLine("launching Publisher at '{0}'", Constants.PublisherExecutableLocation);
+            p.StartInfo.Arguments = string.Format("{0} {1}", URI, name);
+            p.Start();
+            Publisher b = null;
+            lock (_publishers)
+            {
+                while (true)
+                {
+                    b = _publishers.Find(x => x.getName() == name);
+                    if (b != null)
+                        break;
+                    Monitor.Wait(_publishers);
+                }
+            }
+            return b;
         }
 
-        public Subscriber createSubscriber(string name, string site, string uri)
+        public Subscriber createSubscriber(string name)
         {
-            throw new NotImplementedException();
+            //start processes
+            Process p = new Process();
+            p.StartInfo.FileName = Constants.SubscriberExecutableLocation;
+            Console.WriteLine("launching Subscriber at '{0}'", Constants.SubscriberExecutableLocation);
+            p.StartInfo.Arguments = string.Format("{0} {1}", URI, name);
+            p.Start();
+            Subscriber b = null;
+            lock (_subscribers)
+            {
+                while (true)
+                {
+                    b = _subscribers.Find(x => x.getName() == name);
+                    if (b != null)
+                        break;
+                    Monitor.Wait(_subscribers);
+                }
+            }
+            return b;
         }
 
         public List<Broker> getBrokers()
         {
-            throw new NotImplementedException();
+            return _brokers;
         }
 
         public List<Publisher> getPublishers()
         {
-            throw new NotImplementedException();
+            return _publishers;
         }
 
         public List<Subscriber> getSubscribers()
         {
-            throw new NotImplementedException();
+            return _subscribers;
         }
 
         public void registerBroker(Broker b)
         {
-            lock (brokers)
+            lock (_brokers)
             {
-                brokers.Add(b);
-                Monitor.Pulse(brokers);
-            }
-            
-            Console.WriteLine("registered broker");
+                _brokers.Add(b);
+                Monitor.Pulse(_brokers);
+            }            
+            Console.WriteLine("registered broker {0}",b.getURI());
         }
 
         public void registerPublisher(Publisher p)
         {
-            throw new NotImplementedException();
+            lock (_publishers)
+            {
+                _publishers.Add(p);
+                Monitor.Pulse(_publishers);
+            }
+            Console.WriteLine("registered publisher {0}",p.getURI());
         }
 
         public void registerSubscriber(Subscriber s)
         {
-            throw new NotImplementedException();
+            lock (_subscribers)
+            {
+                _subscribers.Add(s);
+                Monitor.Pulse(_subscribers);
+            }
+            Console.WriteLine("registered subscriber {0}"); ;
         }
     }
 }

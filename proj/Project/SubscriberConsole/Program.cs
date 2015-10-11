@@ -10,6 +10,8 @@ namespace SubscriberConsole
     {
         static void Main(string[] args)
         {
+            Console.WriteLine("Press key to leave");
+            Console.Read();
         }
     }
 }

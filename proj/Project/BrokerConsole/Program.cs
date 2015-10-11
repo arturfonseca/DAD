@@ -14,54 +14,47 @@ namespace BrokerConsole
 {
     class BrokerRemote:MarshalByRefObject, Broker
     {
-        private string brokerName;
-        private string uri;
+        private string _brokerName;
+        private PuppetMaster _puppetMaster;
+        private string _uri;
+        private string _site;
 
-        public BrokerRemote(string brokerName,string puppetMasterURI)
+        public BrokerRemote(string brokerName,PuppetMaster pm)
         {
-            this.brokerName = brokerName;
+            this._brokerName = brokerName;
+            this._puppetMaster = pm;
         }
-
-        public string URI { get { return uri; } set { uri = value; } }
-
-        public string getName() { return brokerName; }
 
         static void Main(string[] args)
         {
-            if(args.Length != 2)
+            Console.WriteLine("Started Broker");
+            if (args.Length != 2)
             {
-                Console.WriteLine("Excepted 2 arguments, got {0}", args.Length);
+                Console.WriteLine("Expected {0} arguments, got {1}", 2, args.Length);
                 Console.Read();
                 return;
-            }
+            }                        
             string puppetMasterURI = args[0];
             string brokerName = args[1];
 
-            //create process channel
-            BinaryServerFormatterSinkProvider ssp = new BinaryServerFormatterSinkProvider();
-            BinaryClientFormatterSinkProvider csp = new BinaryClientFormatterSinkProvider();
-            ssp.TypeFilterLevel = System.Runtime.Serialization.Formatters.TypeFilterLevel.Full;
-            IDictionary props = new Hashtable();
-            props["port"] = 0;
-            TcpChannel channel = new TcpChannel(props, csp, ssp);
-            ChannelServices.RegisterChannel(channel, true);
+            string channelURI = Utility.setupChannel();           
 
-            // print uris
-            ChannelDataStore cds = (ChannelDataStore)channel.ChannelData;
-            string channelURI = cds.ChannelUris[0];
-            Console.WriteLine("Opened remoting channel at \"{0}\"", channelURI);
-
-            BrokerRemote broker = new BrokerRemote(brokerName,puppetMasterURI);
+            // get the puppetMaster that started this process
+            PuppetMaster pm = (PuppetMaster)Activator.GetObject(typeof(PuppetMaster), puppetMasterURI);
+            BrokerRemote broker = new BrokerRemote(brokerName,pm);
             //we need to register each remote object
             ObjRef o = RemotingServices.Marshal(broker, brokerName, typeof(Broker));
-            broker.URI = string.Format("{0}/{1}", channelURI, brokerName);
-            Console.WriteLine("Created Broker at \"{0}\"", broker.URI);
-
-            PuppetMaster pm = (PuppetMaster)Activator.GetObject(typeof(PuppetMaster), puppetMasterURI);
+            broker.setURI(string.Format("{0}/{1}", channelURI, brokerName));            
+            Console.WriteLine("Created Broker at \"{0}\"", broker.getURI());
+            
+            //now that broker is created and marshalled
+            //send remote to puppetMaster which is Monitor.waiting for the remote            
             pm.registerBroker(broker);
             Console.WriteLine("Just registered at puppetMaster");
+            Console.WriteLine("Press key to leave");
             Console.Read();
         }
+       
 
         public void crash()
         {
@@ -73,22 +66,32 @@ namespace BrokerConsole
             throw new NotImplementedException();
         }
 
+        public string getName()
+        {
+            return _brokerName;
+        }
+
+        public string getSite()
+        {
+            return _site;
+        }
+
         public string getURI()
         {
-            return URI;
+            return _uri;
         }
 
-        public void setChildren(string child_site, List<string> uri)
+        public void setURI(string v)
+        {
+            _uri = v;
+        }
+
+        public void setChildren(List<Site> child_sites)
         {
             throw new NotImplementedException();
         }
 
-        public void setParent(string uri)
-        {
-            throw new NotImplementedException();
-        }
-
-        public void setSiteBrokers(List<string> uris)
+        public void setParent(Site parent_site)
         {
             throw new NotImplementedException();
         }
@@ -102,5 +105,31 @@ namespace BrokerConsole
         {
             throw new NotImplementedException();
         }
+
+        public void setPublishers(List<Publisher> site_publishers)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void setSubscriber(List<Subscriber> site_subscribers)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void subscribe(SubscribeMessage msg)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void unsubscribe(SubscribeMessage msg)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void publish(PublishMessage msg)
+        {
+            throw new NotImplementedException();
+        }
+
     }
 }
