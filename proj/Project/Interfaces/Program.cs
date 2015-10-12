@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 
 namespace DADInterfaces
 {
+    
     public interface Node
     {
         string getURI();
@@ -80,9 +81,9 @@ namespace DADInterfaces
         List<Subscriber> getSubscribers();
         List<Publisher> getPublishers();
 
-        Broker createBroker(string name);
-        Publisher createPublisher(string name);
-        Subscriber createSubscriber(string name);
+        Broker createBroker(string name,string site,int port);
+        Publisher createPublisher(string name,string site,int port);
+        Subscriber createSubscriber(string name,string site,int port);
 
         // When a PuppetMaster createX it returns a remoteObjectX
         // But the only way to get a remoteObjectX is to wait
@@ -95,15 +96,14 @@ namespace DADInterfaces
 
     public static class Utility
     {
-        public static string setupChannel()
+        public static string setupChannel(int port)
         {
             //create process channel
             BinaryServerFormatterSinkProvider ssp = new BinaryServerFormatterSinkProvider();
-            BinaryClientFormatterSinkProvider csp = new BinaryClientFormatterSinkProvider();
             ssp.TypeFilterLevel = System.Runtime.Serialization.Formatters.TypeFilterLevel.Full;
             IDictionary props = new Hashtable();
-            props["port"] = 0;
-            TcpChannel channel = new TcpChannel(props, csp, ssp);
+            props["port"] = port;
+            TcpChannel channel = new TcpChannel(props, null, ssp);
             ChannelServices.RegisterChannel(channel, true);
 
             // print uris
