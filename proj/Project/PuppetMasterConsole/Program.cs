@@ -35,7 +35,7 @@ namespace PuppetMasterConsole
         static void Main(string[] args)
         {
             Console.WriteLine("Started PuppetMaster");
-            string channelURI = Utility.setupChannel();
+            string channelURI = Utility.setupChannel(45000);
 
             PuppetMasterRemote puppetMaster = new PuppetMasterRemote();
             //we need to register each remote object
@@ -52,13 +52,13 @@ namespace PuppetMasterConsole
             Console.Read();
         }
 
-        public Broker createBroker(string name)
+        public Broker createBroker(string name,string site,int port)
         {
             //start processes
             Process p = new Process();
             p.StartInfo.FileName = Constants.BrokerExecutableLocation;
             Console.WriteLine("launching Broker at '{0}'",Constants.BrokerExecutableLocation);
-            p.StartInfo.Arguments = string.Format("{0} {1}",URI,name);
+            p.StartInfo.Arguments = string.Format("{0} {1} {2} {3}",URI,name,site,port);
             p.Start();
             Broker b = null;
             lock (_brokers)
@@ -74,13 +74,13 @@ namespace PuppetMasterConsole
             return b;
         }
 
-        public Publisher createPublisher(string name)
+        public Publisher createPublisher(string name,string site,int port)
         {
             //start processes
             Process p = new Process();
             p.StartInfo.FileName = Constants.PublisherExecutableLocation;
             Console.WriteLine("launching Publisher at '{0}'", Constants.PublisherExecutableLocation);
-            p.StartInfo.Arguments = string.Format("{0} {1}", URI, name);
+            p.StartInfo.Arguments = string.Format("{0} {1} {2} {3}",URI,name,site,port);
             p.Start();
             Publisher b = null;
             lock (_publishers)
@@ -96,13 +96,13 @@ namespace PuppetMasterConsole
             return b;
         }
 
-        public Subscriber createSubscriber(string name)
+        public Subscriber createSubscriber(string name,string site,int port)
         {
             //start processes
             Process p = new Process();
             p.StartInfo.FileName = Constants.SubscriberExecutableLocation;
             Console.WriteLine("launching Subscriber at '{0}'", Constants.SubscriberExecutableLocation);
-            p.StartInfo.Arguments = string.Format("{0} {1}", URI, name);
+            p.StartInfo.Arguments = string.Format("{0} {1} {2} {3}",URI,name,site,port);
             p.Start();
             Subscriber b = null;
             lock (_subscribers)
