@@ -28,7 +28,7 @@ namespace BrokerConsole
         static void Main(string[] args)
         {
             Console.WriteLine("Started Broker");
-            if (args.Length != 2)
+            if (args.Length != 4)
             {
                 Console.WriteLine("Expected {0} arguments, got {1}", 2, args.Length);
                 Console.Read();
@@ -36,6 +36,8 @@ namespace BrokerConsole
             }                        
             string puppetMasterURI = args[0];
             string brokerName = args[1];
+            string site = args[2];
+            int port = TODO
 
             string channelURI = Utility.setupChannel();           
 
