@@ -18,6 +18,8 @@ namespace BrokerConsole
         private string _name;
         private string _site;
         private string _uri;
+        private List<Publisher> _publishers;
+        private List<Subscriber> _subscribers;
 
         public BrokerRemote(PuppetMaster pm, string name, string site)
         {
@@ -112,12 +114,12 @@ namespace BrokerConsole
 
         public void setPublishers(List<Publisher> site_publishers)
         {
-            throw new NotImplementedException();
+            _publishers = site_publishers;
         }
 
         public void setSubscriber(List<Subscriber> site_subscribers)
         {
-            throw new NotImplementedException();
+            _subscribers = site_subscribers;
         }
 
         public void subscribe(SubscribeMessage msg)

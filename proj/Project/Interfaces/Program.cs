@@ -66,13 +66,14 @@ namespace DADInterfaces
     public interface Publisher: Node
     {
         void setSiteBroker(Broker site_broker);
-        void subscribe(string topic);
-        void unsubscribe(string topic);
+        void publish(string topic, string msg);
+        
     }
     public interface Subscriber: Node
     {
         void setSiteBroker(Broker site_broker);
-        void publish(string topic, string msg);
+        void subscribe(string topic);
+        void unsubscribe(string topic);
     }
 
     public interface PuppetMaster

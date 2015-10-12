@@ -14,6 +14,9 @@ namespace SubscriberConsole
         private string _name;
         private string _site;
         private string _uri;
+        private Broker _broker;
+        // used to order messages
+        private int _seqnum = 0;
 
         public SubscriberRemote(PuppetMaster pm, string name, string site)
         {
@@ -57,12 +60,7 @@ namespace SubscriberConsole
 
         public void setSiteBroker(Broker site_broker)
         {
-            throw new NotImplementedException();
-        }
-
-        public void publish(string topic, string msg)
-        {
-            throw new NotImplementedException();
+            _broker = site_broker;
         }
 
         public string getURI()
@@ -103,6 +101,19 @@ namespace SubscriberConsole
         public void unfreeze()
         {
             throw new NotImplementedException();
+        }
+
+        public void subscribe(string topic)
+        {
+
+            _broker.subscribe(new SubscribeMessage() { sender = getURI(), seqnum = _seqnum, topic = topic });
+            _seqnum += 1;
+        }
+
+        public void unsubscribe(string topic)
+        {
+            _broker.unsubscribe(new SubscribeMessage() { sender = getURI(), seqnum = _seqnum, topic = topic });
+            _seqnum += 1;
         }
     }
 }

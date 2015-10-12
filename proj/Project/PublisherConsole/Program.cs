@@ -14,6 +14,8 @@ namespace PublisherConsole
         private string _name;        
         private string _site;
         private string _uri;
+        private Broker _broker;
+        private int _seqnum;
 
         public PublisherRemote(PuppetMaster pm,string name,string site)
         {
@@ -87,27 +89,23 @@ namespace PublisherConsole
 
         public void setSiteBroker(Broker site_broker)
         {
-            throw new NotImplementedException();
+            _broker = site_broker;
         }
 
         public string status()
         {
             throw new NotImplementedException();
         }
-
-        public void subscribe(string topic)
-        {
-            throw new NotImplementedException();
-        }
-
+        
         public void unfreeze()
         {
             throw new NotImplementedException();
         }
 
-        public void unsubscribe(string topic)
+        public void publish(string topic, string msg)
         {
-            throw new NotImplementedException();
-        }        
+            _broker.publish(new PublishMessage() { sender = getURI(), seqnum = _seqnum, topic = topic, content = msg });
+            _seqnum += 1;
+        }
     }
 }

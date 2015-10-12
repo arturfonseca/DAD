@@ -48,6 +48,13 @@ namespace PuppetMasterConsole
             Broker b = puppetMaster.createBroker("broker1","site1",3333);
             Publisher p = puppetMaster.createPublisher("publisher1","site1",3334);
             Subscriber s = puppetMaster.createSubscriber("subscriber1", "site1", 3335);
+            p.setSiteBroker(b);
+            s.setSiteBroker(b);
+            b.setPublishers(new List<Publisher> { p });
+            b.setSubscriber(new List<Subscriber> { s });
+
+
+
             Console.WriteLine("Press key to leave");
             Console.Read();
         }
