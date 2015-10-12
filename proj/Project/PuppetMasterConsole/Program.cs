@@ -45,16 +45,31 @@ namespace PuppetMasterConsole
 
 
             // testing code
-            Broker b = puppetMaster.createBroker("broker1","site1",3333);
-            Publisher p = puppetMaster.createPublisher("publisher1","site1",3334);
-            Subscriber s = puppetMaster.createSubscriber("subscriber1", "site1", 3335);
-            p.setSiteBroker(b);
-            s.setSiteBroker(b);
-            b.setPublishers(new List<Publisher> { p });
-            b.setSubscriber(new List<Subscriber> { s });
+            Broker b1 = puppetMaster.createBroker("broker1","site1",3333);
+            Publisher p1 = puppetMaster.createPublisher("publisher1","site1",3334);
+            Subscriber s1 = puppetMaster.createSubscriber("subscriber1", "site1", 3335);
+            Broker b2 = puppetMaster.createBroker("broker2", "site2", 3336);
+            Subscriber s2 = puppetMaster.createSubscriber("subscriber2", "site2", 3337);
+            Publisher p2 = puppetMaster.createPublisher("publisher2", "site2", 3338);
 
+            // connect everything
+            var site1 = new Site() { name = "site1", brokers = new List<Broker>() { b1 } };
+            var site2 = new Site() { name = "site2", brokers = new List<Broker>() { b2 } };
+            //site1
+            p1.setSiteBroker(b1);
+            s1.setSiteBroker(b1);
+            b1.setPublishers(new List<Publisher> { p1 });
+            b1.setSubscribers(new List<Subscriber> { s1 });            
+            b1.setParent(site2);
+            //site2
+            s2.setSiteBroker(b2);
+            p2.setSiteBroker(b2);
+            b2.setSubscribers(new List<Subscriber>() { s2 });
+            b2.setChildren(new List<Site>() { site1 });
 
-
+            // make events happen
+            p1.publish("tempo", "hoje chove");
+            p2.publish("tempo", "hoje ha figados");
             Console.WriteLine("Press key to leave");
             Console.Read();
         }
@@ -168,6 +183,11 @@ namespace PuppetMasterConsole
                 Monitor.Pulse(_subscribers);
             }
             Console.WriteLine("registered subscriber {0}",s.getURI());
+        }
+
+        public void reportEvent(string origin_uri,string e)
+        {
+            Console.WriteLine("[Event] from:\"{0}\" \"{1}\"",origin_uri,e);
         }
     }
 }

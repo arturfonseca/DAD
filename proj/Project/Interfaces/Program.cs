@@ -50,6 +50,11 @@ namespace DADInterfaces
         public int seqnum;
         public string topic;
         public string content;
+        public string last_broker;
+        public override string ToString()
+        {
+            return String.Format("sender:{0}, seqnum:{1}, topic:{2}, content:{3}, last_broker:{4}", sender, seqnum, topic, content, last_broker);
+        }
     }
 
     public interface Broker: Node
@@ -57,11 +62,11 @@ namespace DADInterfaces
         void setParent(Site parent_site);
         void setChildren(List<Site> child_sites);
         void setPublishers(List<Publisher> site_publishers);
-        void setSubscriber(List<Subscriber> site_subscribers);
+        void setSubscribers(List<Subscriber> site_subscribers);
 
         void subscribe(SubscribeMessage msg);
         void unsubscribe(SubscribeMessage msg);
-        void publish(PublishMessage msg);        
+        void publish(PublishMessage msg);   
     }
     public interface Publisher: Node
     {
@@ -74,6 +79,7 @@ namespace DADInterfaces
         void setSiteBroker(Broker site_broker);
         void subscribe(string topic);
         void unsubscribe(string topic);
+        void receive(string topic, string content);
     }
 
     public interface PuppetMaster
@@ -93,6 +99,9 @@ namespace DADInterfaces
         void registerBroker(Broker b);
         void registerPublisher(Publisher p);
         void registerSubscriber(Subscriber s);
+
+        // used by all processes created by the puppet master to report events
+        void reportEvent(string origin_uri, string e);
     }
 
     public static class Utility

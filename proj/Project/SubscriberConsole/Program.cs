@@ -105,15 +105,29 @@ namespace SubscriberConsole
 
         public void subscribe(string topic)
         {
-
+            // TODO LOG
+            // TODO make all calls assyncs
             _broker.subscribe(new SubscribeMessage() { sender = getURI(), seqnum = _seqnum, topic = topic });
             _seqnum += 1;
         }
 
         public void unsubscribe(string topic)
         {
+            // TODO LOG
+            // TODO make all calls assyncs
             _broker.unsubscribe(new SubscribeMessage() { sender = getURI(), seqnum = _seqnum, topic = topic });
             _seqnum += 1;
+        }       
+
+        public void receive(string topic, string content)
+        {
+            log(String.Format("Received. topic:'{0}' content:'{1}'", topic, content));
+        }
+
+        void log(string e)
+        {
+            _pm.reportEvent(getURI(), e);
+            Console.WriteLine(e);
         }
     }
 }

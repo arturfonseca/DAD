@@ -102,10 +102,20 @@ namespace PublisherConsole
             throw new NotImplementedException();
         }
 
-        public void publish(string topic, string msg)
+        public void publish(string topic, string content)
         {
-            _broker.publish(new PublishMessage() { sender = getURI(), seqnum = _seqnum, topic = topic, content = msg });
+            var msg = new PublishMessage() { sender = getURI(), seqnum = _seqnum, topic = topic, content = content, last_broker = "none" };
+            log(string.Format("[publish] {0}", msg));
+            // TODO make all calls assyncs
+            _broker.publish(msg);            
             _seqnum += 1;
+            
+        }
+
+        void log(string e)
+        {
+            _pm.reportEvent(getURI(), e);
+            Console.WriteLine(e);
         }
     }
 }

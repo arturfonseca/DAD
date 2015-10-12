@@ -18,8 +18,10 @@ namespace BrokerConsole
         private string _name;
         private string _site;
         private string _uri;
-        private List<Publisher> _publishers;
-        private List<Subscriber> _subscribers;
+        private List<Publisher> _publishers = new List<Publisher>();
+        private List<Subscriber> _subscribers = new List<Subscriber>();
+        private List<Site> _childSites = new List<Site>();
+        private Site _parentSite;
 
         public BrokerRemote(PuppetMaster pm, string name, string site)
         {
@@ -94,12 +96,12 @@ namespace BrokerConsole
 
         public void setChildren(List<Site> child_sites)
         {
-            throw new NotImplementedException();
+            _childSites = child_sites;
         }
 
         public void setParent(Site parent_site)
         {
-            throw new NotImplementedException();
+            _parentSite = parent_site;
         }
 
         public string status()
@@ -117,7 +119,7 @@ namespace BrokerConsole
             _publishers = site_publishers;
         }
 
-        public void setSubscriber(List<Subscriber> site_subscribers)
+        public void setSubscribers(List<Subscriber> site_subscribers)
         {
             _subscribers = site_subscribers;
         }
@@ -134,7 +136,48 @@ namespace BrokerConsole
 
         public void publish(PublishMessage msg)
         {
-            throw new NotImplementedException();
+            // FLOODING implementation
+            // TODO discart if duplicate message
+            // TODO make all calls assyncs
+
+            log(string.Format("[Subscribe] Received event {0}",msg));
+            // send to site subscribers
+            foreach(Subscriber s in _subscribers)
+            {
+                s.receive(msg.topic, msg.content);
+            }
+
+            // send to child sites brokers
+            string last_broker = msg.last_broker;
+            msg.last_broker = getURI();
+            foreach(Site s in _childSites)
+            {
+                foreach(Broker b in s.brokers)
+                {
+                    if(b.getURI() != last_broker)
+                    {
+                        b.publish(msg);
+                    }
+                }
+            }
+            // send to parent site brokers
+            if(_parentSite != null)
+            {
+                foreach (Broker b in _parentSite.brokers)
+                {
+                    if (b.getURI() != last_broker)
+                    {
+                        b.publish(msg);
+                    }
+                }
+            }
+            
+        }
+
+        void log(string e)
+        {
+            _pm.reportEvent(getURI(), e);
+            Console.WriteLine(e);
         }
 
     }
