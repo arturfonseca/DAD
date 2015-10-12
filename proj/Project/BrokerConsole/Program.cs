@@ -14,39 +14,41 @@ namespace BrokerConsole
 {
     class BrokerRemote:MarshalByRefObject, Broker
     {
-        private string _brokerName;
-        private PuppetMaster _puppetMaster;
-        private string _uri;
+        private PuppetMaster _pm;
+        private string _name;
         private string _site;
+        private string _uri;
 
-        public BrokerRemote(string brokerName,PuppetMaster pm)
+        public BrokerRemote(PuppetMaster pm, string name, string site)
         {
-            this._brokerName = brokerName;
-            this._puppetMaster = pm;
+            _name = name;
+            _pm = pm;
+            _site = site;
         }
 
         static void Main(string[] args)
         {
             Console.WriteLine("Started Broker");
-            if (args.Length != 4)
+            int nargs = 4;
+            if (args.Length != nargs)
             {
-                Console.WriteLine("Expected {0} arguments, got {1}", 2, args.Length);
+                Console.WriteLine("Expected {0} arguments, got {1}", nargs, args.Length);
                 Console.Read();
                 return;
-            }                        
+            }
             string puppetMasterURI = args[0];
-            string brokerName = args[1];
+            string name = args[1];
             string site = args[2];
-            int port = TODO
+            int port = int.Parse(args[3]);
 
-            string channelURI = Utility.setupChannel();           
+            string channelURI = Utility.setupChannel(port);           
 
             // get the puppetMaster that started this process
             PuppetMaster pm = (PuppetMaster)Activator.GetObject(typeof(PuppetMaster), puppetMasterURI);
-            BrokerRemote broker = new BrokerRemote(brokerName,pm);
+            BrokerRemote broker = new BrokerRemote(pm,name, site);
             //we need to register each remote object
-            ObjRef o = RemotingServices.Marshal(broker, brokerName, typeof(Broker));
-            broker.setURI(string.Format("{0}/{1}", channelURI, brokerName));            
+            ObjRef o = RemotingServices.Marshal(broker, name, typeof(Broker));
+            broker.setURI(string.Format("{0}/{1}", channelURI, name));            
             Console.WriteLine("Created Broker at \"{0}\"", broker.getURI());
             
             //now that broker is created and marshalled
@@ -70,7 +72,7 @@ namespace BrokerConsole
 
         public string getName()
         {
-            return _brokerName;
+            return _name;
         }
 
         public string getSite()

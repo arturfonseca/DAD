@@ -10,34 +10,38 @@ namespace PublisherConsole
 {
     class PublisherRemote:MarshalByRefObject,Publisher
     {
-        private string _name;
         private PuppetMaster _pm;
-        private string _uri;
+        private string _name;        
         private string _site;
+        private string _uri;
 
-        public PublisherRemote(string name, PuppetMaster pm)
+        public PublisherRemote(PuppetMaster pm,string name,string site)
         {
-            this._name = name;
-            this._pm = pm;
+            _name = name;
+            _pm = pm;
+            _site = site;
         }
 
         static void Main(string[] args)
         {
-            Console.WriteLine("Started Broker");
-            if (args.Length != 2)
+            Console.WriteLine("Started Publisher");
+            int nargs = 4;
+            if (args.Length != nargs)
             {
-                Console.WriteLine("Expected {0} arguments, got {1}", 2, args.Length);
+                Console.WriteLine("Expected {0} arguments, got {1}", nargs, args.Length);
                 Console.Read();
                 return;
             }
             string puppetMasterURI = args[0];
             string name = args[1];
+            string site = args[2];
+            int port = int.Parse(args[3]);
 
-            string channelURI = Utility.setupChannel();
+            string channelURI = Utility.setupChannel(port);
 
             // get the puppetMaster that started this process
             PuppetMaster pm = (PuppetMaster)Activator.GetObject(typeof(PuppetMaster), puppetMasterURI);
-            PublisherRemote publisher = new PublisherRemote(name, pm);
+            PublisherRemote publisher = new PublisherRemote(pm,name, site);
             //we need to register each remote object
             ObjRef o = RemotingServices.Marshal(publisher, name, typeof(Publisher));
             publisher.setURI(string.Format("{0}/{1}", channelURI, name));

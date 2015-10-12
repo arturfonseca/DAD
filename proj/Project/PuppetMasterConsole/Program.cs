@@ -45,9 +45,9 @@ namespace PuppetMasterConsole
 
 
             // testing code
-            Broker b = puppetMaster.createBroker("broker1");
-            Publisher p = puppetMaster.createPublisher("publisher1");
- 
+            Broker b = puppetMaster.createBroker("broker1","site1",3333);
+            Publisher p = puppetMaster.createPublisher("publisher1","site1",3334);
+            Subscriber s = puppetMaster.createSubscriber("subscriber1", "site1", 3335);
             Console.WriteLine("Press key to leave");
             Console.Read();
         }
@@ -160,7 +160,7 @@ namespace PuppetMasterConsole
                 _subscribers.Add(s);
                 Monitor.Pulse(_subscribers);
             }
-            Console.WriteLine("registered subscriber {0}"); ;
+            Console.WriteLine("registered subscriber {0}",s.getURI());
         }
     }
 }
