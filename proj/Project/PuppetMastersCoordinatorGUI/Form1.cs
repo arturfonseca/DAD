@@ -16,5 +16,23 @@ namespace PuppetMastersCoordinatorGUI
         {
             InitializeComponent();
         }
+
+        private void button1_Click(object sender, EventArgs e)
+        {
+            string[] lines = System.IO.File.ReadAllLines(@"C:\Users\Artur Fonseca\Desktop\testinput.txt");
+
+            
+            foreach (string line in lines)
+            {
+               if (line.Contains("ORDERING"))
+                {
+                    line.Split(' ');
+                    MessageBox.Show(line[1]);
+
+                }
+               
+            }
+           
+        }
     }
 }
