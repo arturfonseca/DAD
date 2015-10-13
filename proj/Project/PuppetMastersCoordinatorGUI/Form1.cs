@@ -7,6 +7,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using System.IO;
+
 
 namespace PuppetMastersCoordinatorGUI
 {
@@ -16,35 +18,67 @@ namespace PuppetMastersCoordinatorGUI
         {
             InitializeComponent();
         }
+        
 
         private void button1_Click(object sender, EventArgs e)
         {
-            string[] lines = System.IO.File.ReadAllLines(@"C:\Users\Artur Fonseca\Desktop\testinput.txt");
+
+           
+            
+            string[] lines = System.IO.File.ReadAllLines(@"./../../../config.file");
 
 
             foreach (string line in lines)
             {
-                if (line.Contains("Ordering"))
+                string[] keywords = line.Split(' ');
+
+                if (keywords[0]=="RoutingPolicy" && keywords.Length >=2)
                 {
-                    string[] keywords = line.Split(' ');
+                    
 
                 }
-                else if (line.Contains("RoutingPolicy"))
-                {
-                    string[] keywords = line.Split(' ');
-                }
-                else if (line.Contains("Site") && line.Contains("Parent"))
+                else if (keywords[0] == "Ordering" && keywords.Length >= 2)
                 {
 
+
                 }
-                else if (line.Contains("Process") && line.Contains("Is"))
+                else if (keywords[0] == "Site" && keywords.Length >= 4)
                 {
+
+
+                }
+                else if (keywords[0] == "Process" && keywords.Length >= 8)
+                {
+                    string[] temp = keywords[7].Split('/');
+                    string remoteName = temp[3];
+                    string aux = temp[2];
+                    string ip = aux.Split(':')[0];
+                    string port = aux.Split(':')[1];
+                    switch (keywords[3])
+                    {
+                        case "publisher":
+                            
+                            //creat publisher(keywords[0],keywords[5], port);
+
+                            break;
+                        case "broker":
+                            
+                            break;
+                        case "subscriber":
+                            
+                            break;
+                        default:
+                            MessageBox.Show("Error!");
+                            break;
+                    }
+
 
                 }
                 else
                     MessageBox.Show("Error!");
             }              
 
+    
         }
     }
 }
