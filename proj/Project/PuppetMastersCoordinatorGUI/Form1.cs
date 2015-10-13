@@ -21,18 +21,30 @@ namespace PuppetMastersCoordinatorGUI
         {
             string[] lines = System.IO.File.ReadAllLines(@"C:\Users\Artur Fonseca\Desktop\testinput.txt");
 
-            
+
             foreach (string line in lines)
             {
-               if (line.Contains("ORDERING"))
+                if (line.Contains("Ordering"))
                 {
-                    line.Split(' ');
-                    MessageBox.Show(line[1]);
+                    string[] keywords = line.Split(' ');
 
                 }
-               
-            }
-           
+                else if (line.Contains("RoutingPolicy"))
+                {
+                    string[] keywords = line.Split(' ');
+                }
+                else if (line.Contains("Site") && line.Contains("Parent"))
+                {
+
+                }
+                else if (line.Contains("Process") && line.Contains("Is"))
+                {
+
+                }
+                else
+                    MessageBox.Show("Error!");
+            }              
+
         }
     }
 }
