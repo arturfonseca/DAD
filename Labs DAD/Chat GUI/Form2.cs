@@ -10,6 +10,7 @@ using System.Runtime.Remoting;
 using System.Runtime.Remoting.Channels;
 using System.Runtime.Remoting.Channels.Tcp;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
@@ -30,6 +31,7 @@ namespace WindowsFormsApplication1
         private void writeLine(string s)
         {
             _log.Text += String.Format("[{0}]{1}\r\n", DateTime.Now.ToString("HH:mm:ss"), s);
+            _log.Refresh();
         }
 
         public void recebeMsg(string nick, string msg)
@@ -52,7 +54,7 @@ namespace WindowsFormsApplication1
             IDictionary props = new Hashtable();
             props["port"] = 0; // 0 means choose a random port
             TcpChannel channel = new TcpChannel(props, csp, ssp);
-            ChannelServices.RegisterChannel(channel, true);
+            ChannelServices.RegisterChannel(channel, false);
 
             // print uris
             Log("Opened channel at uris:");
@@ -61,7 +63,7 @@ namespace WindowsFormsApplication1
             {
                Log(string.Format(" - '{0}'", url));
             }
-
+            
             //TODO input validation and sanitation          
             try
             {

@@ -85,7 +85,7 @@ namespace ChatServer
             IDictionary props = new Hashtable();
             props["port"] = 8787;
             TcpChannel channel = new TcpChannel(props, csp, ssp);
-            ChannelServices.RegisterChannel(channel, true);
+            ChannelServices.RegisterChannel(channel, false);
 
             // print uris
             Console.WriteLine("Opened channel at uris:");
