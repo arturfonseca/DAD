@@ -107,7 +107,10 @@ namespace PublisherConsole
             var msg = new PublishMessage() { sender = getURI(), seqnum = _seqnum, topic = topic, content = content, last_broker = "none" };
             log(string.Format("[publish] {0}", msg));
             // TODO make all calls assyncs
-            _broker.publish(msg);            
+            publishDelegate pd = new publishDelegate(_broker.publish);
+            IAsyncResult res = pd.BeginInvoke(msg, null, null);
+            // TODO wait for response...
+            // synchronous way _broker.publish(msg);            
             _seqnum += 1;
             
         }

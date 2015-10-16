@@ -17,6 +17,7 @@ namespace SubscriberConsole
         private Broker _broker;
         // used to order messages
         private int _seqnum = 0;
+        private List<string> _subscribedTopics = new List<string>();
 
         public SubscriberRemote(PuppetMaster pm, string name, string site)
         {
@@ -106,16 +107,28 @@ namespace SubscriberConsole
         public void subscribe(string topic)
         {
             // TODO LOG
+            if (_subscribedTopics.Contains(topic))
+            {
+                // do nothing
+                return;
+            }
+            _subscribedTopics.Add(topic);            
             // TODO make all calls assyncs
-            _broker.subscribe(new SubscribeMessage() { sender = getURI(), seqnum = _seqnum, topic = topic });
+            _broker.subscribe(new SubscribeMessage() { sub = this, seqnum = _seqnum, topic = topic , uri = getURI()});            
             _seqnum += 1;
         }
 
         public void unsubscribe(string topic)
         {
+            if (!_subscribedTopics.Contains(topic))
+            {
+                // do nothing or throw exception?
+                return;
+            }
+            _subscribedTopics.Remove(topic);
             // TODO LOG
             // TODO make all calls assyncs
-            _broker.unsubscribe(new SubscribeMessage() { sender = getURI(), seqnum = _seqnum, topic = topic });
+            _broker.unsubscribe(new UnsubscribeMessage() { sub = this, seqnum = _seqnum, topic = topic, uri = getURI() });
             _seqnum += 1;
         }       
 

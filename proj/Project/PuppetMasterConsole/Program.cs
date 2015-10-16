@@ -37,20 +37,29 @@ namespace PuppetMasterConsole
             Console.WriteLine("Started PuppetMaster");
             string channelURI = Utility.setupChannel(45000);
 
-            PuppetMasterRemote puppetMaster = new PuppetMasterRemote();
+            PuppetMasterRemote pm = new PuppetMasterRemote();
             //we need to register each remote object
-            ObjRef o = RemotingServices.Marshal(puppetMaster, Constants.PuppetMasterURI, typeof(PuppetMaster));
-            puppetMaster.URI = string.Format("{0}/{1}", channelURI, Constants.PuppetMasterURI);
-            Console.WriteLine("Created PuppetMaster at \"{0}\"", puppetMaster.URI);
+            ObjRef o = RemotingServices.Marshal(pm, Constants.PuppetMasterURI, typeof(PuppetMaster));
+            pm.URI = string.Format("{0}/{1}", channelURI, Constants.PuppetMasterURI);
+            Console.WriteLine("Created PuppetMaster at \"{0}\"", pm.URI);
+
+            test1(pm);
+       
 
 
+            Console.WriteLine("Press key to leave");
+            Console.Read();
+        }
+
+        public static void test1(PuppetMaster pm)
+        {
             // testing code
-            Broker b1 = puppetMaster.createBroker("broker1","site1",3333);
-            Publisher p1 = puppetMaster.createPublisher("publisher1","site1",3334);
-            Subscriber s1 = puppetMaster.createSubscriber("subscriber1", "site1", 3335);
-            Broker b2 = puppetMaster.createBroker("broker2", "site2", 3336);
-            Subscriber s2 = puppetMaster.createSubscriber("subscriber2", "site2", 3337);
-            Publisher p2 = puppetMaster.createPublisher("publisher2", "site2", 3338);
+            Broker b1 = pm.createBroker("broker1", "site1", 3333);
+            Publisher p1 = pm.createPublisher("publisher1", "site1", 3334);
+            Subscriber s1 = pm.createSubscriber("subscriber1", "site1", 3335);
+            Broker b2 = pm.createBroker("broker2", "site2", 3336);
+            Subscriber s2 = pm.createSubscriber("subscriber2", "site2", 3337);
+            Publisher p2 = pm.createPublisher("publisher2", "site2", 3338);
 
             // connect everything
             var site1 = new Site() { name = "site1", brokers = new List<Broker>() { b1 } };
@@ -59,19 +68,18 @@ namespace PuppetMasterConsole
             p1.setSiteBroker(b1);
             s1.setSiteBroker(b1);
             b1.setPublishers(new List<Publisher> { p1 });
-            b1.setSubscribers(new List<Subscriber> { s1 });            
+            b1.setSubscribers(new List<Subscriber> { s1 });
             b1.setParent(site2);
             //site2
             s2.setSiteBroker(b2);
             p2.setSiteBroker(b2);
             b2.setSubscribers(new List<Subscriber>() { s2 });
             b2.setChildren(new List<Site>() { site1 });
+            b2.setIsRoot(true);
 
             // make events happen
             p1.publish("tempo", "hoje chove");
             p2.publish("tempo", "hoje ha figados");
-            Console.WriteLine("Press key to leave");
-            Console.Read();
         }
 
         public Broker createBroker(string name,string site,int port)

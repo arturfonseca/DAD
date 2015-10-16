@@ -15,13 +15,19 @@ namespace BrokerConsole
     class BrokerRemote:MarshalByRefObject, Broker
     {
         private PuppetMaster _pm;
+        // personal information
         private string _name;
         private string _site;
         private string _uri;
+        private bool _isRoot;
+        // site information
         private List<Publisher> _publishers = new List<Publisher>();
         private List<Subscriber> _subscribers = new List<Subscriber>();
         private List<Site> _childSites = new List<Site>();
         private Site _parentSite;
+        //
+        Dictionary<String, List<Subscriber>> _subscriptions = new Dictionary<string, List<Subscriber>>();
+        Dictionary<string, int> _brokersSeqNums = new Dictionary<string, int>();
 
         public BrokerRemote(PuppetMaster pm, string name, string site)
         {
@@ -124,14 +130,45 @@ namespace BrokerConsole
             _subscribers = site_subscribers;
         }
 
+        private bool isDuplicate(SubscribeMessage msg)
+        {
+            if (!_brokersSeqNums.ContainsKey(msg.uri))
+            {
+                _brokersSeqNums.Add(msg.uri, 0);
+            }
+            if (msg.seqnum < _brokersSeqNums[msg.uri])
+            {
+                // its a duplicated request, discard
+                // TODO log
+                return true;
+            }
+            // if its waiting for 0 and receives 4, then next is 5, is this desired?
+            _brokersSeqNums[msg.uri] = msg.seqnum + 1;
+            return false;
+        }
         public void subscribe(SubscribeMessage msg)
         {
-            throw new NotImplementedException();
+            if (isDuplicate(msg)) return;
+
+
+            if (!_subscriptions.ContainsKey(msg.topic))
+            {
+                _subscriptions.Add(msg.topic, new List<Subscriber>());
+            }
+            _subscriptions[msg.topic].Add(msg.sub);
+            // TODO suppot * wildcard on topic
         }
 
-        public void unsubscribe(SubscribeMessage msg)
+        public void unsubscribe(UnsubscribeMessage msg)
         {
-            throw new NotImplementedException();
+            if (isDuplicate(msg)) return;
+
+            if (_subscriptions.ContainsKey(msg.topic))
+            {
+                _subscriptions[msg.topic].Remove(msg.sub);
+            }
+            // TODO
+
         }
 
         public void publish(PublishMessage msg)
@@ -180,5 +217,14 @@ namespace BrokerConsole
             Console.WriteLine(e);
         }
 
+        public void setIsRoot(bool v)
+        {
+            _isRoot = true;
+        }
+
+        public bool getIsRoot()
+        {
+            return _isRoot;
+        }
     }
 }

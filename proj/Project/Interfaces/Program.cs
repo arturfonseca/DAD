@@ -32,8 +32,8 @@ namespace DADInterfaces
     [Serializable]
     public class SubscribeMessage
     {
-        //sender URI
-        public string sender;
+        public string uri;
+        public Subscriber sub;
         // used to avoid duplicates
         public int seqnum;
         public string topic;
@@ -57,6 +57,9 @@ namespace DADInterfaces
         }
     }
 
+    public delegate void subscriberDelegate(SubscribeMessage msg);
+    public delegate void unsubscribeDelegate(SubscribeMessage msg);
+    public delegate void publishDelegate(PublishMessage msg);
     public interface Broker: Node
     {
         void setParent(Site parent_site);
@@ -65,8 +68,11 @@ namespace DADInterfaces
         void setSubscribers(List<Subscriber> site_subscribers);
 
         void subscribe(SubscribeMessage msg);
-        void unsubscribe(SubscribeMessage msg);
-        void publish(PublishMessage msg);   
+        void unsubscribe(UnsubscribeMessage msg);
+        void publish(PublishMessage msg);
+
+        void setIsRoot(bool v);
+        bool getIsRoot();
     }
     public interface Publisher: Node
     {
