@@ -26,6 +26,11 @@ namespace SubscriberConsole
             _site = site;
         }
 
+        public override object InitializeLifetimeService()
+        {
+            return null;
+        }
+
         static void Main(string[] args)
         {
             Console.WriteLine("Started Subscriber");
@@ -112,10 +117,14 @@ namespace SubscriberConsole
                 // do nothing
                 return;
             }
-            _subscribedTopics.Add(topic);            
+            _subscribedTopics.Add(topic);
             // TODO make all calls assyncs
-            _broker.subscribe(new SubscribeMessage() { sub = this, seqnum = _seqnum, topic = topic , uri = getURI()});            
+            SubscribeMessage msg = new SubscribeMessage() { sub = this, seqnum = _seqnum, topic = topic, uri = getURI() };
+            log(string.Format("Subscribe. '{0}'", msg));
+
+            _broker.subscribe(msg);            
             _seqnum += 1;
+            
         }
 
         public void unsubscribe(string topic)
@@ -128,13 +137,16 @@ namespace SubscriberConsole
             _subscribedTopics.Remove(topic);
             // TODO LOG
             // TODO make all calls assyncs
-            _broker.unsubscribe(new UnsubscribeMessage() { sub = this, seqnum = _seqnum, topic = topic, uri = getURI() });
+            UnsubscribeMessage msg = new UnsubscribeMessage() { sub = this, seqnum = _seqnum, topic = topic, uri = getURI() };
+            log(string.Format("Unsubscribe. '{0}'", msg));
+            _broker.unsubscribe(msg);
             _seqnum += 1;
+            
         }       
 
         public void receive(string topic, string content)
         {
-            log(String.Format("Received. topic:'{0}' content:'{1}'", topic, content));
+            log(string.Format("Received. topic:'{0}' content:'{1}'", topic, content));
         }
 
         void log(string e)

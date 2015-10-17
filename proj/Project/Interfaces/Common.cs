@@ -9,11 +9,13 @@ using System.Threading.Tasks;
 
 namespace DADInterfaces
 {
-    
+    public enum RoutingPolicy { flooding, filter};
+    public enum OrderingPolicy { no, fifo, total};
+
+    // A Node can be a Broker, Publisher or Subscriber
     public interface Node
     {
         string getURI();
-        void setURI(string uri);
         string status();
         string getName();
         string getSite();
@@ -37,23 +39,86 @@ namespace DADInterfaces
         // used to avoid duplicates
         public int seqnum;
         public string topic;
+        public override string ToString()
+        {
+            return string.Format("SubscribeMessage. uri='{0}', seqnum='{1}', topic='{2}'",uri,seqnum,topic);
+        }
     }
     [Serializable]
-    public class UnsubscribeMessage: SubscribeMessage {}
+    public class UnsubscribeMessage : SubscribeMessage {
+        public override string ToString()
+        {
+            return string.Format("SubscribeMessage. uri='{0}', seqnum='{1}', topic='{2}'", uri, seqnum, topic);
+        }
+    }
+
+    [Serializable]
+    // This message is sent from a Broker to a parent broker
+    public class PropagatedSubcribeMessage
+    {
+        // used to avoid duplicates
+        public int seqnum;
+        public string topic;
+        // name of the interested child site
+        public string interested_site;
+        public PropagatedSubcribeMessage(SubscribeMessage msg, string site)
+        {
+            seqnum = msg.seqnum;
+            topic = msg.topic;
+            interested_site = site;
+        }
+        public override string ToString()
+        {
+            return string.Format("PropagatedSubcribeMessage. seqnum='{0}', topic='{1}', interested_site='{2}'", seqnum, topic, interested_site);
+        }
+    }
+    [Serializable]
+    public class PropagatedUnsubscribeMessage : PropagatedSubcribeMessage {
+        public PropagatedUnsubscribeMessage(UnsubscribeMessage msg, string site): base(msg,site)
+        {           
+        }
+
+        public override string ToString()
+        {
+            return string.Format("PropagatedUnsubscribeMessage. seqnum='{0}', topic='{1}', interested_site='{2}'", seqnum, topic, interested_site);
+        }
+    } 
 
     [Serializable]
     public class PublishMessage
     {
         //sender URI
-        public string sender;
+        public string senderURI;
         // used to avoid duplicates
-        public int seqnum;
+        public int topic_seqnum;
+        public int total_seqnum;
         public string topic;
         public string content;
-        public string last_broker;
+
         public override string ToString()
         {
-            return String.Format("sender:{0}, seqnum:{1}, topic:{2}, content:{3}, last_broker:{4}", sender, seqnum, topic, content, last_broker);
+            return string.Format("sender:{0}, topic_seqnum:{1}, total_seqnum:{2}, topic:{3}, content:'{4}'",
+                senderURI, topic_seqnum, total_seqnum, topic, content);
+        }
+    }
+    [Serializable]
+    public class PropagatedPublishMessage: PublishMessage
+    {
+        public string origin_site;
+        public PropagatedPublishMessage(PublishMessage msg, string site)
+        {
+            senderURI = msg.senderURI;
+            topic_seqnum = msg.topic_seqnum;
+            total_seqnum = msg.total_seqnum;
+            topic = msg.topic;
+            content = msg.content;
+            origin_site = site;
+        }
+        public override string ToString()
+        {
+            return String.Format(
+                "sender:{0}, topic_seqnum:{1}, total_seqnum:{2}, topic:{3}, content:'{4}', interested_site:{5}",
+                senderURI, topic_seqnum, total_seqnum, topic, content, origin_site);
         }
     }
 
@@ -62,17 +127,26 @@ namespace DADInterfaces
     public delegate void publishDelegate(PublishMessage msg);
     public interface Broker: Node
     {
+        void setIsRoot(bool v);
+        bool getIsRoot();
+        void setOrderingPolicy(OrderingPolicy p);
+        void setRoutingPolicy(RoutingPolicy p);
+
         void setParent(Site parent_site);
         void setChildren(List<Site> child_sites);
         void setPublishers(List<Publisher> site_publishers);
         void setSubscribers(List<Subscriber> site_subscribers);
 
+        // methods called by Subscriber
         void subscribe(SubscribeMessage msg);
         void unsubscribe(UnsubscribeMessage msg);
+        // method called by Publisher
         void publish(PublishMessage msg);
-
-        void setIsRoot(bool v);
-        bool getIsRoot();
+        // methods called by other Brokers
+        void propagateSubscribe(PropagatedSubcribeMessage msg);
+        void propagateUnsubscribe(PropagatedUnsubscribeMessage msg);
+        void propagatePublish(PropagatedPublishMessage msg);
+            
     }
     public interface Publisher: Node
     {

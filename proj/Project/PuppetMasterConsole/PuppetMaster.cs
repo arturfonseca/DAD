@@ -28,9 +28,15 @@ namespace PuppetMasterConsole
         private List<Broker> _brokers = new List<Broker>();
         private List<Publisher> _publishers = new List<Publisher>();
         private List<Subscriber> _subscribers = new List<Subscriber>();
+        public List<Process> processes = new List<Process>();
 
         private string _uri = "";
         public string URI { get { return _uri; } set { _uri = value; } }
+
+        public override object InitializeLifetimeService()
+        {
+            return null;
+        }
 
         static void Main(string[] args)
         {
@@ -43,12 +49,48 @@ namespace PuppetMasterConsole
             pm.URI = string.Format("{0}/{1}", channelURI, Constants.PuppetMasterURI);
             Console.WriteLine("Created PuppetMaster at \"{0}\"", pm.URI);
 
-            test1(pm);
-       
-
-
+            //test1(pm);
+            test2(pm);
             Console.WriteLine("Press key to leave");
             Console.Read();
+            foreach(Process p in pm.processes)
+            {
+                p.Kill();
+            }
+        }
+
+        public static void test2(PuppetMaster pm)
+        {
+            // testing code
+            Broker b1 = pm.createBroker("broker1", "site1", 3333);
+            Publisher p1 = pm.createPublisher("publisher1", "site1", 3334);
+            Subscriber s1 = pm.createSubscriber("subscriber1", "site1", 3335);
+            Broker b2 = pm.createBroker("broker2", "site2", 3336);
+            Subscriber s2 = pm.createSubscriber("subscriber2", "site2", 3337);
+            Publisher p2 = pm.createPublisher("publisher2", "site2", 3338);
+
+            // connect everything
+            var site1 = new Site() { name = "site1", brokers = new List<Broker>() { b1 } };
+            var site2 = new Site() { name = "site2", brokers = new List<Broker>() { b2 } };
+            //site1
+            p1.setSiteBroker(b1);
+            s1.setSiteBroker(b1);
+            b1.setPublishers(new List<Publisher> { p1 });
+            b1.setSubscribers(new List<Subscriber> { s1 });
+            b1.setParent(site2);
+            //site2
+            s2.setSiteBroker(b2);
+            p2.setSiteBroker(b2);
+            b2.setSubscribers(new List<Subscriber>() { s2 });
+            b2.setChildren(new List<Site>() { site1 });
+            b2.setIsRoot(true);
+
+            // make events happen
+            s1.subscribe("arroz");
+           
+            s2.subscribe("batata");
+            p1.publish("batata", "batata");
+            p2.publish("arroz", "arroz");
         }
 
         public static void test1(PuppetMaster pm)
@@ -90,6 +132,7 @@ namespace PuppetMasterConsole
             Console.WriteLine("launching Broker at '{0}'",Constants.BrokerExecutableLocation);
             p.StartInfo.Arguments = string.Format("{0} {1} {2} {3}",URI,name,site,port);
             p.Start();
+            processes.Add(p);
             Broker b = null;
             lock (_brokers)
             {
@@ -100,7 +143,7 @@ namespace PuppetMasterConsole
                         break;
                     Monitor.Wait(_brokers);
                 }
-            }
+            }            
             return b;
         }
 
@@ -112,6 +155,7 @@ namespace PuppetMasterConsole
             Console.WriteLine("launching Publisher at '{0}'", Constants.PublisherExecutableLocation);
             p.StartInfo.Arguments = string.Format("{0} {1} {2} {3}",URI,name,site,port);
             p.Start();
+            processes.Add(p);
             Publisher b = null;
             lock (_publishers)
             {
@@ -134,6 +178,7 @@ namespace PuppetMasterConsole
             Console.WriteLine("launching Subscriber at '{0}'", Constants.SubscriberExecutableLocation);
             p.StartInfo.Arguments = string.Format("{0} {1} {2} {3}",URI,name,site,port);
             p.Start();
+            processes.Add(p);
             Subscriber b = null;
             lock (_subscribers)
             {

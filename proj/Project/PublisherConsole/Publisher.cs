@@ -15,13 +15,19 @@ namespace PublisherConsole
         private string _site;
         private string _uri;
         private Broker _broker;
-        private int _seqnum;
+        private int _total_seqnum;
+        private Dictionary<string, int> _topics_seqnum = new Dictionary<string, int>();
 
         public PublisherRemote(PuppetMaster pm,string name,string site)
         {
             _name = name;
             _pm = pm;
             _site = site;
+        }
+
+        public override object InitializeLifetimeService()
+        {
+            return null;
         }
 
         static void Main(string[] args)
@@ -104,15 +110,24 @@ namespace PublisherConsole
 
         public void publish(string topic, string content)
         {
-            var msg = new PublishMessage() { sender = getURI(), seqnum = _seqnum, topic = topic, content = content, last_broker = "none" };
+            int total_seqnum = _total_seqnum;
+            _total_seqnum += 1;
+            int topic_seqnum = 0;
+            if (!_topics_seqnum.ContainsKey(topic))
+            {
+                // obvious memory leak, because we never release tuples from dict
+                _topics_seqnum.Add(topic, 0);
+            }
+            topic_seqnum = _topics_seqnum[topic];
+            _topics_seqnum[topic] += 1;
+
+            var msg = new PublishMessage() { senderURI = getURI(), total_seqnum=total_seqnum, topic_seqnum = topic_seqnum, topic = topic, content = content};
             log(string.Format("[publish] {0}", msg));
             // TODO make all calls assyncs
             publishDelegate pd = new publishDelegate(_broker.publish);
             IAsyncResult res = pd.BeginInvoke(msg, null, null);
             // TODO wait for response...
-            // synchronous way _broker.publish(msg);            
-            _seqnum += 1;
-            
+            // synchronous way _broker.publish(msg);           
         }
 
         void log(string e)
