@@ -2,6 +2,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.Remoting;
@@ -65,7 +66,7 @@ namespace BrokerConsole
 
         static void Main(string[] args)
         {
-            Console.WriteLine("Started Broker");
+            Console.WriteLine("Started Broker, pid=\"{0}\"",Process.GetCurrentProcess().Id);
             int nargs = 4;
             if (args.Length != nargs)
             {
@@ -293,7 +294,9 @@ namespace BrokerConsole
                         Site s = _nameToSite[site];
                         foreach (var broker in s.brokers)
                         {
+
                             broker.propagatePublish(pmsg);
+                            log(string.Format("[Routing] filtering. sent event '{0}' to '{1}'", msg, broker.getURI()));
                         }
                     }
 
@@ -398,7 +401,7 @@ namespace BrokerConsole
                 foreach (Broker b in _parentSite.brokers)
                 {
                     // getURI is remote call thus expensive
-                    log(string.Format("[Routing] sent event '{0}' to parent", msg));
+                    log(string.Format("[propagatingRouting] sent event '{0}' to parent", msg));
                     b.propagatePublish(msg);
                 }
             }

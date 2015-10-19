@@ -87,6 +87,8 @@ namespace PuppetMasterConsole
             b2.setIsRoot();
 
             // make events happen
+            Console.WriteLine("All processes created and setup upped, debug now if you wish, press any key to start events");
+            Console.ReadLine();
             s1.subscribe("arroz");
            
             s2.subscribe("batata");
@@ -123,6 +125,8 @@ namespace PuppetMasterConsole
             b2.setIsRoot();
 
             // make events happen
+            Console.WriteLine("All processes created and setup upped, debug now if you wish, press any key to start events");
+            Console.ReadLine();
             p1.publish("tempo", "hoje chove");
             p2.publish("tempo", "hoje ha figados");
         }

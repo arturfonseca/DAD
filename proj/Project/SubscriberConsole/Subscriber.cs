@@ -1,6 +1,7 @@
 ﻿using DADInterfaces;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Runtime.Remoting;
 using System.Text;
@@ -33,7 +34,7 @@ namespace SubscriberConsole
 
         static void Main(string[] args)
         {
-            Console.WriteLine("Started Subscriber");
+            Console.WriteLine("Started Subscriber, pid=\"{0}\"", Process.GetCurrentProcess().Id);
             int nargs = 4;
             if (args.Length != nargs)
             {

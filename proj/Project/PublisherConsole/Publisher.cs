@@ -1,6 +1,7 @@
 ﻿using DADInterfaces;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Runtime.Remoting;
 using System.Text;
@@ -32,7 +33,7 @@ namespace PublisherConsole
 
         static void Main(string[] args)
         {
-            Console.WriteLine("Started Publisher");
+            Console.WriteLine("Started Publisher, pid=\"{0}\"", Process.GetCurrentProcess().Id);
             int nargs = 4;
             if (args.Length != nargs)
             {
