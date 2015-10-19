@@ -294,7 +294,7 @@ namespace BrokerConsole
                         Site s = _nameToSite[site];
                         foreach (var broker in s.brokers)
                         {
-                             
+
                             broker.propagatePublish(pmsg);
                             log(string.Format("[Routing] filtering. sent event '{0}' to '{1}'", msg, broker.getURI()));
                         }
