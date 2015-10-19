@@ -127,7 +127,7 @@ namespace DADInterfaces
     public delegate void publishDelegate(PublishMessage msg);
     public interface Broker: Node
     {
-        void setIsRoot(bool v);
+        void setIsRoot();
         bool getIsRoot();
         void setOrderingPolicy(OrderingPolicy p);
         void setRoutingPolicy(RoutingPolicy p);

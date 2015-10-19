@@ -194,7 +194,7 @@ namespace BrokerConsole
             Console.WriteLine(e);
         }
 
-        public void setIsRoot(bool v)
+        public void setIsRoot()
         {
             _isRoot = true;
         }

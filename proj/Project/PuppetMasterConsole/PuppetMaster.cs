@@ -83,7 +83,8 @@ namespace PuppetMasterConsole
             p2.setSiteBroker(b2);
             b2.setSubscribers(new List<Subscriber>() { s2 });
             b2.setChildren(new List<Site>() { site1 });
-            b2.setIsRoot(true);
+            Console.WriteLine("I'm executing test2");
+            b2.setIsRoot();
 
             // make events happen
             s1.subscribe("arroz");
@@ -91,6 +92,8 @@ namespace PuppetMasterConsole
             s2.subscribe("batata");
             p1.publish("batata", "batata");
             p2.publish("arroz", "arroz");
+
+            
         }
 
         public static void test1(PuppetMaster pm)
@@ -117,7 +120,7 @@ namespace PuppetMasterConsole
             p2.setSiteBroker(b2);
             b2.setSubscribers(new List<Subscriber>() { s2 });
             b2.setChildren(new List<Site>() { site1 });
-            b2.setIsRoot(true);
+            b2.setIsRoot();
 
             // make events happen
             p1.publish("tempo", "hoje chove");
