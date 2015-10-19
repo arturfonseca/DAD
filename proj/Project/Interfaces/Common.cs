@@ -22,7 +22,7 @@ namespace DADInterfaces
 
         void crash();
         void freeze();
-        void unfreeze();        
+        void unfreeze();
     }
 
     [Serializable]
