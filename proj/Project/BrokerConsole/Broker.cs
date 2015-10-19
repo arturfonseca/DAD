@@ -12,7 +12,7 @@ using System.Threading.Tasks;
 
 namespace BrokerConsole
 {
-    class BrokerRemote:MarshalByRefObject, Broker
+    class BrokerRemote : MarshalByRefObject, Broker
     {
         private PuppetMaster _pm;
         // personal information
@@ -28,8 +28,9 @@ namespace BrokerConsole
         private List<Subscriber> _subscribers = new List<Subscriber>();
         // uri to subscriber
         private Dictionary<string, Subscriber> _uriToSubs = new Dictionary<string, Subscriber>();
-        // key = subscriber_uri, value = list of topics
-        Dictionary<string, List<string>> _subscriptions = new Dictionary<string, List<string>>();
+
+        // key = topic value= subscribers uri
+        Dictionary<string, List<string>> _topicSubscriptions = new Dictionary<string, List<string>>();
         // key = subscriber_uri, value = seqnum
         Dictionary<string, int> _subscribersSeqNums = new Dictionary<string, int>();
 
@@ -37,15 +38,17 @@ namespace BrokerConsole
         private List<Site> _childSites = new List<Site>();
         // site_name to Site
         private Dictionary<string, Site> _nameToSite = new Dictionary<string, Site>();
-        // key = site name, value = list of topics
-        Dictionary<string, List<string>> _childrenSubscriptions = new Dictionary<string, List<string>>();
-        
-        private Site _parentSite;    
+        // key = topic, value = list of interested sites
+        Dictionary<string, List<string>> _topicSites = new Dictionary<string, List<string>>();
+
+
+
+        private Site _parentSite;
 
         private OrderingPolicy _orderingPolicy;
         private RoutingPolicy _routingPolicy;
 
-        public BrokerRemote(PuppetMaster pm,string uri, string name, string site)
+        public BrokerRemote(PuppetMaster pm, string uri, string name, string site)
         {
             _uri = uri;
             _name = name;
@@ -75,14 +78,14 @@ namespace BrokerConsole
             string site = args[2];
             int port = int.Parse(args[3]);
 
-            string channelURI = Utility.setupChannel(port);           
+            string channelURI = Utility.setupChannel(port);
 
             // get the puppetMaster that started this process
             PuppetMaster pm = (PuppetMaster)Activator.GetObject(typeof(PuppetMaster), puppetMasterURI);
             string uri = string.Format("{0}/{1}", channelURI, name);
-            BrokerRemote broker = new BrokerRemote(pm,uri, name, site);
+            BrokerRemote broker = new BrokerRemote(pm, uri, name, site);
             //we need to register each remote object
-            ObjRef o = RemotingServices.Marshal(broker, name, typeof(Broker));     
+            ObjRef o = RemotingServices.Marshal(broker, name, typeof(Broker));
             Console.WriteLine("Created Broker at \"{0}\"", broker.getURI());
 
             //now that broker is created and marshalled
@@ -131,7 +134,7 @@ namespace BrokerConsole
         public void setChildren(List<Site> child_sites)
         {
             _childSites = child_sites;
-            foreach(Site s in child_sites)
+            foreach (Site s in child_sites)
             {
                 _nameToSite.Add(s.name, s);
             }
@@ -160,7 +163,7 @@ namespace BrokerConsole
         public void setSubscribers(List<Subscriber> site_subscribers)
         {
             _subscribers = site_subscribers;
-            foreach(Subscriber s in site_subscribers)
+            foreach (Subscriber s in site_subscribers)
             {
                 _uriToSubs.Add(s.getURI(), s);
             }
@@ -206,17 +209,27 @@ namespace BrokerConsole
 
         public void subscribe(SubscribeMessage msg)
         {
-            
+
             log(string.Format("[Subscribe] Received event '{0}'", msg));
             //if (isDuplicate(msg)) return;
             // should we have FIFO order here?
 
-            if (!_subscriptions.ContainsKey(msg.uri))
+
+            if (!_topicSubscriptions.ContainsKey(msg.topic))
             {
-                _subscriptions.Add(msg.uri, new List<string>());
+                _topicSubscriptions.Add(msg.topic, new List<string>());
             }
-            _subscriptions[msg.uri].Add(msg.topic);
-            
+            _topicSubscriptions[msg.topic].Add(msg.uri);
+            PropagatedSubcribeMessage pmsg = new PropagatedSubcribeMessage(msg, _site);
+            if (_parentSite != null)
+            {
+                foreach (Broker b in _parentSite.brokers)
+                {
+                    b.propagateSubscribe(pmsg);
+                }
+            }
+           
+            //TODO assyncronous
             // TODO send subscribe to parent
             // TODO suppot * wildcard on topic
         }
@@ -226,15 +239,21 @@ namespace BrokerConsole
             log(string.Format("[Unsubscribe] Received event '{0}'", msg));
             if (isDuplicate(msg)) return;
 
-            if (_subscriptions.ContainsKey(msg.uri))
+
+            if (_topicSubscriptions.ContainsKey(msg.topic))
             {
-                _subscriptions[msg.uri].Remove(msg.topic);
-                if(_subscriptions[msg.uri].Count == 0)
+                _topicSubscriptions[msg.topic].Remove(msg.uri);
+                if (_topicSubscriptions[msg.topic].Count == 0)
                 {
-                    _subscriptions.Remove(msg.uri);
+                    _topicSubscriptions.Remove(msg.topic);
                 }
             }
-            // TODO send unsubcribe to parent
+            PropagatedUnsubscribeMessage pmsg = new PropagatedUnsubscribeMessage(msg, _site);
+            foreach (Broker b in _parentSite.brokers)
+            {
+                b.propagateUnsubscribe(pmsg);
+            }
+            // TODO assyncronous
 
         }
 
@@ -244,7 +263,7 @@ namespace BrokerConsole
             // TODO discart if duplicate message
             // TODO make all calls assyncs
 
-            log(string.Format("[Publish] Received event '{0}'",msg));
+            log(string.Format("[Publish] Received event '{0}'", msg));
             deliver(msg);
             routing(msg);
         }
@@ -267,16 +286,18 @@ namespace BrokerConsole
             }
             else // routing policy is filtering
             {
-                foreach (var pair in _childrenSubscriptions)
+                foreach (var pair in _topicSites)
                 {
-                    if (pair.Value.Contains(msg.topic))
+                    foreach (var site in pair.Value)
                     {
-                        List<Broker> brokers = _nameToSite[pair.Key].brokers;
-                        foreach (Broker b in brokers)
+                        Site s = _nameToSite[site];
+                        foreach (var broker in s.brokers)
                         {
-                            b.propagatePublish(pmsg);
+                            broker.propagatePublish(pmsg);
                         }
                     }
+
+
                 }
             }
 
@@ -296,25 +317,27 @@ namespace BrokerConsole
         private void deliver(PublishMessage msg)
         {
             // send to current site subscribers
-            foreach (var pair in _subscriptions)
+
+            if (_topicSubscriptions.ContainsKey(msg.topic))
             {
-                // only send if subscribed
-                if (pair.Value.Contains(msg.topic))
+                foreach (string uri in _topicSubscriptions[msg.topic])
                 {
-                    log(string.Format("[Deliver] sent event '{0}' to '{1}'", msg, pair.Key));
-                    _uriToSubs[pair.Key].receive(msg.topic, msg.content);
+                    Subscriber s = _uriToSubs[uri];
+                    // assync
+                    s.receive(msg.topic, msg.content);
+                    log(string.Format("[Deliver] sent event '{0}' to '{1}'", msg, uri));
                 }
             }
         }
 
         public void propagateSubscribe(PropagatedSubcribeMessage msg)
         {
-            throw new NotImplementedException();
+            //throw new NotImplementedException();
         }
 
         public void propagateUnsubscribe(PropagatedUnsubscribeMessage msg)
         {
-            throw new NotImplementedException();
+           // throw new NotImplementedException();
         }
 
         public void propagatePublish(PropagatedPublishMessage msg)
@@ -332,7 +355,7 @@ namespace BrokerConsole
             {
                 foreach (var s in _childSites)
                 {
-                    if(s.name != origin_site)
+                    if (s.name != origin_site)
                     {
                         foreach (var b in s.brokers)
                         {
@@ -341,27 +364,31 @@ namespace BrokerConsole
                             b.propagatePublish(msg);
                         }
                     }
-                    
+
                 }
             }
             else // routing policy is filtering
             {
-                foreach (var pair in _childrenSubscriptions)
+                foreach (var pair in _topicSites)
                 {
-                    if(pair.Key != origin_site)
+                    foreach (var site in pair.Value)
                     {
-                        // TODO add * wildcard support
-                        if (pair.Value.Contains(msg.topic))
+                        if (site != origin_site)
                         {
-                            List<Broker> brokers = _nameToSite[pair.Key].brokers;
-                            foreach (Broker b in brokers)
+                            Site s = _nameToSite[site];
+                            foreach (var broker in s.brokers)
                             {
-                                b.propagatePublish(msg);
+                                broker.propagatePublish(msg);
+                                log(string.Format("[propagatingRouting] filtering. sent event '{0}' to '{1}'", msg, broker.getURI()));
                             }
                         }
                     }
-                    
+
+
+
+
                 }
+
             }
 
             // send to parent site brokers
