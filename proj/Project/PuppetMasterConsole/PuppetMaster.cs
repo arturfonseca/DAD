@@ -49,8 +49,8 @@ namespace PuppetMasterConsole
             pm.URI = string.Format("{0}/{1}", channelURI, Constants.PuppetMasterURI);
             Console.WriteLine("Created PuppetMaster at \"{0}\"", pm.URI);
 
-            //test1(pm);
-            test2(pm);
+            test1(pm);
+            //test2(pm);
             Console.WriteLine("Press key to leave");
             Console.Read();
             // quick way to close all windows
@@ -110,31 +110,22 @@ namespace PuppetMasterConsole
             Broker b1 = pm.createBroker("broker1", "site1", 3333);
             Publisher p1 = pm.createPublisher("publisher1", "site1", 3334);
             Subscriber s1 = pm.createSubscriber("subscriber1", "site1", 3335);
-            Broker b2 = pm.createBroker("broker2", "site2", 3336);
-            Subscriber s2 = pm.createSubscriber("subscriber2", "site2", 3337);
-            Publisher p2 = pm.createPublisher("publisher2", "site2", 3338);
-
-            // connect everything
-            var site1 = new Site() { name = "site1", brokers = new List<Broker>() { b1 } };
-            var site2 = new Site() { name = "site2", brokers = new List<Broker>() { b2 } };
+            // connect everything           
             //site1
             p1.setSiteBroker(b1);
             s1.setSiteBroker(b1);
             b1.setPublishers(new List<Publisher> { p1 });
             b1.setSubscribers(new List<Subscriber> { s1 });
-            b1.setParent(site2);
-            //site2
-            s2.setSiteBroker(b2);
-            p2.setSiteBroker(b2);
-            b2.setSubscribers(new List<Subscriber>() { s2 });
-            b2.setChildren(new List<Site>() { site1 });
-            b2.setIsRoot();
-
             // make events happen
             Console.WriteLine("All processes created and setup upped, debug now if you wish, press any key to start events");
             Console.ReadLine();
-            p1.publish("tempo", "hoje chove");
-            p2.publish("tempo", "hoje ha figados");
+            s1.subscribe("/tempo/lisboa");
+            p1.publish("/tempo/lisboa", "chove");
+            p1.publish("/tempo/porto", "neve");
+            Console.WriteLine("phase 1 complete. press key to continue");
+            Console.ReadLine();
+            s1.subscribe("/tempo/*");
+            p1.publish("/tempo/porto", "neve");
         }
 
         public Broker createBroker(string name,string site,int port)

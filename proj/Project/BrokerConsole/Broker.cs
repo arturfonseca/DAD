@@ -309,22 +309,26 @@ namespace BrokerConsole
 
         private void deliver(PublishMessage msg)
 		{
+            // to avoid sending two times, we use a list
+            List<string> sentUris = new List<string>();
 			// send to current site subscribers
 			// TODO suppot * wildcard on topic
-			if (_topicSubscribers.ContainsKey(msg.topic))
-			{
-				foreach (string uri in _topicSubscribers[msg.topic])
-				{
-					Subscriber s = _uriToSubs[uri];
+            foreach(var subscribedTopic in _topicSubscribers.Keys)
+            {
+                if (!equivalentTopic(msg.topic, subscribedTopic))
+                    continue;
+                foreach(var uri in _topicSubscribers[subscribedTopic])
+                {
+                    if (sentUris.Contains(uri))
+                        continue;
+                    Subscriber s = _uriToSubs[uri];
                     // TODO assync
                     log(string.Format("[Deliver] sent event '{0}' to '{1}'", msg, uri));
                     s.receive(msg.topic, msg.content);
-					
-				}
-			}
-		}
-
-		
+                }
+            }
+			
+		}	
 
 		public void publish(PublishMessage msg)
 		{
@@ -364,6 +368,28 @@ namespace BrokerConsole
 			}
 			else // routing policy is filtering
 			{
+                List<string> sentSites = new List<string>();
+
+                foreach (var subscribedTopic in _topicSites.Keys)
+                {
+                    if (!equivalentTopic(msg.topic, subscribedTopic))
+                        continue;
+                    foreach (var site_name in _topicSites[subscribedTopic])
+                    {
+                        if (sentSites.Contains(site_name))
+                            continue;           
+                        var site = _nameToSite[site_name];
+                        foreach (var broker in site.brokers)
+                        {
+                            // using broker.getURI() increases network traffic
+                            log(string.Format("[propagatingRouting] filtering. sent event '{0}' to '{1}'", msg, broker.getURI()));
+                            // TODO make assynchronous
+                            broker.propagatePublish(pmsg);
+                        }
+                    }
+                }
+
+                /*
                 if (_topicSites.ContainsKey(msg.topic))
                 {
 
@@ -380,6 +406,7 @@ namespace BrokerConsole
 						}
 					}
 				}
+                */
 			}
 
 			// send to parent site brokers
@@ -457,12 +484,15 @@ namespace BrokerConsole
 					}
 				}
                 */
+                List<string> sentSites = new List<string>();
                 foreach(var subscribedTopic in _topicSites.Keys)
                 {
                     if (!equivalentTopic(msg.topic, subscribedTopic))
                         continue;
                     foreach(var site_name in _topicSites[subscribedTopic])
                     {
+                        if (sentSites.Contains(site_name))
+                            continue;
                         if (site_name == origin_site)
                             continue;
                         var site = _nameToSite[site_name];
