@@ -396,6 +396,23 @@ namespace BrokerConsole
 			}
 		}
 
+        private bool equivalentTopic(string publishTopic, string subscribedTopic)
+        {
+            if (string.Compare(publishTopic, subscribedTopic) == 0)
+                return true;
+            
+            // example if publishTopic = "/a/b/c/d"
+            // and subscriberTopic = "/a/b/*"            
+            if(subscribedTopic[subscribedTopic.Length - 1] == '*')
+            {
+                // prefix = "/a/b/
+                var prefix = subscribedTopic.Substring(0, subscribedTopic.Length - 1);
+                // true because "/a/b/c/d" starts with "/a/b/"
+                if (publishTopic.StartsWith(prefix))
+                    return true;
+            }
+            return false;
+        }
 		private void propagatingRouting(PropagatedPublishMessage msg)
 		{
 			string origin_site = msg.origin_site;
@@ -419,7 +436,7 @@ namespace BrokerConsole
 			}
 			else // routing policy is filtering
 			{
-
+                /*
                 if (_topicSites.ContainsKey(msg.topic))
                 {
 
@@ -439,6 +456,25 @@ namespace BrokerConsole
 						}
 					}
 				}
+                */
+                foreach(var subscribedTopic in _topicSites.Keys)
+                {
+                    if (!equivalentTopic(msg.topic, subscribedTopic))
+                        continue;
+                    foreach(var site_name in _topicSites[subscribedTopic])
+                    {
+                        if (site_name == origin_site)
+                            continue;
+                        var site = _nameToSite[site_name];
+                        foreach(var broker in site.brokers)
+                        {                            
+                            // using broker.getURI() increases network traffic
+                            log(string.Format("[propagatingRouting] filtering. sent event '{0}' to '{1}'", msg, broker.getURI()));
+                            // TODO make assynchronous
+                            broker.propagatePublish(msg);
+                        }
+                    }
+                }
 
 			}
 

@@ -53,6 +53,7 @@ namespace PuppetMasterConsole
             test2(pm);
             Console.WriteLine("Press key to leave");
             Console.Read();
+            // quick way to close all windows
             foreach(Process p in pm.processes)
             {
                 try {
