@@ -364,9 +364,10 @@ namespace BrokerConsole
 			}
 			else // routing policy is filtering
 			{
-				foreach (var pair in _topicSites)
-				{
-					foreach (var site in pair.Value)
+                if (_topicSites.ContainsKey(msg.topic))
+                {
+
+                    foreach (var site in _topicSites[msg.topic])
 					{
 						Site s = _nameToSite[site];
 						foreach (var broker in s.brokers)
@@ -418,9 +419,11 @@ namespace BrokerConsole
 			}
 			else // routing policy is filtering
 			{
-				foreach (var pair in _topicSites)
-				{
-					foreach (var site in pair.Value)
+
+                if (_topicSites.ContainsKey(msg.topic))
+                {
+
+					foreach (var site in _topicSites[msg.topic])
 					{
 						if (site != origin_site) // we dont send msg back to who sent it to us
 						{
@@ -436,6 +439,7 @@ namespace BrokerConsole
 						}
 					}
 				}
+
 			}
 
 			// send to parent site brokers

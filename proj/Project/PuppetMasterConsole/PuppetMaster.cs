@@ -55,7 +55,10 @@ namespace PuppetMasterConsole
             Console.Read();
             foreach(Process p in pm.processes)
             {
-                p.Kill();
+                try {
+                    p.Kill();
+                }
+                catch (System.InvalidOperationException) { }
             }
         }
 
@@ -78,6 +81,7 @@ namespace PuppetMasterConsole
             b1.setPublishers(new List<Publisher> { p1 });
             b1.setSubscribers(new List<Subscriber> { s1 });
             b1.setParent(site2);
+            b1.setRoutingPolicy(RoutingPolicy.filter);
             //site2
             s2.setSiteBroker(b2);
             p2.setSiteBroker(b2);
@@ -85,6 +89,7 @@ namespace PuppetMasterConsole
             b2.setChildren(new List<Site>() { site1 });
             Console.WriteLine("I'm executing test2");
             b2.setIsRoot();
+            b2.setRoutingPolicy(RoutingPolicy.filter);
 
             // make events happen
             Console.WriteLine("All processes created and setup upped, debug now if you wish, press any key to start events");
