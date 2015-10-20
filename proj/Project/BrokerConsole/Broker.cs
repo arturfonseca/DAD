@@ -42,8 +42,8 @@ namespace BrokerConsole
 		// key = topic, value = list of interested sites
 		Dictionary<string, List<string>> _topicSites = new Dictionary<string, List<string>>();
 
-
-
+        // can be null
+        private Object _parentSiteLock = new object();
 		private Site _parentSite;
 
 		private OrderingPolicy _orderingPolicy;
@@ -192,18 +192,22 @@ namespace BrokerConsole
 
 		private bool isDuplicate(SubscribeMessage msg)
 		{
-			if (!_subscribersSeqNums.ContainsKey(msg.uri))
-			{
-				_subscribersSeqNums.Add(msg.uri, 0);
-			}
-			if (msg.seqnum < _subscribersSeqNums[msg.uri])
-			{
-				// its a duplicated request, discard
-				log(string.Format("[isDuplicate] detected duplicated, discarding. expected seqnum:'{0}', msg:'{1}'", _subscribersSeqNums[msg.uri], msg));
-				return true;
-			}
-			// if its waiting for 0 and receives 4, then next is 5, is this desired?
-			_subscribersSeqNums[msg.uri] = msg.seqnum + 1;
+            lock (_subscribersSeqNums)
+            {
+                if (!_subscribersSeqNums.ContainsKey(msg.uri))
+                {
+                    _subscribersSeqNums.Add(msg.uri, 0);
+                }
+                if (msg.seqnum < _subscribersSeqNums[msg.uri])
+                {
+                    // its a duplicated request, discard
+                    log(string.Format("[isDuplicate] detected duplicated, discarding. expected seqnum:'{0}', msg:'{1}'", _subscribersSeqNums[msg.uri], msg));
+                    return true;
+                }
+                // if its waiting for 0 and receives 4, then next is 5, is this desired?
+                _subscribersSeqNums[msg.uri] = msg.seqnum + 1;
+            }
+			
 			return false;
 		}
 
@@ -218,116 +222,146 @@ namespace BrokerConsole
 		{
 			log(string.Format("[Subscribe] Received event '{0}'", msg));
 			if (isDuplicate(msg)) return;
-			// should we have FIFO order here?
-
-			if (!_topicSubscribers.ContainsKey(msg.topic))
-			{
-				_topicSubscribers.Add(msg.topic, new List<string>());
-			}
-			_topicSubscribers[msg.topic].Add(msg.uri);
+            // should we have FIFO order here?
+            lock (_topicSubscribers)
+            {
+                if (!_topicSubscribers.ContainsKey(msg.topic))
+                {
+                    _topicSubscribers.Add(msg.topic, new List<string>());
+                }
+                _topicSubscribers[msg.topic].Add(msg.uri);
+            }			
 			PropagatedSubcribeMessage pmsg = new PropagatedSubcribeMessage(msg, _site);
-			// propagate subscribe only to parent, taking advantage of tree strucure
-			if (_parentSite != null)
-			{
-				foreach (Broker b in _parentSite.brokers)
-				{
-                    //TODO assyncronous
-                    log(string.Format("[subscribe] senting '{0}' to parent site '{1}'",pmsg,_parentSite.name));
-					b.propagateSubscribe(pmsg);
-				}
-			}
+            // propagate subscribe only to parent, taking advantage of tree strucure
+            lock (_parentSiteLock)
+            {
+                if (_parentSite != null)
+                {
+                    foreach (Broker b in _parentSite.brokers)
+                    {
+                        //TODO assyncronous
+                        log(string.Format("[subscribe] senting '{0}' to parent site '{1}'", pmsg, _parentSite.name));
+                        b.propagateSubscribe(pmsg);
+                    }
+                }
+            }
+			
 		}
 
         public void propagateSubscribe(PropagatedSubcribeMessage msg)
         {
             log(string.Format("[propagateSubscribe] Received event '{0}'", msg));
             // TODO deal with duplicate messages. using which seqnum?...
-            if (!_topicSites.ContainsKey(msg.topic))
+            lock (_topicSites)
             {
-                _topicSites.Add(msg.topic, new List<string>());
-            }
-            _topicSites[msg.topic].Add(msg.interested_site);
-            msg.interested_site = _site;
-            if(_parentSite != null)
-            {
-                foreach(var b in _parentSite.brokers)
+                if (!_topicSites.ContainsKey(msg.topic))
                 {
-                    log(string.Format("[subscribe] senting '{0}' to parent site '{1}'", msg, _parentSite.name));
-                    //TODO assync
-                    b.propagateSubscribe(msg);
+                    _topicSites.Add(msg.topic, new List<string>());
+                }
+                _topicSites[msg.topic].Add(msg.interested_site);
+            }            
+            msg.interested_site = _site;
+            lock (_parentSiteLock)
+            {
+                if (_parentSite != null)
+                {
+                    foreach (var b in _parentSite.brokers)
+                    {
+                        log(string.Format("[subscribe] senting '{0}' to parent site '{1}'", msg, _parentSite.name));
+                        //TODO assync
+                        b.propagateSubscribe(msg);
+                    }
                 }
             }
+            
         }
 
         public void unsubscribe(UnsubscribeMessage msg)
 		{
 			log(string.Format("[Unsubscribe] Received event '{0}'", msg));
 			if (isDuplicate(msg)) return;
-			// should we have FIFO order here?
-
-			if (_topicSubscribers.ContainsKey(msg.topic))
-			{
-				_topicSubscribers[msg.topic].Remove(msg.uri);
-				if (_topicSubscribers[msg.topic].Count == 0)
-				{
-					_topicSubscribers.Remove(msg.topic);
-				}
-			}
+            // should we have FIFO order here?
+            lock (_topicSubscribers)
+            {
+                if (_topicSubscribers.ContainsKey(msg.topic))
+                {
+                    _topicSubscribers[msg.topic].Remove(msg.uri);
+                    if (_topicSubscribers[msg.topic].Count == 0)
+                    {
+                        _topicSubscribers.Remove(msg.topic);
+                    }
+                }
+            }			
 			PropagatedUnsubscribeMessage pmsg = new PropagatedUnsubscribeMessage(msg, _site);
-			// propagate unsubscribe only to parent, taking advantage of tree strucure
-			foreach (Broker b in _parentSite.brokers)
-			{
-                log(string.Format("[subscribe] senting '{0}' to parent site '{1}'", pmsg, _parentSite.name));
-                // TODO assyncronous
-                b.propagateUnsubscribe(pmsg);
-			}
+            // propagate unsubscribe only to parent, taking advantage of tree strucure
+            lock (_parentSiteLock)
+            {
+                if (_parentSite != null)
+                {
+                    foreach (Broker b in _parentSite.brokers)
+                    {
+                        log(string.Format("[subscribe] senting '{0}' to parent site '{1}'", pmsg, _parentSite.name));
+                        // TODO assyncronous
+                        b.propagateUnsubscribe(pmsg);
+                    }
+                }
+            }			
 		}
 
         public void propagateUnsubscribe(PropagatedUnsubscribeMessage msg)
         {
             log(string.Format("[propagateUnsubscribe] Received event '{0}'", msg));
             // TODO deal with duplicate messages. using which seqnum?...
-            if (_topicSites.ContainsKey(msg.topic))
+            lock (_topicSites)
             {
-                _topicSites[msg.topic].Remove(msg.interested_site);
-                if (_topicSubscribers[msg.topic].Count == 0)
+                if (_topicSites.ContainsKey(msg.topic))
                 {
-                    _topicSubscribers.Remove(msg.topic);
+                    _topicSites[msg.topic].Remove(msg.interested_site);
+                    if (_topicSubscribers[msg.topic].Count == 0)
+                    {
+                        _topicSubscribers.Remove(msg.topic);
+                    }
                 }
-            }          
+            }           
             msg.interested_site = _site;
-            if (_parentSite != null)
+            lock (_parentSiteLock)
             {
-                foreach (var b in _parentSite.brokers)
+                if (_parentSite != null)
                 {
-                    log(string.Format("[subscribe] senting '{0}' to parent site '{1}'", msg, _parentSite.name));
-                    //TODO assync
-                    b.propagateSubscribe(msg);
+                    foreach (var b in _parentSite.brokers)
+                    {
+                        log(string.Format("[subscribe] senting '{0}' to parent site '{1}'", msg, _parentSite.name));
+                        //TODO assync
+                        b.propagateSubscribe(msg);
+                    }
                 }
             }
+            
         }
 
         private void deliver(PublishMessage msg)
 		{
             // to avoid sending two times, we use a list
             List<string> sentUris = new List<string>();
-			// send to current site subscribers
-			// TODO suppot * wildcard on topic
-            foreach(var subscribedTopic in _topicSubscribers.Keys)
+            // send to current site subscribers
+            // TODO suppot * wildcard on topic
+            lock (_topicSubscribers)
             {
-                if (!equivalentTopic(msg.topic, subscribedTopic))
-                    continue;
-                foreach(var uri in _topicSubscribers[subscribedTopic])
+                foreach (var subscribedTopic in _topicSubscribers.Keys)
                 {
-                    if (sentUris.Contains(uri))
+                    if (!equivalentTopic(msg.topic, subscribedTopic))
                         continue;
-                    Subscriber s = _uriToSubs[uri];
-                    // TODO assync
-                    log(string.Format("[Deliver] sent event '{0}' to '{1}'", msg, uri));
-                    s.receive(msg.topic, msg.content);
+                    foreach (var uri in _topicSubscribers[subscribedTopic])
+                    {
+                        if (sentUris.Contains(uri))
+                            continue;
+                        Subscriber s = _uriToSubs[uri];
+                        // TODO assync
+                        log(string.Format("[Deliver] sent event '{0}' to '{1}'", msg, uri));
+                        s.receive(msg.topic, msg.content);
+                    }
                 }
-            }
-			
+            }		
 		}	
 
 		public void publish(PublishMessage msg)
@@ -355,72 +389,73 @@ namespace BrokerConsole
 
 			if (_routingPolicy == RoutingPolicy.flooding)
 			{
-				foreach (var s in _childSites)
-				{
-					foreach (var b in s.brokers)
-					{
-						// TODO broker.getURI() is slow, we should use a cache
-						log(string.Format("[Routing] flooding. sent event '{0}' to '{1}'", msg, b.getURI()));
-						// TODO assync
-						b.propagatePublish(pmsg);
-					}
-				}
+                lock (_childSites)
+                {
+                    foreach (var s in _childSites)
+                    {
+                        lock (s)
+                        {
+                            foreach (var b in s.brokers)
+                            {
+                                // TODO broker.getURI() is slow, we should use a cache
+                                log(string.Format("[Routing] flooding. sent event '{0}' to '{1}'", msg, b.getURI()));
+                                // TODO assync
+                                b.propagatePublish(pmsg);
+                            }
+                        }
+                       
+                    }
+                }
+				
 			}
 			else // routing policy is filtering
 			{
                 List<string> sentSites = new List<string>();
 
-                foreach (var subscribedTopic in _topicSites.Keys)
+                lock (_topicSubscribers)
                 {
-                    if (!equivalentTopic(msg.topic, subscribedTopic))
-                        continue;
-                    foreach (var site_name in _topicSites[subscribedTopic])
+                    foreach (var subscribedTopic in _topicSites.Keys)
                     {
-                        if (sentSites.Contains(site_name))
-                            continue;           
-                        var site = _nameToSite[site_name];
-                        foreach (var broker in site.brokers)
+                        if (!equivalentTopic(msg.topic, subscribedTopic))
+                            continue;
+                        foreach (var site_name in _topicSites[subscribedTopic])
                         {
-                            // using broker.getURI() increases network traffic
-                            log(string.Format("[propagatingRouting] filtering. sent event '{0}' to '{1}'", msg, broker.getURI()));
-                            // TODO make assynchronous
-                            broker.propagatePublish(pmsg);
+                            if (sentSites.Contains(site_name))
+                                continue;
+                            var site = _nameToSite[site_name];
+                            lock (site)
+                            {
+                                foreach (var broker in site.brokers)
+                                {
+                                    // using broker.getURI() increases network traffic
+                                    log(string.Format("[propagatingRouting] filtering. sent event '{0}' to '{1}'", msg, broker.getURI()));
+                                    // TODO make assynchronous
+                                    broker.propagatePublish(pmsg);
+                                }
+                            }
+                            
                         }
                     }
                 }
+                         
+			}
 
-                /*
-                if (_topicSites.ContainsKey(msg.topic))
+            // send to parent site brokers
+            // always send publish to parent, doesnt matter if interested in topic
+            lock (_parentSiteLock)
+            {
+                if (_parentSite != null)
                 {
-
-                    foreach (var site in _topicSites[msg.topic])
-					{
-						Site s = _nameToSite[site];
-						foreach (var broker in s.brokers)
-						{
-							// TODO broker.getURI() is slow, we should use a cache
-							log(string.Format("[Routing] filtering. sent event '{0}' to '{1}'", msg, broker.getURI()));
-							// TODO assync
-							broker.propagatePublish(pmsg);
-
-						}
-					}
-				}
-                */
-			}
-
-			// send to parent site brokers
-			// always send publish to parent, doesnt matter if interested in topic
-			if (_parentSite != null)
-			{
-				foreach (Broker b in _parentSite.brokers)
-				{
-					// TODO broker.getURI() is slow, we should use a cache
-					log(string.Format("[Routing] sent event '{0}' to parent broker '{1}'", msg, b.getURI()));
-					// TODO assync
-					b.propagatePublish(pmsg);
-				}
-			}
+                    foreach (Broker b in _parentSite.brokers)
+                    {
+                        // TODO broker.getURI() is slow, we should use a cache
+                        log(string.Format("[Routing] sent event '{0}' to parent broker '{1}'", msg, b.getURI()));
+                        // TODO assync
+                        b.propagatePublish(pmsg);
+                    }
+                }
+            }
+			
 		}
 
         private bool equivalentTopic(string publishTopic, string subscribedTopic)
@@ -440,86 +475,85 @@ namespace BrokerConsole
             }
             return false;
         }
+
 		private void propagatingRouting(PropagatedPublishMessage msg)
 		{
 			string origin_site = msg.origin_site;
 			msg.origin_site = _site;
 			if (_routingPolicy == RoutingPolicy.flooding)
 			{
-				foreach (var s in _childSites)
-				{
-					if (s.name != origin_site)
-					{
-						foreach (var b in s.brokers)
-						{
-							// TODO broker.getURI() is slow, we should use a cache
-							log(string.Format("[propagatingRouting] flooding. sent event '{0}' to '{1}'", msg, b.getURI()));
-							// TODO assync
-							b.propagatePublish(msg);
-						}
-					}
-
-				}
+                lock (_childSites)
+                {
+                    foreach (var s in _childSites)
+                    {
+                        lock (s)
+                        {
+                            if (s.name != origin_site)
+                            {
+                                foreach (var b in s.brokers)
+                                {
+                                    // TODO broker.getURI() is slow, we should use a cache
+                                    log(string.Format("[propagatingRouting] flooding. sent event '{0}' to '{1}'", msg, b.getURI()));
+                                    // TODO assync
+                                    b.propagatePublish(msg);
+                                }
+                            }
+                        }
+                        
+                    }
+                }
+				
 			}
 			else // routing policy is filtering
-			{
-                /*
-                if (_topicSites.ContainsKey(msg.topic))
-                {
-
-					foreach (var site in _topicSites[msg.topic])
-					{
-						if (site != origin_site) // we dont send msg back to who sent it to us
-						{
-							Site s = _nameToSite[site];
-							foreach (var broker in s.brokers)
-							{
-								// TODO broker.getURI() is slow, we should use a cache
-								log(string.Format("[propagatingRouting] filtering. sent event '{0}' to '{1}'", msg, broker.getURI()));
-								// TODO assync
-								broker.propagatePublish(msg);
-
-							}
-						}
-					}
-				}
-                */
+			{                         
                 List<string> sentSites = new List<string>();
-                foreach(var subscribedTopic in _topicSites.Keys)
+                lock (_topicSubscribers)
                 {
-                    if (!equivalentTopic(msg.topic, subscribedTopic))
-                        continue;
-                    foreach(var site_name in _topicSites[subscribedTopic])
+                    foreach (var subscribedTopic in _topicSites.Keys)
                     {
-                        if (sentSites.Contains(site_name))
+                        if (!equivalentTopic(msg.topic, subscribedTopic))
                             continue;
-                        if (site_name == origin_site)
-                            continue;
-                        var site = _nameToSite[site_name];
-                        foreach(var broker in site.brokers)
-                        {                            
-                            // using broker.getURI() increases network traffic
-                            log(string.Format("[propagatingRouting] filtering. sent event '{0}' to '{1}'", msg, broker.getURI()));
-                            // TODO make assynchronous
-                            broker.propagatePublish(msg);
+                        foreach (var site_name in _topicSites[subscribedTopic])
+                        {
+                            if (sentSites.Contains(site_name))
+                                continue;
+                            if (site_name == origin_site)
+                                continue;
+                            var site = _nameToSite[site_name];
+                            lock (site)
+                            {
+                                foreach (var broker in site.brokers)
+                                {
+                                    // using broker.getURI() increases network traffic
+                                    log(string.Format("[propagatingRouting] filtering. sent event '{0}' to '{1}'", msg, broker.getURI()));
+                                    // TODO make assynchronous
+                                    broker.propagatePublish(msg);
+                                }
+                            }
+                            
                         }
                     }
                 }
+               
 
 			}
 
-			// send to parent site brokers
-			// always send publish to parent, doesnt matter if interested in topic
-			if (_parentSite != null && _parentSite.name != origin_site)
-			{
-				foreach (Broker b in _parentSite.brokers)
-				{
-					// TODO broker.getURI() is slow, we should use a cache
-					log(string.Format("[Routing] sent event '{0}' to parent broker '{1}'", msg, b.getURI()));
-					// TODO assync
-					b.propagatePublish(msg);
-				}
-			}
+            // send to parent site brokers
+            // always send publish to parent, doesnt matter if interested in topic
+            lock (_parentSiteLock)
+            {
+                if (_parentSite != null && _parentSite.name != origin_site)
+                {
+                    foreach (Broker b in _parentSite.brokers)
+                    {
+                        // TODO broker.getURI() is slow, we should use a cache
+                        log(string.Format("[PropagatedRouting] sent event '{0}' to parent broker '{1}'", msg, b.getURI()));
+                        // TODO assync
+                        b.propagatePublish(msg);
+                    }
+                }
+            }
+			
 		}
 	}
 }
