@@ -24,6 +24,7 @@ namespace PublisherConsole
             _name = name;
             _pm = pm;
             _site = site;
+
         }
 
         public override object InitializeLifetimeService()
