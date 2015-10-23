@@ -23,7 +23,7 @@ namespace PuppetMasterConsole
         public static string SubscriberExecutableLocation { get { return ConfigurationManager.AppSettings["SubscriberPath"]; } }
 
     }
-    class PuppetMasterRemote:MarshalByRefObject, PuppetMaster
+   public class PuppetMasterRemote:MarshalByRefObject, PuppetMaster
     {
         private List<Broker> _brokers = new List<Broker>();
         private List<Publisher> _publishers = new List<Publisher>();

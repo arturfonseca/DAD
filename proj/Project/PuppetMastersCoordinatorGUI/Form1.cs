@@ -8,7 +8,9 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.IO;
-
+using PuppetMasterConsole;
+using System.Runtime.Remoting.Channels.Tcp;
+using System.Runtime.Remoting.Channels;
 
 namespace PuppetMastersCoordinatorGUI
 {
@@ -18,14 +20,41 @@ namespace PuppetMastersCoordinatorGUI
         {
             InitializeComponent();
         }
+
+        private Dictionary<String,PuppetMasterRemote> getPMs()
+        {
+            TcpChannel channel = new TcpChannel();
+            ChannelServices.RegisterChannel(channel, false);
+            Dictionary<String, PuppetMasterRemote> dic = new Dictionary<String, PuppetMasterRemote>();
+              string[] lines = System.IO.File.ReadAllLines(@"./../../../puppermaster.file");
+            foreach (string line in lines)
+            {
+                string[] tokens = line.Split('/');
+                if (tokens.Length != 3)
+                {
+                    MessageBox.Show("Error parsing puppetmaster.file!");
+                }
+                else
+                {
+                    /*
+                     PuppetMasterRemote obj = (PuppetMasterRemote)Activator.GetObject(
+               typeof(PuppetMasterRemote),
+               "tcp://"+tokens[0]+":" + tokens[1] + "/"+tokens[2]);                    dic.Add(tokens[0], obj);
+                     */
+                    MessageBox.Show("tcp://" + tokens[0] + ":" + tokens[1] + "/" + tokens[2]);
+                }
+            }
+            return dic;
+
+        }
         
 
         private void button1_Click(object sender, EventArgs e)
         {
 
-           
-            
-            string[] lines = System.IO.File.ReadAllLines(@"./../../../config.file");
+            Dictionary<String, PuppetMasterRemote> pms = getPMs();
+
+               string[] lines = System.IO.File.ReadAllLines(@"./../../../config.file");
 
 
             foreach (string line in lines)
@@ -68,14 +97,14 @@ namespace PuppetMastersCoordinatorGUI
                             
                             break;
                         default:
-                            MessageBox.Show("Error!");
+                            MessageBox.Show("Error parsing config.file!");
                             break;
                     }
 
 
                 }
                 else
-                    MessageBox.Show("Error!");
+                    MessageBox.Show("Error parsing config.file!");
             }              
 
     
