@@ -39,7 +39,8 @@ namespace PuppetMastersCoordinatorGUI
                     /*
                      PuppetMasterRemote obj = (PuppetMasterRemote)Activator.GetObject(
                typeof(PuppetMasterRemote),
-               "tcp://"+tokens[0]+":" + tokens[1] + "/"+tokens[2]);                    dic.Add(tokens[0], obj);
+               "tcp://"+tokens[0]+":" + tokens[1] + "/"+tokens[2]);
+                    dic.Add(tokens[0], obj);
                      */
                     MessageBox.Show("tcp://" + tokens[0] + ":" + tokens[1] + "/" + tokens[2]);
                 }

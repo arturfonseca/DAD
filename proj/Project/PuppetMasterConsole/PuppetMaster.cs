@@ -15,14 +15,6 @@ using System.Configuration;
 
 namespace PuppetMasterConsole
 {
-    static class Constants
-    {
-        public static string PuppetMasterURI { get { return "PuppetMaster"; } }
-        public static string BrokerExecutableLocation { get { return ConfigurationManager.AppSettings["BrokerPath"]; } }
-        public static string PublisherExecutableLocation { get { return ConfigurationManager.AppSettings["PublisherPath"]; } }
-        public static string SubscriberExecutableLocation { get { return ConfigurationManager.AppSettings["SubscriberPath"]; } }
-
-    }
    public class PuppetMasterRemote:MarshalByRefObject, PuppetMaster
     {
         private List<Broker> _brokers = new List<Broker>();
@@ -31,8 +23,13 @@ namespace PuppetMasterConsole
         public List<Process> processes = new List<Process>();
 
         private string _uri = "";
+        private string _channel_uri;
         public string URI { get { return _uri; } set { _uri = value; } }
 
+        public PuppetMasterRemote(string channelURI)
+        {
+            _channel_uri = channelURI;
+        }
         public override object InitializeLifetimeService()
         {
             return null;
@@ -41,12 +38,13 @@ namespace PuppetMasterConsole
         static void Main(string[] args)
         {
             Console.WriteLine("Started PuppetMaster");
-            string channelURI = Utility.setupChannel(45000);
-
-            PuppetMasterRemote pm = new PuppetMasterRemote();
+            int port = int.Parse(ConfigurationManager.AppSettings["PuppetMasterPort"]);
+            string channelURI = Utility.setupChannel(port);
+            PuppetMasterRemote pm = new PuppetMasterRemote(channelURI);
             //we need to register each remote object
-            ObjRef o = RemotingServices.Marshal(pm, Constants.PuppetMasterURI, typeof(PuppetMaster));
-            pm.URI = string.Format("{0}/{1}", channelURI, Constants.PuppetMasterURI);
+            string service = ConfigurationManager.AppSettings["PuppetMasterService"];
+            ObjRef o = RemotingServices.Marshal(pm, service, typeof(PuppetMaster));
+            pm.URI = string.Format("{0}/{1}", channelURI, service);
             Console.WriteLine("Created PuppetMaster at \"{0}\"", pm.URI);
 
             test1(pm);
@@ -132,9 +130,10 @@ namespace PuppetMasterConsole
         {
             //start processes
             Process p = new Process();
-            p.StartInfo.FileName = Constants.BrokerExecutableLocation;
-            Console.WriteLine("launching Broker at '{0}'",Constants.BrokerExecutableLocation);
-            p.StartInfo.Arguments = string.Format("{0} {1} {2} {3}",URI,name,site,port);
+            p.StartInfo.FileName = ConfigurationManager.AppSettings["BrokerPath"];
+            var arg = string.Format("{0} {1} {2} {3}", URI, name, site, port);                       
+            p.StartInfo.Arguments = arg;
+            Console.WriteLine("launching Broker executable '{0}' ", p.StartInfo.FileName);
             p.Start();
             processes.Add(p);
             Broker b = null;
@@ -155,8 +154,8 @@ namespace PuppetMasterConsole
         {
             //start processes
             Process p = new Process();
-            p.StartInfo.FileName = Constants.PublisherExecutableLocation;
-            Console.WriteLine("launching Publisher at '{0}'", Constants.PublisherExecutableLocation);
+            p.StartInfo.FileName = ConfigurationManager.AppSettings["PublisherPath"];
+            Console.WriteLine("launching Publisher at '{0}'", p.StartInfo.FileName);
             p.StartInfo.Arguments = string.Format("{0} {1} {2} {3}",URI,name,site,port);
             p.Start();
             processes.Add(p);
@@ -178,8 +177,8 @@ namespace PuppetMasterConsole
         {
             //start processes
             Process p = new Process();
-            p.StartInfo.FileName = Constants.SubscriberExecutableLocation;
-            Console.WriteLine("launching Subscriber at '{0}'", Constants.SubscriberExecutableLocation);
+            p.StartInfo.FileName = ConfigurationManager.AppSettings["SubscriberPath"];
+            Console.WriteLine("launching Subscriber at '{0}'", p.StartInfo.FileName);
             p.StartInfo.Arguments = string.Format("{0} {1} {2} {3}",URI,name,site,port);
             p.Start();
             processes.Add(p);
