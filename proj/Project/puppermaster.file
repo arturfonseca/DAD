@@ -1,2 +1,1 @@
-1.2.3.4/7777/pm1
-1.2.3.5/7777/pm2
+tcp://localhost:55555/PuppetMaster

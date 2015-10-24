@@ -47,7 +47,7 @@ namespace PuppetMasterConsole
             pm.URI = string.Format("{0}/{1}", channelURI, service);
             Console.WriteLine("Created PuppetMaster at \"{0}\"", pm.URI);
 
-            test1(pm);
+           //test1(pm);
             //test2(pm);
             Console.WriteLine("Press key to leave");
             Console.Read();
@@ -244,6 +244,11 @@ namespace PuppetMasterConsole
         public void reportEvent(string origin_uri,string e)
         {
             Console.WriteLine("[Event] from:\"{0}\" \"{1}\"",origin_uri,e);
+        }
+
+        public String status()
+        {
+            return "OK!";
         }
     }
 }

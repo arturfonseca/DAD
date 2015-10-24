@@ -179,6 +179,7 @@ namespace DADInterfaces
         void registerBroker(Broker b);
         void registerPublisher(Publisher p);
         void registerSubscriber(Subscriber s);
+        string status();
 
         // used by all processes created by the puppet master to report events
         void reportEvent(string origin_uri, string e);

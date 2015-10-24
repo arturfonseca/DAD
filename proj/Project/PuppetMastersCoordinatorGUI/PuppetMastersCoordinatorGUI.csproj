@@ -81,25 +81,9 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\BrokerConsole\BrokerConsole.csproj">
-      <Project>{b10def6e-cf39-4e0a-8b21-296f5e69f753}</Project>
-      <Name>BrokerConsole</Name>
-    </ProjectReference>
     <ProjectReference Include="..\Interfaces\DADInterfaces.csproj">
       <Project>{9fe55e1b-cca2-4bc0-bf4a-96b0b02f6556}</Project>
       <Name>DADInterfaces</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\PublisherConsole\PublisherConsole.csproj">
-      <Project>{ee936650-84c7-4c76-9718-49b1fa9af584}</Project>
-      <Name>PublisherConsole</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\PuppetMasterConsole\PuppetMasterConsole.csproj">
-      <Project>{aaa516e0-0857-43f4-a311-c96b049dc68f}</Project>
-      <Name>PuppetMasterConsole</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\SubscriberConsole\SubscriberConsole.csproj">
-      <Project>{960579a9-ae54-4e99-a422-73e437065fc7}</Project>
-      <Name>SubscriberConsole</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
