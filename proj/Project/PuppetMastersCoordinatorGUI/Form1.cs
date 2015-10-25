@@ -18,9 +18,10 @@ namespace PuppetMastersCoordinatorGUI
     {
         //Structures
         Dictionary<String, PuppetMaster> pms;
+        Dictionary<String, Site> site_site;
         Dictionary<String, String> site_parents;
         Dictionary<String, List<String>> site_childs;
-        Dictionary<String, List<Broker>> site_brokers;
+        Dictionary<String, Broker> site_brokers;
         Dictionary<String, List<Publisher>> site_publishers;
         Dictionary<String, List<Subscriber>> site_subscribers;
         List<Broker> all_brokers;
@@ -72,9 +73,10 @@ namespace PuppetMastersCoordinatorGUI
 
         private void button1_Click(object sender, EventArgs e)
         {
+            site_site = new Dictionary<string, Site>();
             site_parents = new Dictionary<string, string>();
             site_childs = new Dictionary<string, List<string>>();
-            site_brokers = new Dictionary<String, List<Broker>>();
+            site_brokers = new Dictionary<String, Broker>();
             site_publishers = new Dictionary<String, List<Publisher>>();
             site_subscribers = new Dictionary<String, List<Subscriber>>();
             all_brokers = new List<Broker>();
@@ -109,9 +111,6 @@ namespace PuppetMastersCoordinatorGUI
                 }
                 else if (keywords[0] == "Site" && keywords.Length >= 4)
                 {
-                    site_brokers.Add(keywords[1], new List<Broker>());
-                    site_publishers.Add(keywords[1], new List<Publisher>());
-                    site_subscribers.Add(keywords[1], new List<Subscriber>());
                     if (keywords[3] == "none")
                         site_root = keywords[1];
                     else
@@ -135,17 +134,22 @@ namespace PuppetMastersCoordinatorGUI
                         case "publisher":
                             Publisher p = pms[ip].createPublisher(name, keywords[5], Int32.Parse(port));
                             all_publishers.Add(p);
-                            site_publishers[ip].Add(p);
+                            if (!site_publishers.ContainsKey(keywords[5]))
+                                site_publishers.Add(keywords[5], new List<Publisher>());
+                            site_publishers[keywords[5]].Add(p);
                             break;
                         case "broker":
                             Broker b = pms[ip].createBroker(name, keywords[5], Int32.Parse(port));
                             all_brokers.Add(b);
-                            site_brokers[ip].Add(b);
+                            site_brokers.Add(keywords[5], b);
+                            site_site.Add(keywords[5], new Site() { name = keywords[5], brokers = new List<Broker>() { b } });
                             break;
                         case "subscriber":
                             Subscriber s = pms[ip].createSubscriber(name, keywords[5], Int32.Parse(port));
                             all_subscribers.Add(s);
-                            site_subscribers[ip].Add(s);
+                            if (!site_subscribers.ContainsKey(keywords[5]))
+                                site_subscribers.Add(keywords[5], new List<Subscriber>());
+                            site_subscribers[keywords[5]].Add(s);
                             break;
                         default:
                             MessageBox.Show("Error parsing config.file!");
@@ -162,34 +166,86 @@ namespace PuppetMastersCoordinatorGUI
                 b.setRoutingPolicy(rout);
                 b.setOrderingPolicy(ord);
             }
+            site_brokers[site_root].setIsRoot();
 
-            /* CODE TO TEST TREE
-            MessageBox.Show("Root is "+site_root);
-
-            foreach (KeyValuePair<string, string> entry in site_parents)
+            //Set publishers brokers
+            foreach (KeyValuePair<string, List<Publisher>> entry in site_publishers)
             {
-                MessageBox.Show(entry.Key+" father is "+entry.Value);
+                site_brokers[entry.Key].setPublishers(entry.Value);
+                foreach (Publisher p in entry.Value)
+                {
+                    p.setSiteBroker(site_brokers[entry.Key]);
+                }
+            }
+            // Set subscriber brokers
+            foreach (KeyValuePair<string, List<Subscriber>> entry in site_subscribers)
+            {
+                site_brokers[entry.Key].setSubscribers(entry.Value);
+                foreach (Subscriber s in entry.Value)
+                {
+                    s.setSiteBroker(site_brokers[entry.Key]);
+                }
+            }
+
+            //Set parents and childs
+            foreach (KeyValuePair<string, Broker> entry in site_brokers)
+            {
+                if (site_childs.ContainsKey(entry.Key))
+                {
+                    List<Site> childs = new List<Site>();
+                    foreach (string str in site_childs[entry.Key])
+                    {
+                        if (site_site.ContainsKey(str)) // empty sites
+                            childs.Add(site_site[str]);
+
+                    }
+                    entry.Value.setChildren(childs);
+
+                }
+
+
+
+                if (entry.Key != site_root)
+                {
+                    Site parentSite = site_site[site_parents[entry.Key]];
+                    entry.Value.setParent(parentSite);
+                }
+
+
 
             }
-            foreach (KeyValuePair<string, List<string>> entry in site_childs)
-            {
-                foreach(String c in entry.Value)
-                MessageBox.Show("Father: "+entry.Key+" Child: "+c);
 
-            }
-            */
 
         }
 
         private void button2_Click(object sender, EventArgs e)
         {
-            foreach (KeyValuePair<string, PuppetMaster> entry in pms)
-            {
-                MessageBox.Show("PM @ " + entry.Key + " " + entry.Value.status());
 
+            // foreach (KeyValuePair<string, PuppetMaster> entry in pms)
+            //   MessageBox.Show("PM @ " + entry.Key + " " + entry.Value.status());
+            foreach(Subscriber s in site_subscribers["site0"])
+                s.subscribe("/tempo/lisboa");
+
+            foreach (Publisher p in site_publishers["site0"])
+            {
+                p.publish("/tempo/lisboa", "chove");
+                p.publish("/tempo/porto", "neve");
+            }
+            MessageBox.Show("Phase2");
+            foreach (Subscriber s in site_subscribers["site0"])
+            {
+                s.unsubscribe("/tempo/lisboa");
+                s.subscribe("/tempo/*");
+            }
+                
+            foreach (Publisher p in site_publishers["site0"])
+            {
+                p.publish("/tempo/lisboa", "chove");
+                p.publish("/tempo/porto", "neve");
             }
 
-            //pms["localhost"].test1(pms["localhost"]);
+
+
         }
     }
 }
