@@ -18,6 +18,8 @@ namespace PuppetMastersCoordinatorGUI
     {
         //Structures
         Dictionary<String, PuppetMaster> pms;
+        Dictionary<String, String> site_parents;
+        Dictionary<String, List<String>> site_childs;
         Dictionary<String, List<Broker>> site_brokers;
         Dictionary<String, List<Publisher>> site_publishers;
         Dictionary<String, List<Subscriber>> site_subscribers;
@@ -25,6 +27,7 @@ namespace PuppetMastersCoordinatorGUI
         List<Publisher> all_publishers;
         List<Subscriber> all_subscribers;
         //Vars
+        String site_root;
         RoutingPolicy rout;
         OrderingPolicy ord;
 
@@ -69,6 +72,8 @@ namespace PuppetMastersCoordinatorGUI
 
         private void button1_Click(object sender, EventArgs e)
         {
+            site_parents = new Dictionary<string, string>();
+            site_childs = new Dictionary<string, List<string>>();
             site_brokers = new Dictionary<String, List<Broker>>();
             site_publishers = new Dictionary<String, List<Publisher>>();
             site_subscribers = new Dictionary<String, List<Subscriber>>();
@@ -107,6 +112,16 @@ namespace PuppetMastersCoordinatorGUI
                     site_brokers.Add(keywords[1], new List<Broker>());
                     site_publishers.Add(keywords[1], new List<Publisher>());
                     site_subscribers.Add(keywords[1], new List<Subscriber>());
+                    if (keywords[3] == "none")
+                        site_root = keywords[1];
+                    else
+                    {
+                        site_parents.Add(keywords[1], keywords[3]);
+                        if (!site_childs.ContainsKey(keywords[3]))
+                            site_childs.Add(keywords[3], new List<string>());
+                        site_childs[keywords[3]].Add(keywords[1]);
+                    }
+
 
                 }
                 else if (keywords[0] == "Process" && keywords.Length >= 8)
@@ -148,7 +163,21 @@ namespace PuppetMastersCoordinatorGUI
                 b.setOrderingPolicy(ord);
             }
 
+            /* CODE TO TEST TREE
+            MessageBox.Show("Root is "+site_root);
 
+            foreach (KeyValuePair<string, string> entry in site_parents)
+            {
+                MessageBox.Show(entry.Key+" father is "+entry.Value);
+
+            }
+            foreach (KeyValuePair<string, List<string>> entry in site_childs)
+            {
+                foreach(String c in entry.Value)
+                MessageBox.Show("Father: "+entry.Key+" Child: "+c);
+
+            }
+            */
 
         }
 
