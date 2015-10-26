@@ -301,15 +301,15 @@ namespace PuppetMastersCoordinatorGUI
                 }
                 else if (keywords.Length >= 4 && keywords[0] == "Subscriber" && keywords[2] == "Subscribe")
                 {
-
+                    all_subscribers[keywords[1]].subscribe(keywords[3]);
                 }
                 else if (keywords.Length >= 4 && keywords[0] == "Subscriber" && keywords[2] == "Unsubscribe")
                 {
-
+                    all_subscribers[keywords[1]].unsubscribe(keywords[3]);
                 }
-                else if (keywords.Length >= 8 && keywords[0] == "Publisher" && keywords[0] == "Publish")
+                else if (keywords.Length >= 8 && keywords[0] == "Publisher" && keywords[2] == "Publish")
                 {
-
+                    all_publishers[keywords[1]].publish(keywords[5], "some msg" + DateTime.Now.ToString());
                 }
                 else
                 {
@@ -320,3 +320,4 @@ namespace PuppetMastersCoordinatorGUI
         }
 
     }
+}
