@@ -86,9 +86,17 @@ namespace PuppetMastersCoordinatorGUI
             rout = RoutingPolicy.flooding;
             ord = OrderingPolicy.fifo;
             getPMs();
+            try
+            {
+                System.IO.File.ReadAllLines(@"./../../../config.file");
+
+            }
+            catch (FileNotFoundException fnf)
+            {
+                MessageBox.Show("config.file not found" + fnf);
+            }
 
             string[] lines = System.IO.File.ReadAllLines(@"./../../../config.file");
-
 
             foreach (string line in lines)
             {
@@ -226,54 +234,22 @@ namespace PuppetMastersCoordinatorGUI
 
         }
 
+
         private void button2_Click(object sender, EventArgs e)
         {
-            /*
-            // foreach (KeyValuePair<string, PuppetMaster> entry in pms)
-            //   MessageBox.Show("PM @ " + entry.Key + " " + entry.Value.status());
-            foreach (Subscriber s in site_subscribers["site0"])
-                s.subscribe("/tempo/lisboa");
-            foreach (Subscriber s in site_subscribers["site2"])
-                s.subscribe("/tempo/lisboa");
-            foreach (Publisher p in site_publishers["site5"])
+            try
             {
-                p.publish("/tempo/lisboa", "chove");
-                p.publish("/tempo/porto", "neve");
-            }
-            MessageBox.Show("Phase2");
-            foreach (Subscriber s in site_subscribers["site0"])
+                string[] lines = System.IO.File.ReadAllLines(@"./../../../input.file");
+                readInput(lines);
+            }            
+            catch(FileNotFoundException fnf)
             {
-                s.unsubscribe("/tempo/lisboa");
-                s.subscribe("/tempo/*");
+                MessageBox.Show("input.file not found"+fnf);
             }
-            foreach (Subscriber s in site_subscribers["site2"])
-            {
-                s.unsubscribe("/tempo/lisboa");
-                s.subscribe("/tempo/*");
-            }
-
-            foreach (Publisher p in site_publishers["site5"])
-            {
-                p.publish("/tempo/lisboa", "chove");
-                p.publish("/tempo/porto", "neve");
-            }
-
-    */
-
+            
         }
 
-        private void button4_Click(object sender, EventArgs e)
-        {
-            MessageBox.Show("Not implemented yet");
-            //readInput(file);
-        }
-
-        private void button3_Click(object sender, EventArgs e)
-        {
-            readInput(textBox1.Lines);
-
-
-        }
+        
         public void readInput(String[] lines)
         {
             foreach (String line in lines)
@@ -319,5 +295,65 @@ namespace PuppetMastersCoordinatorGUI
             }
         }
 
-    }
+        private void button3_Click(object sender, EventArgs e)
+        {
+            String[] str = new string[1];
+            str[0] = "Status";
+            readInput(str);
+        }
+
+        private void button4_Click(object sender, EventArgs e)
+        {
+            String[] str = new string[1];
+            str[0] = "Wait " + textBox1.Text;
+            readInput(str);
+        }
+
+        private void button5_Click(object sender, EventArgs e)
+        {
+            String[]str= new string[1];
+            str[0] = "Subscriber " + textBox2.Text + " Subscribe " + textBox3.Text;
+            readInput(str);
+
+
+        }
+
+        private void button6_Click(object sender, EventArgs e)
+        {
+            String[] str = new string[1];
+            str[0] = "Subscriber " + textBox4.Text + " Unsubscribe " + textBox5.Text;
+            readInput(str);
+
+
+        }
+
+        private void button7_Click(object sender, EventArgs e)
+        {
+            String[] str = new string[1];
+            str[0] = "Publisher " + textBox6.Text + " Publish " + textBox7.Text+" Ontopic "+textBox8.Text+" Interval "+textBox9.Text;
+            readInput(str);
+        }
+
+        private void button8_Click(object sender, EventArgs e)
+        {
+            String[] str = new string[1];
+            str[0] = "Crash " + textBox10.Text;
+            readInput(str);
+        }
+
+        private void button9_Click(object sender, EventArgs e)
+        {
+            String[] str = new string[1];
+            str[0] = "Freeze " + textBox11.Text;
+            readInput(str);
+        }
+
+        private void button10_Click(object sender, EventArgs e)
+        {
+            String[] str = new string[1];
+            str[0] = "Unfreeze " + textBox12.Text;
+            readInput(str);
+        }
+
+            }
 }
