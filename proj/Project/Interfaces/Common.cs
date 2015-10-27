@@ -41,14 +41,14 @@ namespace DADInterfaces
         public string topic;
         public override string ToString()
         {
-            return string.Format("SubscribeMessage. uri='{0}', seqnum='{1}', topic='{2}'",uri,seqnum,topic);
+            return string.Format("[SubscribeMessage] uri='{0}' seqnum='{1}' topic='{2}'",uri,seqnum,topic);
         }
     }
     [Serializable]
     public class UnsubscribeMessage : SubscribeMessage {
         public override string ToString()
         {
-            return string.Format("SubscribeMessage. uri='{0}', seqnum='{1}', topic='{2}'", uri, seqnum, topic);
+            return string.Format("[SubscribeMessage] uri='{0}' seqnum='{1}' topic='{2}'", uri, seqnum, topic);
         }
     }
 
@@ -59,17 +59,19 @@ namespace DADInterfaces
         // used to avoid duplicates
         public int seqnum;
         public string topic;
+        public string uri;
         // name of the interested child site
         public string interested_site;
         public PropagatedSubcribeMessage(SubscribeMessage msg, string site)
         {
             seqnum = msg.seqnum;
             topic = msg.topic;
+            uri = msg.uri;
             interested_site = site;
         }
         public override string ToString()
         {
-            return string.Format("PropagatedSubcribeMessage. seqnum='{0}', topic='{1}', interested_site='{2}'", seqnum, topic, interested_site);
+            return string.Format("[PropagatedSubcribeMessage] subscriber_uri:'{0}' topic='{1}' interested_site='{2}' seqnum='{3}'", uri, topic, interested_site, seqnum);
         }
     }
     [Serializable]
@@ -80,7 +82,7 @@ namespace DADInterfaces
 
         public override string ToString()
         {
-            return string.Format("PropagatedUnsubscribeMessage. seqnum='{0}', topic='{1}', interested_site='{2}'", seqnum, topic, interested_site);
+            return string.Format("[PropagatedUnsubscribeMessage] seqnum='{0}' topic='{1}' interested_site='{2}'", seqnum, topic, interested_site);
         }
     } 
 
@@ -97,8 +99,8 @@ namespace DADInterfaces
 
         public override string ToString()
         {
-            return string.Format("sender:{0}, topic_seqnum:{1}, total_seqnum:{2}, topic:{3}, content:'{4}'",
-                senderURI, topic_seqnum, total_seqnum, topic, content);
+            return string.Format("[PublishMessage] publisher_uri:'{0}' topic:'{1}' content :'{2}' total_seqnum :'{3}' topic_seqnum :'{4}'",
+                senderURI, topic, content, topic_seqnum, total_seqnum);
         }
     }
     [Serializable]
@@ -117,7 +119,7 @@ namespace DADInterfaces
         public override string ToString()
         {
             return String.Format(
-                "sender:{0}, topic_seqnum:{1}, total_seqnum:{2}, topic:{3}, content:'{4}', interested_site:{5}",
+                "sender:{0}, topic_seqnum:'{1}', total_seqnum:'{2}', topic:'{3}', content:'{4}', source_site:'{5}'",
                 senderURI, topic_seqnum, total_seqnum, topic, content, origin_site);
         }
     }

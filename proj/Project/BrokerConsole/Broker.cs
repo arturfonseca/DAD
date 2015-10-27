@@ -66,7 +66,7 @@ namespace BrokerConsole
 
 		static void Main(string[] args)
 		{
-			Console.WriteLine("Started Broker, pid=\"{0}\"", Process.GetCurrentProcess().Id);
+			Console.WriteLine("Started Broker process, pid=\"{0}\"", Process.GetCurrentProcess().Id);
 			int nargs = 4;
 			if (args.Length != nargs)
 			{
@@ -87,7 +87,7 @@ namespace BrokerConsole
 			BrokerRemote broker = new BrokerRemote(pm, uri, name, site);
 			//we need to register each remote object
 			ObjRef o = RemotingServices.Marshal(broker, name, typeof(Broker));
-			Console.WriteLine("Created Broker at \"{0}\"", broker.getURI());
+			Console.WriteLine("Instanciated Broker name:'{0}' site:'{1}' uri:'{2}'", name, site, uri);
 
 			//now that broker is created and marshalled
 			//send remote to puppetMaster which is Monitor.waiting for the remote  
