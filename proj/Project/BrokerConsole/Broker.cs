@@ -10,6 +10,7 @@ using System.Runtime.Remoting.Channels;
 using System.Runtime.Remoting.Channels.Tcp;
 using System.Text;
 using System.Threading.Tasks;
+using System.Threading;
 
 namespace BrokerConsole
 {
@@ -343,8 +344,11 @@ namespace BrokerConsole
 		{
             // to avoid sending two times, we use a list
             List<string> sentUris = new List<string>();
-            // send to current site subscribers
-            // TODO suppot * wildcard on topic
+            
+            // List of delegates that know the interested subcribers
+            List<ReceiveDelegate> remoteDelegates = new List<ReceiveDelegate>();
+            
+            // First phase we filter site subscribers and fillin
             lock (_topicSubscribers)
             {
                 foreach (var subscribedTopic in _topicSubscribers.Keys)
@@ -357,11 +361,23 @@ namespace BrokerConsole
                             continue;
                         Subscriber s = _uriToSubs[uri];
                         // TODO assync
-                        log(string.Format("[Deliver] sent event '{0}' to '{1}'", msg, uri));
-                        s.receive(msg.topic, msg.content);
+                        ReceiveDelegate rd = new ReceiveDelegate(s.receive);
+                        remoteDelegates.Add(rd);
+                        //log(string.Format("[Deliver] sent event '{0}' to '{1}'", msg, uri));
+
+                        //s.receive(msg.topic, msg.content);
                     }
                 }
-            }		
+            }
+            List<IAsyncResult> results = new List<IAsyncResult>();
+
+            foreach (ReceiveDelegate subDelegate in remoteDelegates)
+            {
+                IAsyncResult result = subDelegate.BeginInvoke(msg.topic, msg.content, null, null);
+                results.Add(result);
+            }
+            List<WaitHandle> handlesLst = new List<WaitHandle>();
+           //TODO ASK PROFESSOR IF WE NEED TO RESEND LOST MESSAGES
 		}	
 
 		public void publish(PublishMessage msg)
@@ -369,7 +385,7 @@ namespace BrokerConsole
 			// FLOODING implementation
 			// TODO discart if duplicate message
 			// TODO make all calls assyncs
-
+            
 			log(string.Format("[Publish] Received event '{0}'", msg));
 			deliver(msg);
 			routing(msg);
@@ -399,8 +415,9 @@ namespace BrokerConsole
                             {
                                 // TODO broker.getURI() is slow, we should use a cache
                                 log(string.Format("[Routing] flooding. sent event '{0}' to '{1}'", msg, b.getURI()));
-                                // TODO assync
-                                b.propagatePublish(pmsg);
+                               
+                                PropagatePublishDelegate d = new PropagatePublishDelegate(b.propagatePublish);
+                                d.BeginInvoke(pmsg,null,null);
                             }
                         }
                        
@@ -429,8 +446,10 @@ namespace BrokerConsole
                                 {
                                     // using broker.getURI() increases network traffic
                                     log(string.Format("[propagatingRouting] filtering. sent event '{0}' to '{1}'", msg, broker.getURI()));
-                                    // TODO make assynchronous
-                                    broker.propagatePublish(pmsg);
+                                    
+                                    PropagatePublishDelegate d = new PropagatePublishDelegate(broker.propagatePublish);
+                                    d.BeginInvoke(pmsg, null, null);
+                                    //broker.propagatePublish(pmsg);
                                 }
                             }
                             
@@ -450,8 +469,10 @@ namespace BrokerConsole
                     {
                         // TODO broker.getURI() is slow, we should use a cache
                         log(string.Format("[Routing] sent event '{0}' to parent broker '{1}'", msg, b.getURI()));
-                        // TODO assync
-                        b.propagatePublish(pmsg);
+                        
+                        PropagatePublishDelegate d = new PropagatePublishDelegate(b.propagatePublish);
+                        d.BeginInvoke(pmsg, null, null);
+                        //b.propagatePublish(pmsg);
                     }
                 }
             }
@@ -493,9 +514,10 @@ namespace BrokerConsole
                                 foreach (var b in s.brokers)
                                 {
                                     // TODO broker.getURI() is slow, we should use a cache
-                                    log(string.Format("[propagatingRouting] flooding. sent event '{0}' to '{1}'", msg, b.getURI()));
-                                    // TODO assync
-                                    b.propagatePublish(msg);
+                                    log(string.Format("[propagatingRouting] flooding. sent event '{0}' to '{1}'", msg, b.getURI()));                                    
+                                    PropagatePublishDelegate d = new PropagatePublishDelegate(b.propagatePublish);
+                                    d.BeginInvoke(msg,null,null);
+                                    //b.propagatePublish(msg);
                                 }
                             }
                         }
@@ -526,8 +548,9 @@ namespace BrokerConsole
                                 {
                                     // using broker.getURI() increases network traffic
                                     log(string.Format("[propagatingRouting] filtering. sent event '{0}' to '{1}'", msg, broker.getURI()));
-                                    // TODO make assynchronous
-                                    broker.propagatePublish(msg);
+                                    PropagatePublishDelegate d = new PropagatePublishDelegate(broker.propagatePublish);
+                                    d.BeginInvoke(msg, null, null);
+                                    //broker.propagatePublish(msg);
                                 }
                             }
                             
@@ -547,9 +570,10 @@ namespace BrokerConsole
                     foreach (Broker b in _parentSite.brokers)
                     {
                         // TODO broker.getURI() is slow, we should use a cache
-                        log(string.Format("[PropagatedRouting] sent event '{0}' to parent broker '{1}'", msg, b.getURI()));
-                        // TODO assync
-                        b.propagatePublish(msg);
+                        log(string.Format("[PropagatedRouting] sent event '{0}' to parent broker '{1}'", msg, b.getURI()));                        
+                        PropagatePublishDelegate d = new PropagatePublishDelegate(b.propagatePublish);
+                        d.BeginInvoke(msg, null, null);
+                        //b.propagatePublish(msg);
                     }
                 }
             }

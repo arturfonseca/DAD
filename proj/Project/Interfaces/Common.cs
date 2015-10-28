@@ -124,9 +124,9 @@ namespace DADInterfaces
         }
     }
 
-    public delegate void subscriberDelegate(SubscribeMessage msg);
-    public delegate void unsubscribeDelegate(SubscribeMessage msg);
-    public delegate void publishDelegate(PublishMessage msg);
+    public delegate void PropagateSubscribeDelegate(PropagatedSubcribeMessage msg);
+    public delegate void PropagateUnsubscribeDelegate(PropagatedUnsubscribeMessage msg);
+    public delegate void PropagatePublishDelegate(PropagatedPublishMessage msg);
     public interface Broker: Node
     {
         void setIsRoot();
@@ -156,6 +156,7 @@ namespace DADInterfaces
         void publish(string topic, string msg, int quantity, int interval);
         
     }
+    public delegate void ReceiveDelegate(string topic, string content);
     public interface Subscriber: Node
     {
         void setSiteBroker(Broker site_broker);

@@ -132,10 +132,7 @@ namespace PublisherConsole
                 var msg = new PublishMessage() { senderURI = getURI(), total_seqnum = total_seqnum, topic_seqnum = topic_seqnum, topic = topic, content = content };
                 log(string.Format("[publish] {0}", msg));
                 // TODO make all calls assyncs
-                publishDelegate pd = new publishDelegate(_broker.publish);
-                IAsyncResult res = pd.BeginInvoke(msg, null, null);
-                // TODO wait for response...
-                // synchronous way _broker.publish(msg);
+                _broker.publish(msg);
             }
 
         }
