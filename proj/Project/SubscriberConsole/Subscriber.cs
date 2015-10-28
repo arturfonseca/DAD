@@ -19,6 +19,7 @@ namespace SubscriberConsole
         // used to order messages
         private int _seqnum = 0;
         private List<string> _subscribedTopics = new List<string>();
+        private Object thisLock = new Object();
 
         public SubscriberRemote(PuppetMaster pm, string name, string site)
         {
@@ -112,36 +113,45 @@ namespace SubscriberConsole
 
         public void subscribe(string topic)
         {
-            // TODO LOG
-            if (_subscribedTopics.Contains(topic))
+            lock (thisLock)
             {
-                // do nothing
-                return;
-            }
-            _subscribedTopics.Add(topic);
-            // TODO make all calls assyncs
-            SubscribeMessage msg = new SubscribeMessage() { sub = this, seqnum = _seqnum, topic = topic, uri = getURI() };
-            log(string.Format("Subscribe. '{0}'", msg));
+                // TODO LOG
+                if (_subscribedTopics.Contains(topic))
+                {
+                    // do nothing
+                    return;
+                }
+                _subscribedTopics.Add(topic);
+                // TODO make all calls assyncs
+                SubscribeMessage msg = new SubscribeMessage() { sub = this, seqnum = _seqnum, topic = topic, uri = getURI() };
+                log(string.Format("Subscribe. '{0}'", msg));
 
-            _broker.subscribe(msg);            
-            _seqnum += 1;
+                _broker.subscribe(msg);
+                _seqnum += 1;
+            }
+            
             
         }
 
         public void unsubscribe(string topic)
         {
-            if (!_subscribedTopics.Contains(topic))
+            lock (thisLock)
             {
-                // do nothing or throw exception?
-                return;
+                if (!_subscribedTopics.Contains(topic))
+                {
+                    // do nothing or throw exception?
+                    return;
+                }
+                _subscribedTopics.Remove(topic);
+                // TODO LOG
+                // TODO make all calls assyncs
+                UnsubscribeMessage msg = new UnsubscribeMessage() { sub = this, seqnum = _seqnum, topic = topic, uri = getURI() };
+                log(string.Format("Unsubscribe. '{0}'", msg));
+                _broker.unsubscribe(msg);
+                _seqnum += 1;
             }
-            _subscribedTopics.Remove(topic);
-            // TODO LOG
-            // TODO make all calls assyncs
-            UnsubscribeMessage msg = new UnsubscribeMessage() { sub = this, seqnum = _seqnum, topic = topic, uri = getURI() };
-            log(string.Format("Unsubscribe. '{0}'", msg));
-            _broker.unsubscribe(msg);
-            _seqnum += 1;
+            
+            
             
         }       
 

@@ -10,17 +10,18 @@ using System.Threading.Tasks;
 
 namespace PublisherConsole
 {
-    class PublisherRemote:MarshalByRefObject,Publisher
+    class PublisherRemote : MarshalByRefObject, Publisher
     {
         private PuppetMaster _pm;
-        private string _name;        
+        private string _name;
         private string _site;
         private string _uri;
         private Broker _broker;
         private int _total_seqnum;
         private Dictionary<string, int> _topics_seqnum = new Dictionary<string, int>();
+        private Object thisLock = new Object();
 
-        public PublisherRemote(PuppetMaster pm,string name,string site)
+        public PublisherRemote(PuppetMaster pm, string name, string site)
         {
             _name = name;
             _pm = pm;
@@ -52,7 +53,7 @@ namespace PublisherConsole
 
             // get the puppetMaster that started this process
             PuppetMaster pm = (PuppetMaster)Activator.GetObject(typeof(PuppetMaster), puppetMasterURI);
-            PublisherRemote publisher = new PublisherRemote(pm,name, site);
+            PublisherRemote publisher = new PublisherRemote(pm, name, site);
             //we need to register each remote object
             ObjRef o = RemotingServices.Marshal(publisher, name, typeof(Publisher));
             publisher.setURI(string.Format("{0}/{1}", channelURI, name));
@@ -105,7 +106,7 @@ namespace PublisherConsole
         {
             throw new NotImplementedException();
         }
-        
+
         public void unfreeze()
         {
             throw new NotImplementedException();
@@ -115,30 +116,35 @@ namespace PublisherConsole
 
         private void publish_work(string topic, string content)
         {
-            int total_seqnum = _total_seqnum;
-            _total_seqnum += 1;
-            int topic_seqnum = 0;
-            if (!_topics_seqnum.ContainsKey(topic))
+            lock (thisLock)
             {
-                // obvious memory leak, because we never release tuples from dict
-                _topics_seqnum.Add(topic, 0);
-            }
-            topic_seqnum = _topics_seqnum[topic];
-            _topics_seqnum[topic] += 1;
+                int total_seqnum = _total_seqnum;
+                _total_seqnum += 1;
+                int topic_seqnum = 0;
+                if (!_topics_seqnum.ContainsKey(topic))
+                {
+                    // obvious memory leak, because we never release tuples from dict
+                    _topics_seqnum.Add(topic, 0);
+                }
+                topic_seqnum = _topics_seqnum[topic];
+                _topics_seqnum[topic] += 1;
 
-            var msg = new PublishMessage() { senderURI = getURI(), total_seqnum = total_seqnum, topic_seqnum = topic_seqnum, topic = topic, content = content };
-            log(string.Format("[publish] {0}", msg));
-            // TODO make all calls assyncs
-            publishDelegate pd = new publishDelegate(_broker.publish);
-            IAsyncResult res = pd.BeginInvoke(msg, null, null);
-            // TODO wait for response...
-            // synchronous way _broker.publish(msg);
+                var msg = new PublishMessage() { senderURI = getURI(), total_seqnum = total_seqnum, topic_seqnum = topic_seqnum, topic = topic, content = content };
+                log(string.Format("[publish] {0}", msg));
+                // TODO make all calls assyncs
+                publishDelegate pd = new publishDelegate(_broker.publish);
+                IAsyncResult res = pd.BeginInvoke(msg, null, null);
+                // TODO wait for response...
+                // synchronous way _broker.publish(msg);
+            }
+
         }
 
         private void publish_job(string topic, string content, int quantity, int interval)
         {
             //we assume quantity and interval positive
-            for (int i = 0; i < quantity; i++) {
+            for (int i = 0; i < quantity; i++)
+            {
                 publish_work(topic, content);
                 Thread.Sleep(interval);
             }
@@ -147,9 +153,10 @@ namespace PublisherConsole
 
         public void publish(string topic, string content, int quantity, int interval)
         {
+
             // interval in milliseconds
             // we dont remove thread gracefully
-            
+
             Thread t = new Thread(() => publish_job(topic, content, quantity, interval));
             t.Start();
             log(string.Format("[Publish Thread Started]"));
