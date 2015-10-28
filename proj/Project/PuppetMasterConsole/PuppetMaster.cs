@@ -25,6 +25,7 @@ namespace PuppetMasterConsole
         private string _uri = "";
         private string _channel_uri;
         public string URI { get { return _uri; } set { _uri = value; } }
+        
 
         public PuppetMasterRemote(string channelURI)
         {

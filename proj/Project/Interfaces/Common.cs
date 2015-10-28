@@ -164,7 +164,7 @@ namespace DADInterfaces
         void receive(string topic, string content);
     }
 
-    public interface Coordinator
+    public interface ICoordinator
     {
         void reportEvent(string type, string uri1, string uri2, string topic, string seqnum);
     }

@@ -20,12 +20,15 @@ namespace SubscriberConsole
         private int _seqnum = 0;
         private List<string> _subscribedTopics = new List<string>();
         private Object thisLock = new Object();
+        private ICoordinator c;
 
         public SubscriberRemote(PuppetMaster pm, string name, string site)
         {
             _name = name;
             _pm = pm;
             _site = site;
+            c = (ICoordinator)Activator.GetObject(typeof(ICoordinator), "tcp://localhost:50000/CoordinatorRem");
+
         }
 
         public override object InitializeLifetimeService()
@@ -157,6 +160,7 @@ namespace SubscriberConsole
 
         public void receive(string topic, string content)
         {
+            c.reportEvent("a", "b", "c", "d", "e");
             log(string.Format("Received. topic:'{0}' content:'{1}'", topic, content));
         }
 
