@@ -12,6 +12,7 @@ using DADInterfaces;
 using System.Runtime.Remoting.Channels.Tcp;
 using System.Runtime.Remoting.Channels;
 using System.Configuration;
+using System.Runtime.Remoting;
 
 namespace PuppetMastersCoordinatorGUI
 {
@@ -60,8 +61,8 @@ namespace PuppetMastersCoordinatorGUI
         private void getPMs()
         {
             // get puppet masters proxies
-            TcpChannel channel = new TcpChannel();
-            ChannelServices.RegisterChannel(channel, true);
+           // TcpChannel channel = new TcpChannel();
+            //ChannelServices.RegisterChannel(channel, true);
             pms = new Dictionary<String, PuppetMaster>();
             string puppetMasterConfigFile = ConfigurationManager.AppSettings["puppetmasters"];
             string[] lines = null;
@@ -78,9 +79,19 @@ namespace PuppetMastersCoordinatorGUI
 
         }
 
+        public void log_(string str)
+        {
+            textBox13.Text += str+"\r\n";
+        }
+
 
         private void button1_Click(object sender, EventArgs e)
         {
+            TcpChannel channel = new TcpChannel(50000);
+            ChannelServices.RegisterChannel(channel, true);
+            CoordinatorRem c = new CoordinatorRem(this);
+            RemotingServices.Marshal(c, "CoordinatorRem", typeof(CoordinatorRem));
+
             site_site = new Dictionary<string, Site>();
             site_parents = new Dictionary<string, string>();
             site_childs = new Dictionary<string, List<string>>();
