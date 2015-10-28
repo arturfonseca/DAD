@@ -11,6 +11,7 @@ using System.IO;
 using DADInterfaces;
 using System.Runtime.Remoting.Channels.Tcp;
 using System.Runtime.Remoting.Channels;
+using System.Configuration;
 
 namespace PuppetMastersCoordinatorGUI
 {
@@ -55,12 +56,18 @@ namespace PuppetMastersCoordinatorGUI
             return ret;
 
         }
+        
         private void getPMs()
         {
+            // get puppet masters proxies
             TcpChannel channel = new TcpChannel();
             ChannelServices.RegisterChannel(channel, true);
             pms = new Dictionary<String, PuppetMaster>();
-            string[] lines = System.IO.File.ReadAllLines(@"./../../../puppermaster.file");
+            string puppetMasterConfigFile = ConfigurationManager.AppSettings["puppetmasters"];
+            string[] lines = null;
+            // WARNING no file detection done
+            lines = System.IO.File.ReadAllLines(puppetMasterConfigFile);                       
+            //string[] lines = System.IO.File.ReadAllLines(@"./../../../puppermaster.file");
             foreach (string line in lines)
             {
                 PuppetMaster obj = (PuppetMaster)Activator.GetObject(typeof(PuppetMaster), line);
@@ -85,37 +92,38 @@ namespace PuppetMastersCoordinatorGUI
             all_subscribers = new Dictionary<String, Subscriber>();
             rout = RoutingPolicy.flooding;
             ord = OrderingPolicy.fifo;
+
+            //load proxyies of pms
             getPMs();
-            try
-            {
-                System.IO.File.ReadAllLines(@"./../../../config.file");
+            string configFile = ConfigurationManager.AppSettings["config"];
+            
+            
+                if (!File.Exists(configFile))
+                {
+                    MessageBox.Show("config.file not found " + Path.GetFullPath(configFile));
+                    return;
+                }
 
-            }
-            catch (FileNotFoundException fnf)
-            {
-                MessageBox.Show("config.file not found" + fnf);
-            }
 
-            string[] lines = System.IO.File.ReadAllLines(@"./../../../config.file");
+
+            //string[] lines = System.IO.File.ReadAllLines(@"./../../../config.file");
+            string[] lines = System.IO.File.ReadAllLines(configFile);
+
 
             foreach (string line in lines)
             {
                 string[] keywords = line.Split(' ');
-
-                if (keywords[0] == "RoutingPolicy" && keywords.Length >= 2)
+                var type = keywords[0];
+                if (type == "RoutingPolicy" && keywords.Length >= 2)
                 {
                     if (keywords[1] == "filter")
                         rout = RoutingPolicy.filter;
-
-
                 }
-                else if (keywords[0] == "LoggingLevel" && keywords.Length >= 2)
+                else if (type == "LoggingLevel" && keywords.Length >= 2)
                 {
                     log = keywords[1];
-
-
                 }
-                else if (keywords[0] == "Ordering" && keywords.Length >= 2)
+                else if (type == "Ordering" && keywords.Length >= 2)
                 {
                     if (keywords[1] == "no")
                         ord = OrderingPolicy.no;
@@ -124,50 +132,68 @@ namespace PuppetMastersCoordinatorGUI
 
 
                 }
-                else if (keywords[0] == "Site" && keywords.Length >= 4)
+                else if (type == "Site" && keywords.Length >= 4)
                 {
-                    if (keywords[3] == "none")
-                        site_root = keywords[1];
+
+                    //Example "Site site0 Parent none"
+                    //"Site site1 Parent site0"
+                    var parent_site = keywords[3];
+                    var site_name = keywords[1];
+
+                    if (parent_site == "none")
+                    {                        
+                        site_root = site_name;
+                    }
                     else
                     {
-                        site_parents.Add(keywords[1], keywords[3]);
-                        if (!site_childs.ContainsKey(keywords[3]))
-                            site_childs.Add(keywords[3], new List<string>());
-                        site_childs[keywords[3]].Add(keywords[1]);
+                        site_parents.Add(site_name, parent_site);
+
+                        if (!site_childs.ContainsKey(parent_site))
+                            site_childs.Add(parent_site, new List<string>());
+                        site_childs[parent_site].Add(site_name);
                     }
 
 
                 }
-                else if (keywords[0] == "Process" && keywords.Length >= 8)
+                else if (type == "Process" && keywords.Length >= 8)
                 {
-                    string ip = parseURI(keywords[7])[1];
-                    string port = parseURI(keywords[7])[2];
-                    string name = parseURI(keywords[7])[3];
+                    //Process subscriber0 Is subscriber On site0 URL tcp://localhost:3337/sub
+                    
+                    string uri = keywords[7];
+                    string ip = parseURI(uri)[1];
+                    string port = parseURI(uri)[2];
+                    string name = parseURI(uri)[3];
+                    string process_type = keywords[3];
+                    string site = keywords[5];
+                    string process_name = keywords[1];
 
-                    switch (keywords[3])
+                    switch (process_type)
                     {
                         case "publisher":
-                            Publisher p = pms[ip].createPublisher(name, keywords[5], Int32.Parse(port));
-                            all_publishers.Add(keywords[1], p);
-                            if (!site_publishers.ContainsKey(keywords[5]))
-                                site_publishers.Add(keywords[5], new List<Publisher>());
-                            site_publishers[keywords[5]].Add(p);
+                            //create
+                            Publisher p = pms[ip].createPublisher(name, site, Int32.Parse(port));
+                            //associate
+                            all_publishers.Add(process_name, p);
+                            //add it to site publishers
+                            if (!site_publishers.ContainsKey(site))
+                                site_publishers.Add(site, new List<Publisher>());
+                            site_publishers[site].Add(p);
                             break;
                         case "broker":
-                            Broker b = pms[ip].createBroker(name, keywords[5], Int32.Parse(port));
-                            all_brokers.Add(keywords[1], b);
-                            site_brokers.Add(keywords[5], b);
-                            site_site.Add(keywords[5], new Site() { name = keywords[5], brokers = new List<Broker>() { b } });
+                            Broker b = pms[ip].createBroker(name, site, Int32.Parse(port));
+                            all_brokers.Add(process_name, b);
+                            site_brokers.Add(site, b);
+                            site_site.Add(site, new Site() { name = site, brokers = new List<Broker>() { b } });
                             break;
                         case "subscriber":
-                            Subscriber s = pms[ip].createSubscriber(name, keywords[5], Int32.Parse(port));
-                            all_subscribers.Add(keywords[1], s);
-                            if (!site_subscribers.ContainsKey(keywords[5]))
-                                site_subscribers.Add(keywords[5], new List<Subscriber>());
-                            site_subscribers[keywords[5]].Add(s);
+                            Subscriber s = pms[ip].createSubscriber(name, site, Int32.Parse(port));
+                            all_subscribers.Add(process_name, s);
+                            if (!site_subscribers.ContainsKey(site))
+                                site_subscribers.Add(site, new List<Subscriber>());
+                            site_subscribers[site].Add(s);
                             break;
                         default:
-                            MessageBox.Show("Error parsing config.file!");
+                            MessageBox.Show("Error parsing config.file!");                            
                             break;
                     }
 
@@ -239,7 +265,9 @@ namespace PuppetMastersCoordinatorGUI
         {
             try
             {
-                string[] lines = System.IO.File.ReadAllLines(@"./../../../input.file");
+                string input_file = ConfigurationManager.AppSettings["input"];
+                //string[] lines = System.IO.File.ReadAllLines(@"./../../../input.file");
+                string[] lines = System.IO.File.ReadAllLines(input_file);
                 readInput(lines);
             }            
             catch(FileNotFoundException fnf)
