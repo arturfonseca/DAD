@@ -63,6 +63,7 @@ namespace PuppetMasterConsole
 
         public static void test2(PuppetMaster pm)
         {
+            /*
             // testing code
             Broker b1 = pm.createBroker("broker1", "site1", 3333);
             Publisher p1 = pm.createPublisher("publisher1", "site1", 3334);
@@ -98,12 +99,13 @@ namespace PuppetMasterConsole
             s2.subscribe("batata");
             p1.publish("batata", "batata");
             p2.publish("arroz", "arroz");
-
+            */
             
         }
 
         public static void test1(PuppetMaster pm)
         {
+            /*
             // testing code
             Broker b1 = pm.createBroker("broker1", "site1", 3333);
             Publisher p1 = pm.createPublisher("publisher1", "site1", 3334);
@@ -124,6 +126,7 @@ namespace PuppetMasterConsole
             Console.ReadLine();
             s1.subscribe("/tempo/*");
             p1.publish("/tempo/porto", "neve");
+            */
         }
 
         public Broker createBroker(string name,string site,int port)
@@ -249,6 +252,11 @@ namespace PuppetMasterConsole
         public String status()
         {
             return "OK!";
+        }
+
+        public void reportEvent(string type, string uri1, string uri2, string topic, string seqnum)
+        {
+            throw new NotImplementedException();
         }
     }
 }

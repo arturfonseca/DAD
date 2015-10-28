@@ -313,7 +313,11 @@ namespace PuppetMastersCoordinatorGUI
                 }
                 else if (keywords.Length >= 8 && keywords[0] == "Publisher" && keywords[2] == "Publish")
                 {
-                    all_publishers[keywords[1]].publish(keywords[5], "some msg" + DateTime.Now.ToString());
+                    //Publisher publisher0 Publish 1 Ontopic /desporto/futebol Interval 100
+                    int quantity = int.Parse(keywords[3]);
+                    int interval = int.Parse(keywords[7]);
+                    string msg = "some msg" + DateTime.Now.ToString();
+                    all_publishers[keywords[1]].publish(keywords[5], msg, quantity,interval);
                 }
                 else
                 {

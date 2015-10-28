@@ -153,7 +153,7 @@ namespace DADInterfaces
     public interface Publisher: Node
     {
         void setSiteBroker(Broker site_broker);
-        void publish(string topic, string msg);
+        void publish(string topic, string msg, int quantity, int interval);
         
     }
     public interface Subscriber: Node
@@ -162,6 +162,11 @@ namespace DADInterfaces
         void subscribe(string topic);
         void unsubscribe(string topic);
         void receive(string topic, string content);
+    }
+
+    public interface Coordinator
+    {
+        void reportEvent(string type, string uri1, string uri2, string topic, string seqnum);
     }
 
     public interface PuppetMaster
@@ -184,7 +189,9 @@ namespace DADInterfaces
         string status();
 
         // used by all processes created by the puppet master to report events
-        void reportEvent(string origin_uri, string e);
+        // type = {PubEvent, BroEvent, SubEvent}
+        void reportEvent(string type, string uri1, string uri2, string topic, string seqnum);
+        void reportEvent(string a, String b);
     }
 
     public static class Utility

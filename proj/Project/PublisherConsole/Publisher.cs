@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Runtime.Remoting;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace PublisherConsole
@@ -110,7 +111,9 @@ namespace PublisherConsole
             throw new NotImplementedException();
         }
 
-        public void publish(string topic, string content)
+        delegate void publish_delegate(string topic, string content, int quantity, int interval);
+
+        private void publish_work(string topic, string content)
         {
             int total_seqnum = _total_seqnum;
             _total_seqnum += 1;
@@ -123,14 +126,36 @@ namespace PublisherConsole
             topic_seqnum = _topics_seqnum[topic];
             _topics_seqnum[topic] += 1;
 
-            var msg = new PublishMessage() { senderURI = getURI(), total_seqnum=total_seqnum, topic_seqnum = topic_seqnum, topic = topic, content = content};
+            var msg = new PublishMessage() { senderURI = getURI(), total_seqnum = total_seqnum, topic_seqnum = topic_seqnum, topic = topic, content = content };
             log(string.Format("[publish] {0}", msg));
             // TODO make all calls assyncs
             publishDelegate pd = new publishDelegate(_broker.publish);
             IAsyncResult res = pd.BeginInvoke(msg, null, null);
             // TODO wait for response...
-            // synchronous way _broker.publish(msg);           
+            // synchronous way _broker.publish(msg);
         }
+
+        private void publish_job(string topic, string content, int quantity, int interval)
+        {
+            //we assume quantity and interval positive
+            for (int i = 0; i < quantity; i++) {
+                publish_work(topic, content);
+                Thread.Sleep(interval);
+            }
+        }
+
+
+        public void publish(string topic, string content, int quantity, int interval)
+        {
+            // interval in milliseconds
+            // we dont remove thread gracefully
+            
+            Thread t = new Thread(() => publish_job(topic, content, quantity, interval));
+            t.Start();
+            log(string.Format("[Publish Thread Started]"));
+        }
+
+
 
         void log(string e)
         {
