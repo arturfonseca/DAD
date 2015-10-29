@@ -1,1 +1,1 @@
-tcp://localhost:55555/PuppetMaster
+tcp://localhost:30000/puppet
