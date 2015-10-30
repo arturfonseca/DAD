@@ -129,7 +129,7 @@ namespace PublisherConsole
                 topic_seqnum = _topics_seqnum[topic];
                 _topics_seqnum[topic] += 1;
 
-                var msg = new PublishMessage() { senderURI = getURI(), total_seqnum = total_seqnum, topic_seqnum = topic_seqnum, topic = topic, content = content };
+                var msg = new PublishMessage() { senderURI = getURI(), total_seqnum = total_seqnum, topic = topic, content = content };
                 log(string.Format("[publish] {0}", msg));
                 // TODO make all calls assyncs
                 _broker.publish(msg);
