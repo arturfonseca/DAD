@@ -412,44 +412,70 @@ namespace BrokerConsole
             // TODO make all calls assyncs
 
             log(string.Format("[Publish] Received event '{0}'", msg));
-            //FIFO
-            lock (_fifostructs)
+
+
+            if (_orderingPolicy == OrderingPolicy.fifo) { 
+                //FIFO
+                lock (_fifostructs)
+                {
+
+                    int index = _fifostructs.FindIndex(item => item._publhisherURI == msg.senderURI);
+                    if (index < 0)
+                    {
+                        // element does not exists
+                            _fifostructs.Add(new FIFOstruct(msg.senderURI, 0));
+                        //getIndex Now
+                            index = _fifostructs.FindIndex(item => item._publhisherURI == msg.senderURI);
+                    }
+                    //TODO Verify duplicates
+                    _fifostructs[index].listOfmessages.Add(msg);
+                    _fifostructs[index].listOfmessages.OrderBy(item => item.total_seqnum).ToList();
+
+                    //DEBUG ListOfMessages
+                    foreach (PublishMessage _msg in _fifostructs[index].listOfmessages)
+                    {
+                        log(string.Format("[ListOfMessage] Received event '{0}'", msg));
+                    }
+
+                    foreach(PublishMessage _msg in _fifostructs[index].listOfmessages) {
+
+                        if (_msg.total_seqnum == _fifostructs[index]._seq_num)
+                        {
+                            //Prepare to send the msg to interested sites
+                            deliver(_msg);
+                            routing(_msg);
+
+                            //Message sent , increment seq_num and delete delivered message
+                            _fifostructs[index]._seq_num++;
+                            _fifostructs[index].listOfmessages.Remove(_msg);
+                        }
+                        else
+                            break;
+
+                    }
+                    
+
+                }
+
+            }
+            else
             {
 
-                int index = _fifostructs.FindIndex(item => item._publhisherURI == msg.senderURI);
-                if (index < 0)
-                {
-                    // element does not exists
-                        _fifostructs.Add(new FIFOstruct(msg.senderURI, 0));
-                    //getIndex Now
-                        index = _fifostructs.FindIndex(item => item._publhisherURI == msg.senderURI);
-                }
-                //TODO Verify duplicates
-                _fifostructs[index].listOfmessages.Add(msg);
-                _fifostructs[index].listOfmessages.OrderBy(item => item.total_seqnum).ToList();
-
-                //DEBUG ListOfMessages
-                foreach (PublishMessage _msg in _fifostructs[index].listOfmessages)
-                {
-                    log(string.Format("[ListOfMessage] Received event '{0}'", msg));
-                }
+                deliver(msg);
+                routing(msg);
             }
 
-           /* foreach (Site childsite in _childSites)
-                {
+            /* foreach (Site childsite in _childSites)
+                 {
 
-                    if (!_siteToFifoStruct.ContainsKey(childsite.name))
-                    {
-                        _siteToFifoStruct.Add(childsite.name, new List<FIFOstruct>());
-                    }
-                    _siteToFifoStruct[childsite.name].Add(new FIFOstruct());
-                }
-            */
+                     if (!_siteToFifoStruct.ContainsKey(childsite.name))
+                     {
+                         _siteToFifoStruct.Add(childsite.name, new List<FIFOstruct>());
+                     }
+                     _siteToFifoStruct[childsite.name].Add(new FIFOstruct());
+                 }
+             */
 
-
-            
-			deliver(msg);
-			routing(msg);
 		}
 		public void propagatePublish(PropagatedPublishMessage msg)
 		{
