@@ -14,6 +14,20 @@ using System.Threading;
 
 namespace BrokerConsole
 {
+    class FIFOstruct {
+        public string _publhisherURI;
+        public int _seq_num;
+        public List<PublishMessage> listOfmessages = new List<PublishMessage>();
+
+        public FIFOstruct(string publisher, int seq_num)
+        {
+            _publhisherURI = publisher;
+            _seq_num = seq_num;
+        }
+
+        public FIFOstruct() { }
+    }
+
 	class BrokerRemote : MarshalByRefObject, Broker
 	{
 		private PuppetMaster _pm;
@@ -36,6 +50,7 @@ namespace BrokerConsole
 		// key = subscriber_uri, value = seqnum
 		Dictionary<string, int> _subscribersSeqNums = new Dictionary<string, int>();
 
+
 		// Child sites
 		private List<Site> _childSites = new List<Site>();
 		// site_name to Site
@@ -50,7 +65,15 @@ namespace BrokerConsole
 		private OrderingPolicy _orderingPolicy;
 		private RoutingPolicy _routingPolicy;
 
-		public BrokerRemote(PuppetMaster pm, string uri, string name, string site)
+
+        ///////////FIFO/////////
+
+        //string= site.URI
+        private Dictionary<string, List<FIFOstruct>> _siteToFifoStruct = new Dictionary<string, List<FIFOstruct>>();
+        private List<FIFOstruct> _fifostructs = new List<FIFOstruct>();
+
+
+        public BrokerRemote(PuppetMaster pm, string uri, string name, string site)
 		{
 			_uri = uri;
 			_name = name;
@@ -58,7 +81,9 @@ namespace BrokerConsole
 			_site = site;
 			_orderingPolicy = OrderingPolicy.fifo;
 			_routingPolicy = RoutingPolicy.flooding;
-		}
+
+
+        }
 
 		public override object InitializeLifetimeService()
 		{
@@ -382,11 +407,47 @@ namespace BrokerConsole
 
 		public void publish(PublishMessage msg)
 		{
-			// FLOODING implementation
-			// TODO discart if duplicate message
-			// TODO make all calls assyncs
+            // FLOODING implementation
+            // TODO discart if duplicate message
+            // TODO make all calls assyncs
+
+            log(string.Format("[Publish] Received event '{0}'", msg));
+            //FIFO
+            lock (_fifostructs)
+            {
+
+                int index = _fifostructs.FindIndex(item => item._publhisherURI == msg.senderURI);
+                if (index < 0)
+                {
+                    // element does not exists
+                        _fifostructs.Add(new FIFOstruct(msg.senderURI, 0));
+                    //getIndex Now
+                        index = _fifostructs.FindIndex(item => item._publhisherURI == msg.senderURI);
+                }
+                //TODO Verify duplicates
+                _fifostructs[index].listOfmessages.Add(msg);
+                _fifostructs[index].listOfmessages.OrderBy(item => item.total_seqnum).ToList();
+
+                //DEBUG ListOfMessages
+                foreach (PublishMessage _msg in _fifostructs[index].listOfmessages)
+                {
+                    log(string.Format("[ListOfMessage] Received event '{0}'", msg));
+                }
+            }
+
+           /* foreach (Site childsite in _childSites)
+                {
+
+                    if (!_siteToFifoStruct.ContainsKey(childsite.name))
+                    {
+                        _siteToFifoStruct.Add(childsite.name, new List<FIFOstruct>());
+                    }
+                    _siteToFifoStruct[childsite.name].Add(new FIFOstruct());
+                }
+            */
+
+
             
-			log(string.Format("[Publish] Received event '{0}'", msg));
 			deliver(msg);
 			routing(msg);
 		}
