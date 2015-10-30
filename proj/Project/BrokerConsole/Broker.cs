@@ -475,7 +475,7 @@ namespace BrokerConsole
                             foreach (var b in s.brokers)
                             {
                                 // TODO broker.getURI() is slow, we should use a cache
-                                log(string.Format("[Routing] flooding. sent event '{0}' to '{1}'", msg, b.getURI()));
+                                log(string.Format("[Flooding Routing] sent event '{0}' to '{1}'", msg, b.getURI()));
                                
                                 PropagatePublishDelegate d = new PropagatePublishDelegate(b.propagatePublish);
                                 d.BeginInvoke(pmsg,null,null);
@@ -506,7 +506,7 @@ namespace BrokerConsole
                                 foreach (var broker in site.brokers)
                                 {
                                     // using broker.getURI() increases network traffic
-                                    log(string.Format("[propagatingRouting] filtering. sent event '{0}' to '{1}'", msg, broker.getURI()));
+                                    log(string.Format("[filtering routing] sent event '{0}' to '{1}'", msg, broker.getURI()));
                                     
                                     PropagatePublishDelegate d = new PropagatePublishDelegate(broker.propagatePublish);
                                     d.BeginInvoke(pmsg, null, null);
@@ -530,7 +530,7 @@ namespace BrokerConsole
                     {
                         // TODO broker.getURI() is slow, we should use a cache
                         log(string.Format("[Routing] sent event '{0}' to parent broker '{1}'", msg, b.getURI()));
-                        
+                        //b.propagatePublish(pmsg);
                         PropagatePublishDelegate d = new PropagatePublishDelegate(b.propagatePublish);
                         d.BeginInvoke(pmsg, null, null);
                         //b.propagatePublish(pmsg);
@@ -608,7 +608,7 @@ namespace BrokerConsole
                                 foreach (var broker in site.brokers)
                                 {
                                     // using broker.getURI() increases network traffic
-                                    log(string.Format("[propagatingRouting] filtering. sent event '{0}' to '{1}'", msg, broker.getURI()));
+                                    log(string.Format("sent '{0}' to '{1}'", msg, broker.getURI()));
                                     PropagatePublishDelegate d = new PropagatePublishDelegate(broker.propagatePublish);
                                     d.BeginInvoke(msg, null, null);
                                     //broker.propagatePublish(msg);
@@ -624,6 +624,7 @@ namespace BrokerConsole
 
             // send to parent site brokers
             // always send publish to parent, doesnt matter if interested in topic
+
             lock (_parentSiteLock)
             {
                 if (_parentSite != null && _parentSite.name != origin_site)
@@ -631,7 +632,7 @@ namespace BrokerConsole
                     foreach (Broker b in _parentSite.brokers)
                     {
                         // TODO broker.getURI() is slow, we should use a cache
-                        log(string.Format("[PropagatedRouting] sent event '{0}' to parent broker '{1}'", msg, b.getURI()));                        
+                        log(string.Format("Sent '{0}' to parent broker '{1}'", msg, b.getURI()));                        
                         PropagatePublishDelegate d = new PropagatePublishDelegate(b.propagatePublish);
                         d.BeginInvoke(msg, null, null);
                         //b.propagatePublish(msg);
