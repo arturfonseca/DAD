@@ -13,6 +13,9 @@ using System.Runtime.Remoting.Channels.Tcp;
 using System.Runtime.Remoting.Channels;
 using System.Configuration;
 using System.Runtime.Remoting;
+using System.Threading;
+using System.Net;
+using System.Net.Sockets;
 
 namespace PuppetMastersCoordinatorGUI
 {
@@ -29,11 +32,13 @@ namespace PuppetMastersCoordinatorGUI
         Dictionary<String, Broker> all_brokers;
         Dictionary<String, Publisher> all_publishers;
         Dictionary<String, Subscriber> all_subscribers;
+        Dictionary<String, String> uri_processname;
         //Vars
         String site_root;
         RoutingPolicy rout;
         OrderingPolicy ord;
-        String log = "light";
+        LoggingLevel log;
+        string myaddr;
 
         public Form1()
         {
@@ -57,17 +62,17 @@ namespace PuppetMastersCoordinatorGUI
             return ret;
 
         }
-        
+
         private void getPMs()
         {
             // get puppet masters proxies
-           // TcpChannel channel = new TcpChannel();
+            // TcpChannel channel = new TcpChannel();
             //ChannelServices.RegisterChannel(channel, true);
             pms = new Dictionary<String, PuppetMaster>();
             string puppetMasterConfigFile = ConfigurationManager.AppSettings["puppetmasters"];
             string[] lines = null;
             // WARNING no file detection done
-            lines = System.IO.File.ReadAllLines(puppetMasterConfigFile);                       
+            lines = System.IO.File.ReadAllLines(puppetMasterConfigFile);
             //string[] lines = System.IO.File.ReadAllLines(@"./../../../puppermaster.file");
             foreach (string line in lines)
             {
@@ -79,15 +84,28 @@ namespace PuppetMastersCoordinatorGUI
 
         }
 
-        public void log_(string str)
+        public void log_(string type, string uri1, string uri2, string topic, int seqnum)
+        {            
+            string str = type + " " + uri_processname[uri1] + ", " + uri_processname[uri2] + ", " + topic + ", " + seqnum;
+            textBox13.Text += str + "\r\n";
+            StreamWriter writetext = new StreamWriter(ConfigurationManager.AppSettings["logs"], true);
+            writetext.WriteLine(str);
+            writetext.Close();
+        }
+        public void logCommand(string str)
         {
-            textBox13.Text += str+"\r\n";
+            textBox13.Text += str + "\r\n";
+            StreamWriter writetext = new StreamWriter(ConfigurationManager.AppSettings["logs"], true);
+            writetext.WriteLine(str);
+            writetext.Close();
         }
 
 
         private void button1_Click(object sender, EventArgs e)
         {
-            TcpChannel channel = new TcpChannel(50000);
+            myaddr = ConfigurationManager.AppSettings["myaddr"];
+            int myport = Int32.Parse(parseURI(myaddr)[2]);
+            TcpChannel channel = new TcpChannel(myport);
             ChannelServices.RegisterChannel(channel, true);
             CoordinatorRem c = new CoordinatorRem(this);
             RemotingServices.Marshal(c, "CoordinatorRem", typeof(CoordinatorRem));
@@ -101,23 +119,23 @@ namespace PuppetMastersCoordinatorGUI
             all_brokers = new Dictionary<String, Broker>();
             all_publishers = new Dictionary<String, Publisher>();
             all_subscribers = new Dictionary<String, Subscriber>();
+            uri_processname = new Dictionary<String, String>();
             rout = RoutingPolicy.flooding;
             ord = OrderingPolicy.fifo;
+            log = LoggingLevel.light;
+
 
             //load proxyies of pms
             getPMs();
             string configFile = ConfigurationManager.AppSettings["config"];
-            
-            
-                if (!File.Exists(configFile))
-                {
-                    MessageBox.Show("config.file not found " + Path.GetFullPath(configFile));
-                    return;
-                }
 
 
+            if (!File.Exists(configFile))
+            {
+                MessageBox.Show("config.file not found " + Path.GetFullPath(configFile));
+                return;
+            }
 
-            //string[] lines = System.IO.File.ReadAllLines(@"./../../../config.file");
             string[] lines = System.IO.File.ReadAllLines(configFile);
 
 
@@ -132,13 +150,14 @@ namespace PuppetMastersCoordinatorGUI
                 }
                 else if (type == "LoggingLevel" && keywords.Length >= 2)
                 {
-                    log = keywords[1];
+                    if (keywords[1] == "full")
+                        log = LoggingLevel.full;
                 }
                 else if (type == "Ordering" && keywords.Length >= 2)
                 {
-                    if (keywords[1] == "no")
+                    if (keywords[1] == "NO")
                         ord = OrderingPolicy.no;
-                    if (keywords[1] == "total")
+                    if (keywords[1] == "TOTAL")
                         ord = OrderingPolicy.total;
 
 
@@ -152,7 +171,7 @@ namespace PuppetMastersCoordinatorGUI
                     var site_name = keywords[1];
 
                     if (parent_site == "none")
-                    {                        
+                    {
                         site_root = site_name;
                     }
                     else
@@ -169,7 +188,7 @@ namespace PuppetMastersCoordinatorGUI
                 else if (type == "Process" && keywords.Length >= 8)
                 {
                     //Process subscriber0 Is subscriber On site0 URL tcp://localhost:3337/sub
-                    
+
                     string uri = keywords[7];
                     string ip = parseURI(uri)[1];
                     string port = parseURI(uri)[2];
@@ -182,29 +201,38 @@ namespace PuppetMastersCoordinatorGUI
                     {
                         case "publisher":
                             //create
-                            Publisher p = pms[ip].createPublisher(name, site, Int32.Parse(port));
+                            Publisher p = pms[ip].createPublisher(name, site, Int32.Parse(port), myaddr);
                             //associate
                             all_publishers.Add(process_name, p);
                             //add it to site publishers
                             if (!site_publishers.ContainsKey(site))
                                 site_publishers.Add(site, new List<Publisher>());
                             site_publishers[site].Add(p);
+                            if (ip == "localhost")
+                                uri = uri.Replace("localhost", LocalIPAddress().ToString());
+                            uri_processname.Add(uri,process_name);
                             break;
                         case "broker":
-                            Broker b = pms[ip].createBroker(name, site, Int32.Parse(port));
+                            Broker b = pms[ip].createBroker(name, site, Int32.Parse(port), myaddr);
                             all_brokers.Add(process_name, b);
                             site_brokers.Add(site, b);
                             site_site.Add(site, new Site() { name = site, brokers = new List<Broker>() { b } });
+                            if (ip == "localhost")
+                                uri = uri.Replace("localhost", LocalIPAddress().ToString());
+                            uri_processname.Add(uri, process_name);
                             break;
                         case "subscriber":
-                            Subscriber s = pms[ip].createSubscriber(name, site, Int32.Parse(port));
+                            Subscriber s = pms[ip].createSubscriber(name, site, Int32.Parse(port), myaddr);
                             all_subscribers.Add(process_name, s);
                             if (!site_subscribers.ContainsKey(site))
                                 site_subscribers.Add(site, new List<Subscriber>());
                             site_subscribers[site].Add(s);
+                            if (ip == "localhost")
+                                uri = uri.Replace("localhost", LocalIPAddress().ToString());
+                            uri_processname.Add(uri, process_name);
                             break;
                         default:
-                            MessageBox.Show("Error parsing config.file!");                            
+                            MessageBox.Show("Error parsing config.file!");
                             break;
                     }
 
@@ -217,6 +245,7 @@ namespace PuppetMastersCoordinatorGUI
             {
                 entry.Value.setRoutingPolicy(rout);
                 entry.Value.setOrderingPolicy(ord);
+                entry.Value.setLoggingLevel(log);
             }
 
             site_brokers[site_root].setIsRoot();
@@ -277,42 +306,76 @@ namespace PuppetMastersCoordinatorGUI
             try
             {
                 string input_file = ConfigurationManager.AppSettings["input"];
-                //string[] lines = System.IO.File.ReadAllLines(@"./../../../input.file");
                 string[] lines = System.IO.File.ReadAllLines(input_file);
                 readInput(lines);
-            }            
-            catch(FileNotFoundException fnf)
-            {
-                MessageBox.Show("input.file not found"+fnf);
             }
-            
+            catch (FileNotFoundException fnf)
+            {
+                MessageBox.Show("input.file not found" + fnf);
+            }
+
         }
 
-        
+
         public void readInput(String[] lines)
         {
             foreach (String line in lines)
             {
+                logCommand(line);
                 string[] keywords = line.Split(' ');
                 if (keywords[0] == "Status" && keywords.Length >= 1)
                 {
+                    foreach (KeyValuePair<string, Broker> entry in all_brokers)
+                        entry.Value.status();
+                    foreach (KeyValuePair<string, Publisher> entry in all_publishers)
+                        entry.Value.status();
+                    foreach (KeyValuePair<string, Subscriber> entry in all_subscribers)
+                        entry.Value.status();
 
                 }
                 else if (keywords[0] == "Crash" && keywords.Length >= 2)
                 {
+                    try
+                    {
+                        if (all_brokers.ContainsKey(keywords[1]))
+                            all_brokers[keywords[1]].crash();
+                        if (all_publishers.ContainsKey(keywords[1]))
+                            all_publishers[keywords[1]].crash();
+                        if (all_subscribers.ContainsKey(keywords[1]))
+                            all_subscribers[keywords[1]].crash();
+                    }
+                    catch(System.IO.IOException e)
+                    {
+                        //PROCESS KILLED SUCESSFULLY
+                        //MessageBox.Show(e.ToString());
+                    }
+                    
 
                 }
                 else if (keywords[0] == "Freeze" && keywords.Length >= 2)
                 {
 
+                    if (all_brokers.ContainsKey(keywords[1]))
+                        all_brokers[keywords[1]].freeze();
+                    if (all_publishers.ContainsKey(keywords[1]))
+                        all_publishers[keywords[1]].freeze();
+                    if (all_subscribers.ContainsKey(keywords[1]))
+                        all_subscribers[keywords[1]].freeze();
+
                 }
                 else if (keywords[0] == "Unfreeze" && keywords.Length >= 2)
                 {
+                    if (all_brokers.ContainsKey(keywords[1]))
+                        all_brokers[keywords[1]].unfreeze();
+                    if (all_publishers.ContainsKey(keywords[1]))
+                        all_publishers[keywords[1]].unfreeze();
+                    if (all_subscribers.ContainsKey(keywords[1]))
+                        all_subscribers[keywords[1]].unfreeze();
 
                 }
                 else if (keywords[0] == "Wait" && keywords.Length >= 2)
                 {
-
+                    Thread.Sleep(Int32.Parse(keywords[1]));
                 }
                 else if (keywords.Length >= 4 && keywords[0] == "Subscriber" && keywords[2] == "Subscribe")
                 {
@@ -328,7 +391,7 @@ namespace PuppetMastersCoordinatorGUI
                     int quantity = int.Parse(keywords[3]);
                     int interval = int.Parse(keywords[7]);
                     string msg = "some msg" + DateTime.Now.ToString();
-                    all_publishers[keywords[1]].publish(keywords[5], msg, quantity,interval);
+                    all_publishers[keywords[1]].publish(keywords[5], msg, quantity, interval);
                 }
                 else
                 {
@@ -354,7 +417,7 @@ namespace PuppetMastersCoordinatorGUI
 
         private void button5_Click(object sender, EventArgs e)
         {
-            String[]str= new string[1];
+            String[] str = new string[1];
             str[0] = "Subscriber " + textBox2.Text + " Subscribe " + textBox3.Text;
             readInput(str);
 
@@ -373,7 +436,7 @@ namespace PuppetMastersCoordinatorGUI
         private void button7_Click(object sender, EventArgs e)
         {
             String[] str = new string[1];
-            str[0] = "Publisher " + textBox6.Text + " Publish " + textBox7.Text+" Ontopic "+textBox8.Text+" Interval "+textBox9.Text;
+            str[0] = "Publisher " + textBox6.Text + " Publish " + textBox7.Text + " Ontopic " + textBox8.Text + " Interval " + textBox9.Text;
             readInput(str);
         }
 
@@ -393,10 +456,25 @@ namespace PuppetMastersCoordinatorGUI
 
         private void button10_Click(object sender, EventArgs e)
         {
+            
             String[] str = new string[1];
             str[0] = "Unfreeze " + textBox12.Text;
             readInput(str);
         }
-
+        
+        private IPAddress LocalIPAddress()
+        {
+            if (!System.Net.NetworkInformation.NetworkInterface.GetIsNetworkAvailable())
+            {
+                return null;
             }
+
+            IPHostEntry host = Dns.GetHostEntry(Dns.GetHostName());
+
+            return host
+                .AddressList
+                .FirstOrDefault(ip => ip.AddressFamily == AddressFamily.InterNetwork);
+        }
+
+    }
 }

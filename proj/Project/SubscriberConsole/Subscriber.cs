@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace SubscriberConsole
 {
-    class SubscriberRemote:MarshalByRefObject,Subscriber
+    class SubscriberRemote : MarshalByRefObject, Subscriber
     {
         private PuppetMaster _pm;
         private string _name;
@@ -21,13 +21,16 @@ namespace SubscriberConsole
         private List<string> _subscribedTopics = new List<string>();
         private Object thisLock = new Object();
         private ICoordinator c;
+        private int seq;
+        private bool _freeze_state = false;
 
-        public SubscriberRemote(PuppetMaster pm, string name, string site)
+        public SubscriberRemote(PuppetMaster pm, string name, string site, string addr)
         {
             _name = name;
             _pm = pm;
             _site = site;
-            c = (ICoordinator)Activator.GetObject(typeof(ICoordinator), "tcp://localhost:50000/CoordinatorRem");
+            c = (ICoordinator)Activator.GetObject(typeof(ICoordinator), addr);
+            seq = 0;
 
         }
 
@@ -39,7 +42,7 @@ namespace SubscriberConsole
         static void Main(string[] args)
         {
             Console.WriteLine("Started Subscriber, pid=\"{0}\"", Process.GetCurrentProcess().Id);
-            int nargs = 4;
+            int nargs = 5;
             if (args.Length != nargs)
             {
                 Console.WriteLine("Expected {0} arguments, got {1}", nargs, args.Length);
@@ -50,12 +53,13 @@ namespace SubscriberConsole
             string name = args[1];
             string site = args[2];
             int port = int.Parse(args[3]);
+            string addr = args[4];
 
             string channelURI = Utility.setupChannel(port);
 
             // get the puppetMaster that started this process
             PuppetMaster pm = (PuppetMaster)Activator.GetObject(typeof(PuppetMaster), puppetMasterURI);
-            SubscriberRemote subscriber = new SubscriberRemote(pm, name, site);
+            SubscriberRemote subscriber = new SubscriberRemote(pm, name, site, addr);
             //we need to register each remote object
             ObjRef o = RemotingServices.Marshal(subscriber, name, typeof(Subscriber));
             subscriber.setURI(string.Format("{0}/{1}", channelURI, name));
@@ -86,7 +90,7 @@ namespace SubscriberConsole
 
         public string status()
         {
-            throw new NotImplementedException();
+            return "OK";
         }
 
         public string getName()
@@ -101,17 +105,22 @@ namespace SubscriberConsole
 
         public void crash()
         {
-            throw new NotImplementedException();
+            Process.GetCurrentProcess().Kill();
         }
 
         public void freeze()
         {
-            throw new NotImplementedException();
+            _freeze_state = true;
+            while (_freeze_state)
+            {
+
+            }
+            
         }
 
         public void unfreeze()
         {
-            throw new NotImplementedException();
+            _freeze_state = false;
         }
 
         public void subscribe(string topic)
@@ -132,8 +141,8 @@ namespace SubscriberConsole
                 _broker.subscribe(msg);
                 _seqnum += 1;
             }
-            
-            
+
+
         }
 
         public void unsubscribe(string topic)
@@ -153,20 +162,25 @@ namespace SubscriberConsole
                 _broker.unsubscribe(msg);
                 _seqnum += 1;
             }
-            
-            
-            
-        }       
+
+
+
+        }
 
         public void receive(string topic, string content)
         {
-            c.reportEvent("a", "b", "c", "d", "e");
+
+            seq++;
+            c.reportEvent("SubEvent", getURI(), getURI(), topic, seq);
             log(string.Format("Received. topic:'{0}' content:'{1}'", topic, content));
+
+
+
         }
 
         void log(string e)
         {
-            _pm.reportEvent(getURI(), e);
+           // _pm.reportEvent(getURI(), e);
             Console.WriteLine(e);
         }
     }

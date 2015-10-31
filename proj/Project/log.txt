@@ -1,0 +1,37 @@
+Subscriber subscriber0 Subscribe /desporto/*
+Subscriber subscriber1 Subscribe /desporto/futebol
+Publisher publisher0 Publish 1 Ontopic /desporto/futebol Interval 1000
+PubEvent publisher0, publisher0, /desporto/futebol, 0
+SubEvent subscriber0, subscriber0, /desporto/futebol, 1
+SubEvent subscriber1, subscriber1, /desporto/futebol, 1
+Crash publisher0
+Subscriber subscriber0 Subscribe /desporto/*
+Subscriber subscriber1 Subscribe /desporto/futebol
+Publisher publisher0 Publish 1 Ontopic /desporto/futebol Interval 1000
+PubEvent publisher0, publisher0, /desporto/futebol, 0
+SubEvent subscriber0, subscriber0, /desporto/futebol, 1
+SubEvent subscriber1, subscriber1, /desporto/futebol, 1
+Crash subscriber1
+Publisher publisher0 Publish 1 Ontopic /desporto/tenis Interval 10
+PubEvent publisher0, publisher0, /desporto/tenis, 0
+SubEvent subscriber0, subscriber0, /desporto/tenis, 2
+Status
+Subscriber subscriber0 Subscribe /desporto/*
+Subscriber subscriber1 Subscribe /desporto/futebol
+Publisher publisher0 Publish 3 Ontopic /desporto/futebol Interval 100
+Publisher publisher0 Publish 3 Ontopic /desporto/basquetebol Interval 100
+PubEvent publisher0, publisher0, /desporto/futebol, 1
+PubEvent publisher0, publisher0, /desporto/basquetebol, 2
+PubEvent publisher0, publisher0, /desporto/futebol, 3
+PubEvent publisher0, publisher0, /desporto/basquetebol, 4
+PubEvent publisher0, publisher0, /desporto/futebol, 5
+PubEvent publisher0, publisher0, /desporto/basquetebol, 6
+SubEvent subscriber1, subscriber1, /desporto/futebol, 1
+SubEvent subscriber0, subscriber0, /desporto/futebol, 1
+SubEvent subscriber0, subscriber0, /desporto/basquetebol, 2
+SubEvent subscriber0, subscriber0, /desporto/futebol, 5
+SubEvent subscriber0, subscriber0, /desporto/basquetebol, 6
+SubEvent subscriber1, subscriber1, /desporto/futebol, 2
+SubEvent subscriber0, subscriber0, /desporto/futebol, 3
+SubEvent subscriber0, subscriber0, /desporto/basquetebol, 4
+SubEvent subscriber1, subscriber1, /desporto/futebol, 3
