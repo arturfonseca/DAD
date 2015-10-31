@@ -77,9 +77,10 @@ namespace BrokerConsole
         //string= site.URI
         private Dictionary<string, List<FIFOstruct>> _siteToFifoStruct = new Dictionary<string, List<FIFOstruct>>();
         private List<FIFOstruct> _fifostructs = new List<FIFOstruct>();
-        private bool _freeze_state = false;
-        private int _broEventSeqNum;
-        private int _subEventSeqNum;
+        private bool _freezed = false;
+        private object _freezedLock = new object();
+        private List<PublishMessage> _freezedPublishMessages = new List<PublishMessage>();
+        private List<PropagatedPublishMessage> _freezedPropagatedPublishMessages = new List<PropagatedPublishMessage>();
 
         public BrokerRemote(PuppetMaster pm, string uri, string name, string site, string addr)
         {
@@ -214,20 +215,6 @@ namespace BrokerConsole
             Process.GetCurrentProcess().Kill();
         }
 
-        public void freeze()
-        {
-            _freeze_state = true;
-            while (_freeze_state)
-            {
-
-            }
-
-        }
-
-        public void unfreeze()
-        {
-            _freeze_state = false;
-        }
         public string status()
         {
             return "OK";
@@ -412,7 +399,7 @@ namespace BrokerConsole
                         // TODO assync
                         ReceiveDelegate rd = new ReceiveDelegate(s.receive);
                         remoteDelegates.Add(rd);
-                        c.reportEvent(EventType.SubEvent, getURI(), msg.senderURI, msg.topic, _subEventSeqNum++);
+                        c.reportEvent(EventType.SubEvent, getURI(), msg.senderURI, msg.topic, msg.total_seqnum);
                         log(string.Format("[Deliver] sent event '{0}' to '{1}'", msg, uri));
 
                         //s.receive(msg.topic, msg.content);
@@ -430,7 +417,82 @@ namespace BrokerConsole
             //TODO ASK PROFESSOR IF WE NEED TO RESEND LOST MESSAGES
         }
 
+
+
+        public void freeze()
+        {
+            lock (_freezedLock)
+            {
+                _freezed = true;
+            }
+        }
+
+        public void unfreeze()
+        {
+            lock (_freezedLock)
+            {
+                if (!_freezed)
+                    return;
+                lock (_freezedPublishMessages)
+                {                    
+                    foreach(var msg in _freezedPublishMessages)
+                    {
+                        publishWork(msg);
+                    }
+                    _freezedPublishMessages.Clear();
+                }
+                lock (_freezedPropagatedPublishMessages)
+                {
+                    foreach(var msg in _freezedPropagatedPublishMessages)
+                    {
+                        propagatePublishWork(msg);
+                    }
+                    _freezedPropagatedPublishMessages.Clear();
+                }
+            }
+        }
+
+
+        public void propagatePublish(PropagatedPublishMessage msg)
+        {
+            lock (_freezedLock)
+            {
+                if (_freezed)
+                {
+                    log(string.Format("[propagatePublish] freezed"));
+                    lock (_freezedPropagatedPublishMessages)
+                    {
+                        _freezedPropagatedPublishMessages.Add(msg);
+                    }
+                    
+                }
+                else
+                {
+                    propagatePublishWork(msg);
+                }
+            }
+            
+        }
         public void publish(PublishMessage msg)
+        {
+            lock (_freezedLock)
+            {
+                if (_freezed)
+                {
+                    log(string.Format("[Publish] freezed"));
+                    lock (_freezedPublishMessages)
+                    {
+                        _freezedPublishMessages.Add(msg);
+                    }                    
+                }
+                else
+                {
+                    publishWork(msg);
+                }
+            }
+        }
+
+        public void publishWork(PublishMessage msg)
         {
             // FLOODING implementation
             // TODO discart if duplicate message
@@ -492,7 +554,7 @@ namespace BrokerConsole
 
 
         }
-        public void propagatePublish(PropagatedPublishMessage msg)
+        public void propagatePublishWork(PropagatedPublishMessage msg)
         {
 
             log(string.Format("[propagatePublish] Received event '{0}'", msg));
@@ -577,7 +639,7 @@ namespace BrokerConsole
 
                                 PropagatePublishDelegate d = new PropagatePublishDelegate(broker.propagatePublish);
                                 d.BeginInvoke(pmsg, null, null);
-                                c.reportEvent(EventType.BroEvent, getURI(), msg.senderURI, msg.topic, _broEventSeqNum++);
+                                c.reportEvent(EventType.BroEvent, getURI(), msg.senderURI, msg.topic, msg.total_seqnum);
                             }
                         }
 
@@ -653,7 +715,7 @@ namespace BrokerConsole
                                                 PropagatePublishDelegate d = new PropagatePublishDelegate(broker.propagatePublish);
                                                 log(string.Format("[filtering routing] sent event '{0}' to '{1}'", _pmsg, broker.getURI()));
                                                 d.BeginInvoke(_pmsg, null, null);
-                                                c.reportEvent(EventType.BroEvent, getURI(), _pmsg.senderURI, _pmsg.topic, _broEventSeqNum++);
+                                                c.reportEvent(EventType.BroEvent, getURI(), _pmsg.senderURI, _pmsg.topic, _pmsg.total_seqnum);
                                                 _siteToFifoStruct[site.name][index].listOfmessages.Remove(_pmsg);
                                             }
                                         }
@@ -663,7 +725,7 @@ namespace BrokerConsole
                                         PropagatePublishDelegate d = new PropagatePublishDelegate(broker.propagatePublish);
                                         log(string.Format("[filtering routing] sent event '{0}' to '{1}'", pmsg, broker.getURI()));
                                         d.BeginInvoke(pmsg, null, null);
-                                        c.reportEvent(EventType.BroEvent, getURI(), pmsg.senderURI, pmsg.topic, _broEventSeqNum++);                                       
+                                        c.reportEvent(EventType.BroEvent, getURI(), pmsg.senderURI, pmsg.topic, pmsg.total_seqnum);                                       
 
                                     }
                                 }
@@ -687,7 +749,7 @@ namespace BrokerConsole
                         PropagatePublishDelegate d = new PropagatePublishDelegate(broker.propagatePublish);
                         log(string.Format("[Routing] sent event '{0}' to parent broker '{1}'", pmsg, broker.getURI()));
                         d.BeginInvoke(pmsg, null, null);
-                        c.reportEvent(EventType.BroEvent, getURI(), pmsg.senderURI, pmsg.topic, _broEventSeqNum++);
+                        c.reportEvent(EventType.BroEvent, getURI(), pmsg.senderURI, pmsg.topic, pmsg.total_seqnum);
                         
                     }
                 }
@@ -734,7 +796,7 @@ namespace BrokerConsole
                                     PropagatePublishDelegate d = new PropagatePublishDelegate(broker.propagatePublish);
                                     log(string.Format("[propagatingRouting] flooding. sent event '{0}' to '{1}'", msg, broker.getURI()));
                                     d.BeginInvoke(msg, null, null);
-                                    c.reportEvent(EventType.BroEvent, getURI(), msg.senderURI, msg.topic, _broEventSeqNum++);
+                                    c.reportEvent(EventType.BroEvent, getURI(), msg.senderURI, msg.topic, msg.total_seqnum);
                                                        
                                 }
                             }
@@ -804,7 +866,7 @@ namespace BrokerConsole
                                                 log(string.Format("[filtering routing] sent event '{0}' to '{1}'", _pmsg, broker.getURI()));
                                                 d.BeginInvoke(_pmsg, null, null);
                                                 
-                                                c.reportEvent(EventType.BroEvent, getURI(),msg.senderURI, _pmsg.topic, _broEventSeqNum++);
+                                                c.reportEvent(EventType.BroEvent, getURI(),msg.senderURI, _pmsg.topic, _pmsg.total_seqnum);
                                                 _siteToFifoStruct[site.name][index].listOfmessages.Remove(_pmsg);
     
                                             }
@@ -817,7 +879,7 @@ namespace BrokerConsole
                                         log(string.Format("sent '{0}' to '{1}'", msg, broker.getURI()));
                                         PropagatePublishDelegate d = new PropagatePublishDelegate(broker.propagatePublish);
                                         d.BeginInvoke(msg, null, null);
-                                        c.reportEvent(EventType.BroEvent, getURI(), msg.senderURI, msg.topic, _broEventSeqNum++);
+                                        c.reportEvent(EventType.BroEvent, getURI(), msg.senderURI, msg.topic, msg.total_seqnum);
                                         //broker.propagatePublish(msg);
                                     }
 
@@ -844,7 +906,7 @@ namespace BrokerConsole
                         log(string.Format("Sent '{0}' to parent broker '{1}'", msg, broker.getURI()));
                         PropagatePublishDelegate d = new PropagatePublishDelegate(broker.propagatePublish);
                         d.BeginInvoke(msg, null, null);
-                        c.reportEvent(EventType.BroEvent, getURI(), msg.senderURI, msg.topic, _broEventSeqNum++);
+                        c.reportEvent(EventType.BroEvent, getURI(), msg.senderURI, msg.topic, msg.total_seqnum);
                     }
                 }
             }

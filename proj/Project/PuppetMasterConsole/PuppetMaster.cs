@@ -70,6 +70,7 @@ namespace PuppetMasterConsole
             var arg = string.Format("{0} {1} {2} {3} {4}", URI, name, site, port,addr);                       
             p.StartInfo.Arguments = arg;
             Console.WriteLine("launching Broker executable '{0}' ", p.StartInfo.FileName);
+
             p.Start();
             processes.Add(p);
             Broker b = null;
@@ -93,6 +94,7 @@ namespace PuppetMasterConsole
             p.StartInfo.FileName = ConfigurationManager.AppSettings["PublisherPath"];
             Console.WriteLine("launching Publisher at '{0}'", p.StartInfo.FileName);
             p.StartInfo.Arguments = string.Format("{0} {1} {2} {3} {4}",URI,name,site,port,addr);
+
             p.Start();
             processes.Add(p);
             Publisher b = null;
@@ -116,6 +118,7 @@ namespace PuppetMasterConsole
             p.StartInfo.FileName = ConfigurationManager.AppSettings["SubscriberPath"];
             Console.WriteLine("launching Subscriber at '{0}'", p.StartInfo.FileName);
             p.StartInfo.Arguments = string.Format("{0} {1} {2} {3} {4}",URI,name,site,port,addr);
+
             p.Start();
             processes.Add(p);
             Subscriber b = null;

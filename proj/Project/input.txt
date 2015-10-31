@@ -1,4 +1,5 @@
 Subscriber subscriber0 Subscribe /desporto/*
 Subscriber subscriber1 Subscribe /desporto/futebol
-Publisher publisher0 Publish 3 Ontopic /desporto/futebol Interval 100
-Publisher publisher0 Publish 3 Ontopic /desporto/basquetebol Interval 100
+Freeze broker5
+Publisher publisher0 Publish 1 Ontopic /desporto/futebol Interval 100
+s
