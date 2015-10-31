@@ -62,80 +62,14 @@ namespace PuppetMasterConsole
             }
         }
 
-        public static void test2(PuppetMaster pm)
-        {
-            /*
-            // testing code
-            Broker b1 = pm.createBroker("broker1", "site1", 3333);
-            Publisher p1 = pm.createPublisher("publisher1", "site1", 3334);
-            Subscriber s1 = pm.createSubscriber("subscriber1", "site1", 3335);
-            Broker b2 = pm.createBroker("broker2", "site2", 3336);
-            Subscriber s2 = pm.createSubscriber("subscriber2", "site2", 3337);
-            Publisher p2 = pm.createPublisher("publisher2", "site2", 3338);
+      
 
-            // connect everything
-            var site1 = new Site() { name = "site1", brokers = new List<Broker>() { b1 } };
-            var site2 = new Site() { name = "site2", brokers = new List<Broker>() { b2 } };
-            //site1
-            p1.setSiteBroker(b1);
-            s1.setSiteBroker(b1);
-            b1.setPublishers(new List<Publisher> { p1 });
-            b1.setSubscribers(new List<Subscriber> { s1 });
-            b1.setParent(site2);
-            b1.setRoutingPolicy(RoutingPolicy.filter);
-            //site2
-            s2.setSiteBroker(b2);
-            p2.setSiteBroker(b2);
-            b2.setSubscribers(new List<Subscriber>() { s2 });
-            b2.setChildren(new List<Site>() { site1 });
-            Console.WriteLine("I'm executing test2");
-            b2.setIsRoot();
-            b2.setRoutingPolicy(RoutingPolicy.filter);
-
-            // make events happen
-            Console.WriteLine("All processes created and setup upped, debug now if you wish, press any key to start events");
-            Console.ReadLine();
-            s1.subscribe("arroz");
-           
-            s2.subscribe("batata");
-            p1.publish("batata", "batata");
-            p2.publish("arroz", "arroz");
-            */
-            
-        }
-
-        public static void test1(PuppetMaster pm)
-        {
-            /*
-            // testing code
-            Broker b1 = pm.createBroker("broker1", "site1", 3333);
-            Publisher p1 = pm.createPublisher("publisher1", "site1", 3334);
-            Subscriber s1 = pm.createSubscriber("subscriber1", "site1", 3335);
-            // connect everything           
-            //site1
-            p1.setSiteBroker(b1);
-            s1.setSiteBroker(b1);
-            b1.setPublishers(new List<Publisher> { p1 });
-            b1.setSubscribers(new List<Subscriber> { s1 });
-            // make events happen
-            Console.WriteLine("All processes created and setup upped, debug now if you wish, press any key to start events");
-            Console.ReadLine();
-            s1.subscribe("/tempo/lisboa");
-            p1.publish("/tempo/lisboa", "chove");
-            p1.publish("/tempo/porto", "neve");
-            Console.WriteLine("phase 1 complete. press key to continue");
-            Console.ReadLine();
-            s1.subscribe("/tempo/*");
-            p1.publish("/tempo/porto", "neve");
-            */
-        }
-
-        public Broker createBroker(string name,string site,int port)
+        public Broker createBroker(string name,string site,int port,string addr)
         {
             //start processes
             Process p = new Process();
             p.StartInfo.FileName = ConfigurationManager.AppSettings["BrokerPath"];
-            var arg = string.Format("{0} {1} {2} {3}", URI, name, site, port);                       
+            var arg = string.Format("{0} {1} {2} {3} {4}", URI, name, site, port,addr);                       
             p.StartInfo.Arguments = arg;
             Console.WriteLine("launching Broker executable '{0}' ", p.StartInfo.FileName);
             p.Start();
@@ -154,13 +88,13 @@ namespace PuppetMasterConsole
             return b;
         }
 
-        public Publisher createPublisher(string name,string site,int port)
+        public Publisher createPublisher(string name, string site, int port, string addr)
         {
             //start processes
             Process p = new Process();
             p.StartInfo.FileName = ConfigurationManager.AppSettings["PublisherPath"];
             Console.WriteLine("launching Publisher at '{0}'", p.StartInfo.FileName);
-            p.StartInfo.Arguments = string.Format("{0} {1} {2} {3}",URI,name,site,port);
+            p.StartInfo.Arguments = string.Format("{0} {1} {2} {3} {4}",URI,name,site,port,addr);
             p.Start();
             processes.Add(p);
             Publisher b = null;
@@ -177,13 +111,13 @@ namespace PuppetMasterConsole
             return b;
         }
 
-        public Subscriber createSubscriber(string name,string site,int port)
+        public Subscriber createSubscriber(string name,string site,int port,string addr)
         {
             //start processes
             Process p = new Process();
             p.StartInfo.FileName = ConfigurationManager.AppSettings["SubscriberPath"];
             Console.WriteLine("launching Subscriber at '{0}'", p.StartInfo.FileName);
-            p.StartInfo.Arguments = string.Format("{0} {1} {2} {3}",URI,name,site,port);
+            p.StartInfo.Arguments = string.Format("{0} {1} {2} {3} {4}",URI,name,site,port,addr);
             p.Start();
             processes.Add(p);
             Subscriber b = null;

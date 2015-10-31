@@ -40,6 +40,7 @@ namespace BrokerConsole
 		private List<Publisher> _publishers = new List<Publisher>();
 
 
+
 		// Subscribers
 		private List<Subscriber> _subscribers = new List<Subscriber>();
 		// uri to subscriber
@@ -61,9 +62,12 @@ namespace BrokerConsole
         // can be null
         private Object _parentSiteLock = new object();
 		private Site _parentSite;
+        private ICoordinator c;
+        private int seq;
 
 		private OrderingPolicy _orderingPolicy;
 		private RoutingPolicy _routingPolicy;
+        private LoggingLevel _loggingLevel;
 
 
         ///////////FIFO/////////
@@ -73,7 +77,7 @@ namespace BrokerConsole
         private List<FIFOstruct> _fifostructs = new List<FIFOstruct>();
 
 
-        public BrokerRemote(PuppetMaster pm, string uri, string name, string site)
+        public BrokerRemote(PuppetMaster pm, string uri, string name, string site,string addr)
 		{
 			_uri = uri;
 			_name = name;
@@ -81,6 +85,8 @@ namespace BrokerConsole
 			_site = site;
 			_orderingPolicy = OrderingPolicy.fifo;
 			_routingPolicy = RoutingPolicy.flooding;
+            c = (ICoordinator)Activator.GetObject(typeof(ICoordinator), addr);
+            seq = 0;
 
 
         }
@@ -93,7 +99,7 @@ namespace BrokerConsole
 		static void Main(string[] args)
 		{
 			Console.WriteLine("Started Broker process, pid=\"{0}\"", Process.GetCurrentProcess().Id);
-			int nargs = 4;
+			int nargs = 5;
 			if (args.Length != nargs)
 			{
 				Console.WriteLine("Expected {0} arguments, got {1}", nargs, args.Length);
@@ -104,13 +110,14 @@ namespace BrokerConsole
 			string name = args[1];
 			string site = args[2];
 			int port = int.Parse(args[3]);
+            string addr = args[4];
 
-			string channelURI = Utility.setupChannel(port);
+            string channelURI = Utility.setupChannel(port);
 
 			// get the puppetMaster that started this process
 			PuppetMaster pm = (PuppetMaster)Activator.GetObject(typeof(PuppetMaster), puppetMasterURI);
 			string uri = string.Format("{0}/{1}", channelURI, name);
-			BrokerRemote broker = new BrokerRemote(pm, uri, name, site);
+			BrokerRemote broker = new BrokerRemote(pm, uri, name, site,addr);
 			//we need to register each remote object
 			ObjRef o = RemotingServices.Marshal(broker, name, typeof(Broker));
 			Console.WriteLine("Instanciated Broker name:'{0}' site:'{1}' uri:'{2}'", name, site, uri);
@@ -131,10 +138,13 @@ namespace BrokerConsole
 		{
 			_routingPolicy = p;
 		}
+        public void setLoggingLevel(LoggingLevel l)
+        {
+            _loggingLevel = l;
+        }
 
 
-
-		public string getName()
+        public string getName()
 		{
 			return _name;
 		}
@@ -489,8 +499,10 @@ namespace BrokerConsole
 		private void routing(PublishMessage msg)
 		{
 			PropagatedPublishMessage pmsg = new PropagatedPublishMessage(msg, _site);
-
-			if (_routingPolicy == RoutingPolicy.flooding)
+            // c.reportEvent("BroEvent", "name", "publisher", topic, seq);
+            seq++;
+            Console.WriteLine(seq);
+            if (_routingPolicy == RoutingPolicy.flooding)
 			{
                 lock (_childSites)
                 {

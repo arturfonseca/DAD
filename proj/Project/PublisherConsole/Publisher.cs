@@ -20,13 +20,16 @@ namespace PublisherConsole
         private int _total_seqnum;
         private Dictionary<string, int> _topics_seqnum = new Dictionary<string, int>();
         private Object thisLock = new Object();
+        private ICoordinator c;
+        private int seq;
 
-        public PublisherRemote(PuppetMaster pm, string name, string site)
+        public PublisherRemote(PuppetMaster pm, string name, string site,string addr)
         {
             _name = name;
             _pm = pm;
             _site = site;
-
+            c = (ICoordinator)Activator.GetObject(typeof(ICoordinator), addr);
+            seq = 0;
         }
 
         public override object InitializeLifetimeService()
@@ -37,7 +40,7 @@ namespace PublisherConsole
         static void Main(string[] args)
         {
             Console.WriteLine("Started Publisher, pid=\"{0}\"", Process.GetCurrentProcess().Id);
-            int nargs = 4;
+            int nargs = 5;
             if (args.Length != nargs)
             {
                 Console.WriteLine("Expected {0} arguments, got {1}", nargs, args.Length);
@@ -48,12 +51,13 @@ namespace PublisherConsole
             string name = args[1];
             string site = args[2];
             int port = int.Parse(args[3]);
+            string addr = args[4];
 
             string channelURI = Utility.setupChannel(port);
 
             // get the puppetMaster that started this process
             PuppetMaster pm = (PuppetMaster)Activator.GetObject(typeof(PuppetMaster), puppetMasterURI);
-            PublisherRemote publisher = new PublisherRemote(pm, name, site);
+            PublisherRemote publisher = new PublisherRemote(pm, name, site,addr);
             //we need to register each remote object
             ObjRef o = RemotingServices.Marshal(publisher, name, typeof(Publisher));
             publisher.setURI(string.Format("{0}/{1}", channelURI, name));
@@ -132,6 +136,7 @@ namespace PublisherConsole
                 var msg = new PublishMessage() { senderURI = getURI(), total_seqnum = total_seqnum, topic = topic, content = content };
                 log(string.Format("[publish] {0}", msg));
                 // TODO make all calls assyncs
+                c.reportEvent("PubEvent", "name", "publisher", topic, seq);
                 _broker.publish(msg);
             }
 

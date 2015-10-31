@@ -17,7 +17,7 @@ namespace PuppetMastersCoordinatorGUI
         }
 
 
-        public void reportEvent(string type, string uri1, string uri2, string topic, string seqnum)
+        public void reportEvent(string type, string uri1, string uri2, string topic, int seqnum)
         {
             _form.BeginInvoke(new recebeMsgDelegate(_form.log_), new object[] { type+" "+uri1+", "+uri2+", "+topic+", "+seqnum });
         }

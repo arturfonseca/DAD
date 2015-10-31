@@ -11,6 +11,7 @@ namespace DADInterfaces
 {
     public enum RoutingPolicy { flooding, filter};
     public enum OrderingPolicy { no, fifo, total};
+    public enum LoggingLevel { full, light };
 
     // A Node can be a Broker, Publisher or Subscriber
     public interface Node
@@ -34,6 +35,7 @@ namespace DADInterfaces
         bool getIsRoot();
         void setOrderingPolicy(OrderingPolicy p);
         void setRoutingPolicy(RoutingPolicy p);
+        void setLoggingLevel(LoggingLevel l);
 
         void setParent(Site parent_site);
         void setChildren(List<Site> child_sites);
@@ -68,7 +70,7 @@ namespace DADInterfaces
 
     public interface ICoordinator
     {
-        void reportEvent(string type, string uri1, string uri2, string topic, string seqnum);
+        void reportEvent(string type, string uri1, string uri2, string topic, int seqnum);
     }
 
     public interface PuppetMaster
@@ -77,9 +79,9 @@ namespace DADInterfaces
         List<Subscriber> getSubscribers();
         List<Publisher> getPublishers();
 
-        Broker createBroker(string name,string site,int port);
-        Publisher createPublisher(string name,string site,int port);
-        Subscriber createSubscriber(string name,string site,int port);
+        Broker createBroker(string name,string site,int port,string addr);
+        Publisher createPublisher(string name,string site,int port,string addr);
+        Subscriber createSubscriber(string name,string site,int port,string addr);
 
         // When a PuppetMaster createX it returns a remoteObjectX
         // But the only way to get a remoteObjectX is to wait
