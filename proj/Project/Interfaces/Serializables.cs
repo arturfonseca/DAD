@@ -6,6 +6,13 @@ using System.Threading.Tasks;
 
 namespace DADInterfaces
 {
+    public static class EventType
+    {
+        public static string PubEvent = "PubEvent";
+        public static string BroEvent = "BroEvent";
+        public static string SubEvent = "SubEvent";
+    }
+
     [Serializable]
     public class Site
     {

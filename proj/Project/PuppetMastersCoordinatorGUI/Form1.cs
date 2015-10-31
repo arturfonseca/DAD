@@ -390,8 +390,8 @@ namespace PuppetMastersCoordinatorGUI
                     //Publisher publisher0 Publish 1 Ontopic /desporto/futebol Interval 100
                     int quantity = int.Parse(keywords[3]);
                     int interval = int.Parse(keywords[7]);
-                    string msg = "some msg" + DateTime.Now.ToString();
-                    all_publishers[keywords[1]].publish(keywords[5], msg, quantity, interval);
+                    string topic = keywords[5];                    
+                    all_publishers[keywords[1]].publish(topic, "timestamps", quantity, interval);
                 }
                 else
                 {
@@ -476,5 +476,9 @@ namespace PuppetMastersCoordinatorGUI
                 .FirstOrDefault(ip => ip.AddressFamily == AddressFamily.InterNetwork);
         }
 
+        private void Form1_Load(object sender, EventArgs e)
+        {
+
+        }
     }
 }

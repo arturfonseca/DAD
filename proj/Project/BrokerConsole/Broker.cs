@@ -14,7 +14,8 @@ using System.Threading;
 
 namespace BrokerConsole
 {
-    class FIFOstruct {
+    class FIFOstruct
+    {
         public string _publhisherURI;
         public int _seq_num;
         public List<PublishMessage> listOfmessages = new List<PublishMessage>();
@@ -28,46 +29,46 @@ namespace BrokerConsole
         public FIFOstruct() { }
     }
 
-	class BrokerRemote : MarshalByRefObject, Broker
-	{
-		private PuppetMaster _pm;
-		// personal information
-		private string _name;
-		private string _site;
-		private string _uri;
-		private bool _isRoot;
-		// site information
-		private List<Publisher> _publishers = new List<Publisher>();
+    class BrokerRemote : MarshalByRefObject, Broker
+    {
+        private PuppetMaster _pm;
+        // personal information
+        private string _name;
+        private string _site;
+        private string _uri;
+        private bool _isRoot;
+        // site information
+        private List<Publisher> _publishers = new List<Publisher>();
 
 
 
-		// Subscribers
-		private List<Subscriber> _subscribers = new List<Subscriber>();
-		// uri to subscriber
-		private Dictionary<string, Subscriber> _uriToSubs = new Dictionary<string, Subscriber>();
+        // Subscribers
+        private List<Subscriber> _subscribers = new List<Subscriber>();
+        // uri to subscriber
+        private Dictionary<string, Subscriber> _uriToSubs = new Dictionary<string, Subscriber>();
 
-		// key = topic value= subscribers uri
-		Dictionary<string, List<string>> _topicSubscribers = new Dictionary<string, List<string>>();
-		// key = subscriber_uri, value = seqnum
-		Dictionary<string, int> _subscribersSeqNums = new Dictionary<string, int>();
+        // key = topic value= subscribers uri
+        Dictionary<string, List<string>> _topicSubscribers = new Dictionary<string, List<string>>();
+        // key = subscriber_uri, value = seqnum
+        Dictionary<string, int> _subscribersSeqNums = new Dictionary<string, int>();
 
 
-		// Child sites
-		private List<Site> _childSites = new List<Site>();
-		// site_name to Site
-		private Dictionary<string, Site> _nameToSite = new Dictionary<string, Site>();
-		// key = topic, value = list of interested sites
-		Dictionary<string, List<string>> _topicSites = new Dictionary<string, List<string>>();
+        // Child sites
+        private List<Site> _childSites = new List<Site>();
+        // site_name to Site
+        private Dictionary<string, Site> _nameToSite = new Dictionary<string, Site>();
+        // key = topic, value = list of interested sites
+        Dictionary<string, List<string>> _topicSites = new Dictionary<string, List<string>>();
 
         // can be null
         private Object _parentSiteLock = new object();
-		private Site _parentSite;
+        private Site _parentSite;
         private ICoordinator c;
         private int seq;
-        private string _addr;
+        private string _coordinatorURI;
 
-		private OrderingPolicy _orderingPolicy;
-		private RoutingPolicy _routingPolicy;
+        private OrderingPolicy _orderingPolicy;
+        private RoutingPolicy _routingPolicy;
         private LoggingLevel _loggingLevel;
 
 
@@ -76,169 +77,171 @@ namespace BrokerConsole
         //string= site.URI
         private Dictionary<string, List<FIFOstruct>> _siteToFifoStruct = new Dictionary<string, List<FIFOstruct>>();
         private List<FIFOstruct> _fifostructs = new List<FIFOstruct>();
-        private bool _freeze_state=false;
+        private bool _freeze_state = false;
+        private int _broEventSeqNum;
+        private int _subEventSeqNum;
 
-        public BrokerRemote(PuppetMaster pm, string uri, string name, string site,string addr)
-		{
-			_uri = uri;
-			_name = name;
-			_pm = pm;
-			_site = site;
-			_orderingPolicy = OrderingPolicy.fifo;
-			_routingPolicy = RoutingPolicy.flooding;
+        public BrokerRemote(PuppetMaster pm, string uri, string name, string site, string addr)
+        {
+            _uri = uri;
+            _name = name;
+            _pm = pm;
+            _site = site;
+            _orderingPolicy = OrderingPolicy.fifo;
+            _routingPolicy = RoutingPolicy.flooding;
             seq = 0;
-            _addr = addr;
-
+            _coordinatorURI = addr;
+            c = (ICoordinator)Activator.GetObject(typeof(ICoordinator), addr);
 
         }
 
-		public override object InitializeLifetimeService()
-		{
-			return null;
-		}
+        public override object InitializeLifetimeService()
+        {
+            return null;
+        }
 
-		static void Main(string[] args)
-		{
-			Console.WriteLine("Started Broker process, pid=\"{0}\"", Process.GetCurrentProcess().Id);
-			int nargs = 5;
-			if (args.Length != nargs)
-			{
-				Console.WriteLine("Expected {0} arguments, got {1}", nargs, args.Length);
-				Console.Read();
-				return;
-			}
-			string puppetMasterURI = args[0];
-			string name = args[1];
-			string site = args[2];
-			int port = int.Parse(args[3]);
-            string addr = args[4];
+        static void Main(string[] args)
+        {
+            Console.WriteLine("Started Broker process, pid=\"{0}\"", Process.GetCurrentProcess().Id);
+            int nargs = 5;
+            if (args.Length != nargs)
+            {
+                Console.WriteLine("Expected {0} arguments, got {1}", nargs, args.Length);
+                Console.Read();
+                return;
+            }
+            string puppetMasterURI = args[0];
+            string name = args[1];
+            string site = args[2];
+            int port = int.Parse(args[3]);
+            string coordinatorURI = args[4];
 
-			string channelURI = Utility.setupChannel(port);
+            string channelURI = Utility.setupChannel(port);
 
-			// get the puppetMaster that started this process
-			PuppetMaster pm = (PuppetMaster)Activator.GetObject(typeof(PuppetMaster), puppetMasterURI);
-			string uri = string.Format("{0}/{1}", channelURI, name);
-			BrokerRemote broker = new BrokerRemote(pm, uri, name, site,addr);
-			//we need to register each remote object
-			ObjRef o = RemotingServices.Marshal(broker, name, typeof(Broker));
-			Console.WriteLine("Instanciated Broker name:'{0}' site:'{1}' uri:'{2}'", name, site, uri);
+            // get the puppetMaster that started this process
+            PuppetMaster pm = (PuppetMaster)Activator.GetObject(typeof(PuppetMaster), puppetMasterURI);
+            string uri = string.Format("{0}/{1}", channelURI, name);
+            BrokerRemote broker = new BrokerRemote(pm, uri, name, site, coordinatorURI);
+            //we need to register each remote object
+            ObjRef o = RemotingServices.Marshal(broker, name, typeof(Broker));
+            Console.WriteLine("Instanciated Broker name:'{0}' site:'{1}' uri:'{2}'", name, site, uri);
 
-			//now that broker is created and marshalled
-			//send remote to puppetMaster which is Monitor.waiting for the remote  
-			pm.registerBroker(broker);
-			Console.WriteLine("Just registered at puppetMaster");
-			Console.WriteLine("Press key to leave");
-			Console.Read();
-		}
+            //now that broker is created and marshalled
+            //send remote to puppetMaster which is Monitor.waiting for the remote  
+            pm.registerBroker(broker);
+            Console.WriteLine("Just registered at puppetMaster");
+            Console.WriteLine("Press key to leave");
+            Console.Read();
+        }
 
-		public void setOrderingPolicy(OrderingPolicy p)
-		{
-			_orderingPolicy = p;
-		}
-		public void setRoutingPolicy(RoutingPolicy p)
-		{
-			_routingPolicy = p;
-		}
+        public void setOrderingPolicy(OrderingPolicy p)
+        {
+            _orderingPolicy = p;
+        }
+        public void setRoutingPolicy(RoutingPolicy p)
+        {
+            _routingPolicy = p;
+        }
         public void setLoggingLevel(LoggingLevel l)
         {
             _loggingLevel = l;
-            if (l==LoggingLevel.full)
+            if (l == LoggingLevel.full)
             {
-                c = (ICoordinator)Activator.GetObject(typeof(ICoordinator), _addr);
+                c = (ICoordinator)Activator.GetObject(typeof(ICoordinator), _coordinatorURI);
             }
         }
 
 
-		public string getName()
-		{
-			return _name;
-		}
+        public string getName()
+        {
+            return _name;
+        }
 
-		public string getSite()
-		{
-			return _site;
-		}
+        public string getSite()
+        {
+            return _site;
+        }
 
-		public string getURI()
-		{
-			return _uri;
-		}
+        public string getURI()
+        {
+            return _uri;
+        }
 
-		public void setChildren(List<Site> child_sites)
-		{
-			_childSites = child_sites;
-			foreach (Site s in child_sites)
-			{
-				_nameToSite.Add(s.name, s);
-			}
-		}
+        public void setChildren(List<Site> child_sites)
+        {
+            _childSites = child_sites;
+            foreach (Site s in child_sites)
+            {
+                _nameToSite.Add(s.name, s);
+            }
+        }
 
-		public void setParent(Site parent_site)
-		{
-			_parentSite = parent_site;
-		}
-
-
+        public void setParent(Site parent_site)
+        {
+            _parentSite = parent_site;
+        }
 
 
-		public void setPublishers(List<Publisher> site_publishers)
-		{
-			_publishers = site_publishers;
-		}
 
-		public void setSubscribers(List<Subscriber> site_subscribers)
-		{
-			_subscribers = site_subscribers;
-			foreach (Subscriber s in site_subscribers)
-			{
-				_uriToSubs.Add(s.getURI(), s);
-			}
-		}
 
-		public void setIsRoot()
-		{
-			_isRoot = true;
-		}
+        public void setPublishers(List<Publisher> site_publishers)
+        {
+            _publishers = site_publishers;
+        }
 
-		public bool getIsRoot()
-		{
-			return _isRoot;
-		}
+        public void setSubscribers(List<Subscriber> site_subscribers)
+        {
+            _subscribers = site_subscribers;
+            foreach (Subscriber s in site_subscribers)
+            {
+                _uriToSubs.Add(s.getURI(), s);
+            }
+        }
 
-		// Puppet Master functions
-		public void crash()
-		{
+        public void setIsRoot()
+        {
+            _isRoot = true;
+        }
+
+        public bool getIsRoot()
+        {
+            return _isRoot;
+        }
+
+        // Puppet Master functions
+        public void crash()
+        {
             Process.GetCurrentProcess().Kill();
-		}
+        }
 
-		public void freeze()
-		{
+        public void freeze()
+        {
             _freeze_state = true;
             while (_freeze_state)
             {
 
-		}
+            }
 
-		}
+        }
 
-		public void unfreeze()
-		{
+        public void unfreeze()
+        {
             _freeze_state = false;
         }
         public string status()
-		{
+        {
             return "OK";
-		}
+        }
 
-		
-		// *end* Puppet Master functions
 
-		/*
+        // *end* Puppet Master functions
+
+        /*
 		 *  Business logic
 		 */
 
-		private bool isDuplicate(SubscribeMessage msg)
-		{
+        private bool isDuplicate(SubscribeMessage msg)
+        {
             lock (_subscribersSeqNums)
             {
                 if (!_subscribersSeqNums.ContainsKey(msg.uri))
@@ -254,21 +257,21 @@ namespace BrokerConsole
                 // if its waiting for 0 and receives 4, then next is 5, is this desired?
                 _subscribersSeqNums[msg.uri] = msg.seqnum + 1;
             }
-			
-			return false;
-		}
 
-		void log(string e)
-		{
-			// TODO use assynchronous call
-			_pm.reportEvent(getURI(), e);
-			Console.WriteLine(e);
-		}
+            return false;
+        }
 
-		public void subscribe(SubscribeMessage msg)
-		{
-			log(string.Format("[Subscribe] Received event '{0}'", msg));
-			if (isDuplicate(msg)) return;
+        void log(string e)
+        {
+            // TODO use assynchronous call
+            _pm.reportEvent(getURI(), e);
+            Console.WriteLine(e);
+        }
+
+        public void subscribe(SubscribeMessage msg)
+        {
+            log(string.Format("[Subscribe] Received event '{0}'", msg));
+            if (isDuplicate(msg)) return;
             // should we have FIFO order here?
             lock (_topicSubscribers)
             {
@@ -277,8 +280,8 @@ namespace BrokerConsole
                     _topicSubscribers.Add(msg.topic, new List<string>());
                 }
                 _topicSubscribers[msg.topic].Add(msg.uri);
-            }			
-			PropagatedSubcribeMessage pmsg = new PropagatedSubcribeMessage(msg, _site);
+            }
+            PropagatedSubcribeMessage pmsg = new PropagatedSubcribeMessage(msg, _site);
             // propagate subscribe only to parent, taking advantage of tree strucure
             lock (_parentSiteLock)
             {
@@ -292,8 +295,8 @@ namespace BrokerConsole
                     }
                 }
             }
-			
-		}
+
+        }
 
         public void propagateSubscribe(PropagatedSubcribeMessage msg)
         {
@@ -306,7 +309,7 @@ namespace BrokerConsole
                     _topicSites.Add(msg.topic, new List<string>());
                 }
                 _topicSites[msg.topic].Add(msg.interested_site);
-            }            
+            }
             msg.interested_site = _site;
             lock (_parentSiteLock)
             {
@@ -320,13 +323,13 @@ namespace BrokerConsole
                     }
                 }
             }
-            
+
         }
 
         public void unsubscribe(UnsubscribeMessage msg)
-		{
-			log(string.Format("[Unsubscribe] Received event '{0}'", msg));
-			if (isDuplicate(msg)) return;
+        {
+            log(string.Format("[Unsubscribe] Received event '{0}'", msg));
+            if (isDuplicate(msg)) return;
             // should we have FIFO order here?
             lock (_topicSubscribers)
             {
@@ -338,8 +341,8 @@ namespace BrokerConsole
                         _topicSubscribers.Remove(msg.topic);
                     }
                 }
-            }			
-			PropagatedUnsubscribeMessage pmsg = new PropagatedUnsubscribeMessage(msg, _site);
+            }
+            PropagatedUnsubscribeMessage pmsg = new PropagatedUnsubscribeMessage(msg, _site);
             // propagate unsubscribe only to parent, taking advantage of tree strucure
             lock (_parentSiteLock)
             {
@@ -352,8 +355,8 @@ namespace BrokerConsole
                         b.propagateUnsubscribe(pmsg);
                     }
                 }
-            }			
-		}
+            }
+        }
 
         public void propagateUnsubscribe(PropagatedUnsubscribeMessage msg)
         {
@@ -369,7 +372,7 @@ namespace BrokerConsole
                         _topicSubscribers.Remove(msg.topic);
                     }
                 }
-            }           
+            }
             msg.interested_site = _site;
             lock (_parentSiteLock)
             {
@@ -383,17 +386,17 @@ namespace BrokerConsole
                     }
                 }
             }
-            
+
         }
 
         private void deliver(PublishMessage msg)
-		{
+        {
             // to avoid sending two times, we use a list
             List<string> sentUris = new List<string>();
-            
+
             // List of delegates that know the interested subcribers
             List<ReceiveDelegate> remoteDelegates = new List<ReceiveDelegate>();
-            
+
             // First phase we filter site subscribers and fillin
             lock (_topicSubscribers)
             {
@@ -409,7 +412,8 @@ namespace BrokerConsole
                         // TODO assync
                         ReceiveDelegate rd = new ReceiveDelegate(s.receive);
                         remoteDelegates.Add(rd);
-                        //log(string.Format("[Deliver] sent event '{0}' to '{1}'", msg, uri));
+                        c.reportEvent(EventType.SubEvent, getURI(), msg.senderURI, msg.topic, _subEventSeqNum++);
+                        log(string.Format("[Deliver] sent event '{0}' to '{1}'", msg, uri));
 
                         //s.receive(msg.topic, msg.content);
                     }
@@ -423,11 +427,11 @@ namespace BrokerConsole
                 results.Add(result);
             }
             List<WaitHandle> handlesLst = new List<WaitHandle>();
-           //TODO ASK PROFESSOR IF WE NEED TO RESEND LOST MESSAGES
-		}	
+            //TODO ASK PROFESSOR IF WE NEED TO RESEND LOST MESSAGES
+        }
 
-		public void publish(PublishMessage msg)
-		{
+        public void publish(PublishMessage msg)
+        {
             // FLOODING implementation
             // TODO discart if duplicate message
             // TODO make all calls assyncs
@@ -435,19 +439,20 @@ namespace BrokerConsole
             log(string.Format("[Publish] Received event '{0}'", msg));
 
 
-            if (_orderingPolicy == OrderingPolicy.fifo) { 
+            if (_orderingPolicy == OrderingPolicy.fifo)
+            {
                 //FIFO
                 lock (_fifostructs)
                 {
 
                     int index = _fifostructs.FindIndex(item => item._publhisherURI == msg.senderURI);
-                    
+
                     if (index < 0)
                     {
                         // element does not exists
-                            _fifostructs.Add(new FIFOstruct(msg.senderURI, 0));
+                        _fifostructs.Add(new FIFOstruct(msg.senderURI, 0));
                         //getIndex Now
-                            index = _fifostructs.FindIndex(item => item._publhisherURI == msg.senderURI);
+                        index = _fifostructs.FindIndex(item => item._publhisherURI == msg.senderURI);
                     }
                     var fifo = _fifostructs[index];
                     //TODO Verify duplicates
@@ -455,12 +460,13 @@ namespace BrokerConsole
                     fifo.listOfmessages.OrderBy(item => item.total_seqnum).ToList();
 
                     //DEBUG ListOfMessages
-                   foreach (PublishMessage _msg in fifo.listOfmessages)
+                    foreach (PublishMessage _msg in fifo.listOfmessages)
                     {
                         log(string.Format("[ListOfMessage] Publisher: '{0}' msg '{1}'", _msg.senderURI, _msg));
                     }
 
-                    foreach(PublishMessage _msg in fifo.listOfmessages.ToList()) {
+                    foreach (PublishMessage _msg in fifo.listOfmessages.ToList())
+                    {
 
                         if (_msg.total_seqnum == fifo._seq_num)
                         {
@@ -474,29 +480,24 @@ namespace BrokerConsole
                         }
                         else
                             break;
-
                     }
-                    
-
                 }
-
             }
             else
             {
-
                 deliver(msg);
                 routing(msg);
             }
 
-            
 
-		}
-		public void propagatePublish(PropagatedPublishMessage msg)
-                 {
 
-			log(string.Format("[propagatePublish] Received event '{0}'", msg));
+        }
+        public void propagatePublish(PropagatedPublishMessage msg)
+        {
+
+            log(string.Format("[propagatePublish] Received event '{0}'", msg));
             if (_orderingPolicy == OrderingPolicy.fifo)
-                     {
+            {
                 //FIFO
                 lock (_fifostructs)
                 {
@@ -509,7 +510,7 @@ namespace BrokerConsole
                         _fifostructs.Add(new FIFOstruct(msg.senderURI, 0));
                         //getIndex Now
                         index = _fifostructs.FindIndex(item => item._publhisherURI == msg.senderURI);
-                     }
+                    }
                     var fifo = _fifostructs[index];
                     //TODO Verify duplicates
                     fifo.listOfmessages.Add(msg);
@@ -518,8 +519,8 @@ namespace BrokerConsole
                     //DEBUG ListOfMessages
                     foreach (PublishMessage _msg in fifo.listOfmessages)
                     {
-                        log(string.Format("[ListOfMessage] seqnum: '{0}' '{1}'",fifo._seq_num, _msg));
-                 }
+                        log(string.Format("[ListOfMessage] seqnum: '{0}' '{1}'", fifo._seq_num, _msg));
+                    }
 
                     foreach (PublishMessage _msg in fifo.listOfmessages.ToList())
                     {
@@ -533,7 +534,7 @@ namespace BrokerConsole
                             //Message sent , increment seq_num and delete delivered message
                             fifo._seq_num++;
                             fifo.listOfmessages.Remove(_msg);
-		}
+                        }
                         else
                             break;
 
@@ -544,50 +545,51 @@ namespace BrokerConsole
 
             }
             else
-		{
+            {
 
-			deliver(msg);
-			propagatingRouting(msg);
-		}
+                deliver(msg);
+                propagatingRouting(msg);
+            }
         }
 
 
 
-		private void routing(PublishMessage msg)
-		{
-			PropagatedPublishMessage pmsg = new PropagatedPublishMessage(msg, _site);
+        private void routing(PublishMessage msg)
+        {
+            PropagatedPublishMessage pmsg = new PropagatedPublishMessage(msg, _site);
             pmsg.origin_site = _site;
 
             seq++;
             Console.WriteLine(seq);
 
             if (_routingPolicy == RoutingPolicy.flooding)
-			{
+            {
                 lock (_childSites)
                 {
                     foreach (var s in _childSites)
                     {
                         lock (s)
                         {
-                            foreach (var b in s.brokers)
+                            foreach (var broker in s.brokers)
                             {
                                 // TODO broker.getURI() is slow, we should use a cache
-                                log(string.Format("[Flooding Routing] sent event '{0}' to '{1}'", msg, b.getURI()));
-                               
-                                PropagatePublishDelegate d = new PropagatePublishDelegate(b.propagatePublish);
-                                d.BeginInvoke(pmsg,null,null);
+                                log(string.Format("[Flooding Routing] sent event '{0}' to '{1}'", msg, broker.getURI()));
+
+                                PropagatePublishDelegate d = new PropagatePublishDelegate(broker.propagatePublish);
+                                d.BeginInvoke(pmsg, null, null);
+                                c.reportEvent(EventType.BroEvent, getURI(), msg.senderURI, msg.topic, _broEventSeqNum++);
                             }
                         }
-                       
+
                     }
                 }
-				
-			}
-			else // routing policy is filtering
-			{
+
+            }
+            else // routing policy is filtering
+            {
                 List<string> sentSites = new List<string>();
 
-                lock (_topicSubscribers)
+                lock (_topicSites)
                 {
                     foreach (var subscribedTopic in _topicSites.Keys)
                     {
@@ -601,25 +603,26 @@ namespace BrokerConsole
                             var site = _nameToSite[site_name];
                             //translate seq_num of the message to send to child_sites
 
-                            if (_orderingPolicy == OrderingPolicy.fifo) { 
-                            lock (_siteToFifoStruct)
+                            if (_orderingPolicy == OrderingPolicy.fifo)
                             {
-
-                                if (!_siteToFifoStruct.ContainsKey(site_name))
+                                lock (_siteToFifoStruct)
                                 {
-                                    _siteToFifoStruct.Add(site_name, new List<FIFOstruct>());
-                                }
 
-                                int index = _siteToFifoStruct[site_name].FindIndex(item => item._publhisherURI == pmsg.senderURI);
+                                    if (!_siteToFifoStruct.ContainsKey(site_name))
+                                    {
+                                        _siteToFifoStruct.Add(site_name, new List<FIFOstruct>());
+                                    }
 
-                                if (index < 0)
-                                {
-                                     // element does not exists
-                                     _siteToFifoStruct[site_name].Add(new FIFOstruct(msg.senderURI, 0));
-                                    //getIndex Now
-                                    index = _siteToFifoStruct[site_name].FindIndex(item => item._publhisherURI == pmsg.senderURI);
-                                }
-                                var fifo = _siteToFifoStruct[site_name][index];
+                                    int index = _siteToFifoStruct[site_name].FindIndex(item => item._publhisherURI == pmsg.senderURI);
+
+                                    if (index < 0)
+                                    {
+                                        // element does not exists
+                                        _siteToFifoStruct[site_name].Add(new FIFOstruct(msg.senderURI, 0));
+                                        //getIndex Now
+                                        index = _siteToFifoStruct[site_name].FindIndex(item => item._publhisherURI == pmsg.senderURI);
+                                    }
+                                    var fifo = _siteToFifoStruct[site_name][index];
 
                                     //create a new message for each site interested sites with possibly a different seqnum
                                     PropagatedPublishMessage local_pmsg = new PropagatedPublishMessage(msg, _site);
@@ -643,36 +646,34 @@ namespace BrokerConsole
                                     if (_orderingPolicy == OrderingPolicy.fifo)
                                     {
                                         int index = _siteToFifoStruct[site_name].FindIndex(item => item._publhisherURI == pmsg.senderURI);
-                                        if(index >= 0) { 
-                                            foreach (PropagatedPublishMessage _pmsg in _siteToFifoStruct[site.name][index].listOfmessages.ToList()) { 
-                                                log(string.Format("[filtering routing] sent event '{0}' to '{1}'", _pmsg, broker.getURI()));
-
-
+                                        if (index >= 0)
+                                        {
+                                            foreach (PropagatedPublishMessage _pmsg in _siteToFifoStruct[site.name][index].listOfmessages.ToList())
+                                            {
                                                 PropagatePublishDelegate d = new PropagatePublishDelegate(broker.propagatePublish);
+                                                log(string.Format("[filtering routing] sent event '{0}' to '{1}'", _pmsg, broker.getURI()));
                                                 d.BeginInvoke(_pmsg, null, null);
-                                                //broker.propagatePublish(pmsg);
+                                                c.reportEvent(EventType.BroEvent, getURI(), _pmsg.senderURI, _pmsg.topic, _broEventSeqNum++);
                                                 _siteToFifoStruct[site.name][index].listOfmessages.Remove(_pmsg);
                                             }
                                         }
                                     }
                                     else
-                                    {
-
+                                    {      
+                                        PropagatePublishDelegate d = new PropagatePublishDelegate(broker.propagatePublish);
                                         log(string.Format("[filtering routing] sent event '{0}' to '{1}'", pmsg, broker.getURI()));
+                                        d.BeginInvoke(pmsg, null, null);
+                                        c.reportEvent(EventType.BroEvent, getURI(), pmsg.senderURI, pmsg.topic, _broEventSeqNum++);                                       
 
-                                    
-                                    PropagatePublishDelegate d = new PropagatePublishDelegate(broker.propagatePublish);
-                                    d.BeginInvoke(pmsg, null, null);
-                                    //broker.propagatePublish(pmsg);
+                                    }
                                 }
                             }
-                            }
-                            
+
                         }
                     }
                 }
-                         
-			}
+
+            }
 
             // send to parent site brokers
             // always send publish to parent, doesnt matter if interested in topic
@@ -680,28 +681,28 @@ namespace BrokerConsole
             {
                 if (_parentSite != null)
                 {
-                    foreach (Broker b in _parentSite.brokers)
+                    foreach (Broker broker in _parentSite.brokers)
                     {
-                        // TODO broker.getURI() is slow, we should use a cache
-                        log(string.Format("[Routing] sent event '{0}' to parent broker '{1}'", pmsg, b.getURI()));
-                        //b.propagatePublish(pmsg);
-                        PropagatePublishDelegate d = new PropagatePublishDelegate(b.propagatePublish);
+                        // TODO broker.getURI() is slow, we should use a cache                        
+                        PropagatePublishDelegate d = new PropagatePublishDelegate(broker.propagatePublish);
+                        log(string.Format("[Routing] sent event '{0}' to parent broker '{1}'", pmsg, broker.getURI()));
                         d.BeginInvoke(pmsg, null, null);
-                        //b.propagatePublish(pmsg);
+                        c.reportEvent(EventType.BroEvent, getURI(), pmsg.senderURI, pmsg.topic, _broEventSeqNum++);
+                        
                     }
                 }
             }
-			
-		}
+
+        }
 
         private bool equivalentTopic(string publishTopic, string subscribedTopic)
         {
             if (string.Compare(publishTopic, subscribedTopic) == 0)
                 return true;
-            
+
             // example if publishTopic = "/a/b/c/d"
             // and subscriberTopic = "/a/b/*"            
-            if(subscribedTopic[subscribedTopic.Length - 1] == '*')
+            if (subscribedTopic[subscribedTopic.Length - 1] == '*')
             {
                 // prefix = "/a/b/
                 var prefix = subscribedTopic.Substring(0, subscribedTopic.Length - 1);
@@ -712,13 +713,13 @@ namespace BrokerConsole
             return false;
         }
 
-		private void propagatingRouting(PropagatedPublishMessage msg)
-		{
-			string origin_site = msg.origin_site;
-			msg.origin_site = _site;
+        private void propagatingRouting(PropagatedPublishMessage msg)
+        {
+            string origin_site = msg.origin_site;
+            msg.origin_site = _site;
 
-			if (_routingPolicy == RoutingPolicy.flooding)
-			{
+            if (_routingPolicy == RoutingPolicy.flooding)
+            {
                 lock (_childSites)
                 {
                     foreach (var s in _childSites)
@@ -727,23 +728,22 @@ namespace BrokerConsole
                         {
                             if (s.name != origin_site)
                             {
-                                foreach (var b in s.brokers)
+                                foreach (var broker in s.brokers)
                                 {
-                                    // TODO broker.getURI() is slow, we should use a cache
-                                    log(string.Format("[propagatingRouting] flooding. sent event '{0}' to '{1}'", msg, b.getURI()));                                    
-                                    PropagatePublishDelegate d = new PropagatePublishDelegate(b.propagatePublish);
-                                    d.BeginInvoke(msg,null,null);
-                                    //b.propagatePublish(msg);
+                                    // TODO broker.getURI() is slow, we should use a cache                                    
+                                    PropagatePublishDelegate d = new PropagatePublishDelegate(broker.propagatePublish);
+                                    log(string.Format("[propagatingRouting] flooding. sent event '{0}' to '{1}'", msg, broker.getURI()));
+                                    d.BeginInvoke(msg, null, null);
+                                    c.reportEvent(EventType.BroEvent, getURI(), msg.senderURI, msg.topic, _broEventSeqNum++);
+                                                       
                                 }
                             }
                         }
-                        
                     }
                 }
-				
-			}
-			else // routing policy is filtering
-			{                         
+            }
+            else // routing policy is filtering
+            {
                 List<string> sentSites = new List<string>();
                 lock (_topicSubscribers)
                 {
@@ -758,7 +758,6 @@ namespace BrokerConsole
                             if (site_name == origin_site)
                                 continue;
                             var site = _nameToSite[site_name];
-
                             if (_orderingPolicy == OrderingPolicy.fifo)
                             {
                                 //FIFO
@@ -769,9 +768,7 @@ namespace BrokerConsole
                                     {
                                         _siteToFifoStruct.Add(site_name, new List<FIFOstruct>());
                                     }
-
                                     int index = _siteToFifoStruct[site_name].FindIndex(item => item._publhisherURI == msg.senderURI);
-
                                     if (index < 0)
                                     {
                                         // element does not exists
@@ -780,19 +777,12 @@ namespace BrokerConsole
                                         index = _siteToFifoStruct[site_name].FindIndex(item => item._publhisherURI == msg.senderURI);
                                     }
                                     var fifo = _siteToFifoStruct[site_name][index];
-
                                     //create a new message for each site interested sites with possibly a different seqnum
                                     PropagatedPublishMessage local_pmsg = new PropagatedPublishMessage(msg, _site);
                                     local_pmsg.origin_site = _site;
-
                                     local_pmsg.total_seqnum = fifo._seq_num;
                                     fifo.listOfmessages.Add(local_pmsg);
-
-                                   
                                     fifo._seq_num++;
-
-                                    
-
                                 }
                             }
 
@@ -807,56 +797,58 @@ namespace BrokerConsole
                                         {
                                             foreach (PropagatedPublishMessage _pmsg in _siteToFifoStruct[site.name][index].listOfmessages.ToList())
                                             {
-                                                log(string.Format("[filtering routing] sent event '{0}' to '{1}'", _pmsg, broker.getURI()));
+                                                
 
 
                                                 PropagatePublishDelegate d = new PropagatePublishDelegate(broker.propagatePublish);
+                                                log(string.Format("[filtering routing] sent event '{0}' to '{1}'", _pmsg, broker.getURI()));
                                                 d.BeginInvoke(_pmsg, null, null);
-
+                                                
+                                                c.reportEvent(EventType.BroEvent, getURI(),msg.senderURI, _pmsg.topic, _broEventSeqNum++);
                                                 _siteToFifoStruct[site.name][index].listOfmessages.Remove(_pmsg);
-                                                //broker.propagatePublish(pmsg);
+    
                                             }
                                         }
                                     }
                                     else
                                     {
 
-                                    // using broker.getURI() increases network traffic
-                                    log(string.Format("sent '{0}' to '{1}'", msg, broker.getURI()));
-                                    PropagatePublishDelegate d = new PropagatePublishDelegate(broker.propagatePublish);
-                                    d.BeginInvoke(msg, null, null);
-                                    //broker.propagatePublish(msg);
-                                }
+                                        // using broker.getURI() increases network traffic
+                                        log(string.Format("sent '{0}' to '{1}'", msg, broker.getURI()));
+                                        PropagatePublishDelegate d = new PropagatePublishDelegate(broker.propagatePublish);
+                                        d.BeginInvoke(msg, null, null);
+                                        c.reportEvent(EventType.BroEvent, getURI(), msg.senderURI, msg.topic, _broEventSeqNum++);
+                                        //broker.propagatePublish(msg);
+                                    }
 
                                 }
                             }
-                            
+
                         }
                     }
                 }
-               
 
-			}
+
+            }
 
             // send to parent site brokers
             // always send publish to parent, doesnt matter if interested in topic
-
             lock (_parentSiteLock)
             {
                 if (_parentSite != null && _parentSite.name != origin_site)
                 {
-                    log(string.Format("[VOU ENVIAR PARA O PAI] msg: '{0}' to parent site '{1}' origin_site '{2}'", msg, _parentSite.name, origin_site));
-                    foreach (Broker b in _parentSite.brokers)
+                    log(string.Format("[Sending to parent site] msg: '{0}' to parent site '{1}' origin_site '{2}'", msg, _parentSite.name, origin_site));
+                    foreach (Broker broker in _parentSite.brokers)
                     {
                         // TODO broker.getURI() is slow, we should use a cache
-                        log(string.Format("Sent '{0}' to parent broker '{1}'", msg, b.getURI()));                        
-                        PropagatePublishDelegate d = new PropagatePublishDelegate(b.propagatePublish);
+                        log(string.Format("Sent '{0}' to parent broker '{1}'", msg, broker.getURI()));
+                        PropagatePublishDelegate d = new PropagatePublishDelegate(broker.propagatePublish);
                         d.BeginInvoke(msg, null, null);
-                        //b.propagatePublish(msg);
+                        c.reportEvent(EventType.BroEvent, getURI(), msg.senderURI, msg.topic, _broEventSeqNum++);
                     }
                 }
             }
-			
-		}
-	}
+
+        }
+    }
 }

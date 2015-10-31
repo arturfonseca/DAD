@@ -35,3 +35,315 @@ SubEvent subscriber1, subscriber1, /desporto/futebol, 2
 SubEvent subscriber0, subscriber0, /desporto/futebol, 3
 SubEvent subscriber0, subscriber0, /desporto/basquetebol, 4
 SubEvent subscriber1, subscriber1, /desporto/futebol, 3
+Subscriber subscriber0 Subscribe /desporto/*
+Subscriber subscriber1 Subscribe /desporto/futebol
+Publisher publisher0 Publish 3 Ontopic /desporto/futebol Interval 100
+Publisher publisher0 Publish 3 Ontopic /desporto/basquetebol Interval 100
+PubEvent publisher0, publisher0, /desporto/futebol, 1
+PubEvent publisher0, publisher0, /desporto/basquetebol, 2
+PubEvent publisher0, publisher0, /desporto/futebol, 3
+PubEvent publisher0, publisher0, /desporto/basquetebol, 4
+PubEvent publisher0, publisher0, /desporto/futebol, 5
+PubEvent publisher0, publisher0, /desporto/basquetebol, 6
+SubEvent subscriber1, subscriber1, /desporto/futebol, 1
+SubEvent subscriber0, subscriber0, /desporto/futebol, 1
+SubEvent subscriber0, subscriber0, /desporto/basquetebol, 6
+SubEvent subscriber0, subscriber0, /desporto/basquetebol, 2
+SubEvent subscriber1, subscriber1, /desporto/futebol, 2
+SubEvent subscriber0, subscriber0, /desporto/futebol, 3
+SubEvent subscriber0, subscriber0, /desporto/basquetebol, 4
+SubEvent subscriber0, subscriber0, /desporto/futebol, 5
+SubEvent subscriber1, subscriber1, /desporto/futebol, 3
+Status
+Subscriber subscriber0 Subscribe /desporto/*
+Subscriber subscriber1 Subscribe /desporto/futebol
+Publisher publisher0 Publish 3 Ontopic /desporto/futebol Interval 100
+Publisher publisher0 Publish 3 Ontopic /desporto/basquetebol Interval 100
+PubEvent publisher0, publisher0, /desporto/futebol, 1
+Subscriber subscriber0 Subscribe /desporto/*
+Subscriber subscriber1 Subscribe /desporto/futebol
+Publisher publisher0 Publish 3 Ontopic /desporto/futebol Interval 100
+Publisher publisher0 Publish 3 Ontopic /desporto/basquetebol Interval 100
+PubEvent publisher0, publisher0, /desporto/futebol, 1
+Subscriber subscriber0 Subscribe /desporto/*
+Subscriber subscriber1 Subscribe /desporto/futebol
+Publisher publisher0 Publish 3 Ontopic /desporto/futebol Interval 100
+Publisher publisher0 Publish 3 Ontopic /desporto/basquetebol Interval 100
+PubEvent publisher0, publisher0, /desporto/futebol, 1
+Subscriber subscriber0 Subscribe /desporto/*
+Subscriber subscriber1 Subscribe /desporto/futebol
+Publisher publisher0 Publish 3 Ontopic /desporto/futebol Interval 100
+Publisher publisher0 Publish 3 Ontopic /desporto/basquetebol Interval 100
+PubEvent publisher0, publisher0, /desporto/futebol, 1
+Subscriber subscriber0 Subscribe /desporto/*
+Subscriber subscriber1 Subscribe /desporto/futebol
+Publisher publisher0 Publish 3 Ontopic /desporto/futebol Interval 100
+Publisher publisher0 Publish 3 Ontopic /desporto/basquetebol Interval 100
+PubEvent publisher0, publisher0, /desporto/futebol, 1
+Subscriber subscriber0 Subscribe /desporto/*
+Subscriber subscriber1 Subscribe /desporto/futebol
+Publisher publisher0 Publish 3 Ontopic /desporto/futebol Interval 100
+Publisher publisher0 Publish 3 Ontopic /desporto/basquetebol Interval 100
+PubEvent publisher0, publisher0, /desporto/futebol, 1
+BroEvent broker0, broker1, /desporto/futebol, 0
+BroEvent broker0, broker2, /desporto/futebol, 1
+PubEvent publisher0, publisher0, /desporto/basquetebol, 2
+BroEvent broker1, broker4, /desporto/futebol, 0
+BroEvent broker0, broker1, /desporto/basquetebol, 2
+BroEvent broker1, broker4, /desporto/basquetebol, 1
+BroEvent broker4, broker5, /desporto/futebol, 0
+SubEvent broker5, subscriber0, /desporto/futebol, 0
+BroEvent broker4, broker5, /desporto/basquetebol, 1
+SubEvent broker5, subscriber0, /desporto/basquetebol, 1
+PubEvent publisher0, publisher0, /desporto/futebol, 3
+BroEvent broker0, broker1, /desporto/futebol, 3
+BroEvent broker0, broker2, /desporto/futebol, 4
+PubEvent publisher0, publisher0, /desporto/basquetebol, 4
+BroEvent broker1, broker4, /desporto/futebol, 2
+BroEvent broker4, broker5, /desporto/futebol, 2
+BroEvent broker0, broker1, /desporto/basquetebol, 5
+SubEvent broker5, subscriber0, /desporto/futebol, 2
+BroEvent broker1, broker4, /desporto/basquetebol, 3
+BroEvent broker4, broker5, /desporto/basquetebol, 3
+SubEvent broker5, subscriber0, /desporto/basquetebol, 3
+PubEvent publisher0, publisher0, /desporto/futebol, 5
+BroEvent broker0, broker1, /desporto/futebol, 6
+BroEvent broker0, broker2, /desporto/futebol, 7
+BroEvent broker1, broker4, /desporto/futebol, 4
+PubEvent publisher0, publisher0, /desporto/basquetebol, 6
+BroEvent broker4, broker5, /desporto/futebol, 4
+SubEvent broker5, subscriber0, /desporto/futebol, 4
+BroEvent broker0, broker1, /desporto/basquetebol, 8
+BroEvent broker1, broker4, /desporto/basquetebol, 5
+BroEvent broker4, broker5, /desporto/basquetebol, 5
+SubEvent broker5, subscriber0, /desporto/basquetebol, 5
+SubEvent broker2, subscriber1, /desporto/futebol, 0
+SubEvent broker2, subscriber1, /desporto/futebol, 1
+SubEvent broker2, subscriber1, /desporto/futebol, 2
+SubEvent subscriber0, subscriber0, /desporto/futebol, 1
+SubEvent subscriber0, subscriber0, /desporto/basquetebol, 6
+SubEvent subscriber0, subscriber0, /desporto/basquetebol, 2
+SubEvent subscriber0, subscriber0, /desporto/futebol, 3
+SubEvent subscriber0, subscriber0, /desporto/basquetebol, 4
+SubEvent subscriber0, subscriber0, /desporto/futebol, 5
+SubEvent subscriber1, subscriber1, /desporto/futebol, 1
+SubEvent subscriber1, subscriber1, /desporto/futebol, 2
+SubEvent subscriber1, subscriber1, /desporto/futebol, 3
+Subscriber subscriber0 Subscribe /desporto/*
+Subscriber subscriber1 Subscribe /desporto/futebol
+Publisher publisher0 Publish 3 Ontopic /desporto/futebol Interval 100
+Publisher publisher0 Publish 3 Ontopic /desporto/basquetebol Interval 100
+PubEvent publisher0, publisher0, /desporto/futebol, 1
+BroEvent broker0, broker1, /desporto/futebol, 0
+BroEvent broker0, broker2, /desporto/futebol, 1
+PubEvent publisher0, publisher0, /desporto/basquetebol, 2
+BroEvent broker1, broker4, /desporto/futebol, 0
+BroEvent broker0, broker1, /desporto/basquetebol, 2
+BroEvent broker1, broker4, /desporto/basquetebol, 1
+SubEvent broker5, subscriber0, /desporto/futebol, 0
+BroEvent broker4, broker5, /desporto/futebol, 0
+BroEvent broker4, broker5, /desporto/basquetebol, 1
+SubEvent broker5, subscriber0, /desporto/basquetebol, 1
+PubEvent publisher0, publisher0, /desporto/futebol, 3
+BroEvent broker0, broker1, /desporto/futebol, 3
+BroEvent broker0, broker2, /desporto/futebol, 4
+BroEvent broker1, broker4, /desporto/futebol, 2
+PubEvent publisher0, publisher0, /desporto/basquetebol, 4
+BroEvent broker4, broker5, /desporto/futebol, 2
+BroEvent broker0, broker1, /desporto/basquetebol, 5
+SubEvent broker5, subscriber0, /desporto/futebol, 2
+BroEvent broker1, broker4, /desporto/basquetebol, 3
+BroEvent broker4, broker5, /desporto/basquetebol, 3
+SubEvent broker5, subscriber0, /desporto/basquetebol, 3
+PubEvent publisher0, publisher0, /desporto/futebol, 5
+BroEvent broker0, broker1, /desporto/futebol, 6
+BroEvent broker1, broker4, /desporto/futebol, 4
+BroEvent broker0, broker2, /desporto/futebol, 7
+PubEvent publisher0, publisher0, /desporto/basquetebol, 6
+BroEvent broker4, broker5, /desporto/futebol, 4
+SubEvent broker5, subscriber0, /desporto/futebol, 4
+BroEvent broker0, broker1, /desporto/basquetebol, 8
+BroEvent broker1, broker4, /desporto/basquetebol, 5
+BroEvent broker4, broker5, /desporto/basquetebol, 5
+SubEvent broker5, subscriber0, /desporto/basquetebol, 5
+SubEvent broker2, subscriber1, /desporto/futebol, 0
+SubEvent broker2, subscriber1, /desporto/futebol, 1
+SubEvent broker2, subscriber1, /desporto/futebol, 2
+SubEvent subscriber0, subscriber0, /desporto/futebol, 1
+SubEvent subscriber0, subscriber0, /desporto/basquetebol, 6
+SubEvent subscriber0, subscriber0, /desporto/basquetebol, 2
+SubEvent subscriber0, subscriber0, /desporto/futebol, 3
+SubEvent subscriber0, subscriber0, /desporto/basquetebol, 4
+SubEvent subscriber0, subscriber0, /desporto/futebol, 5
+SubEvent subscriber1, subscriber1, /desporto/futebol, 3
+SubEvent subscriber1, subscriber1, /desporto/futebol, 2
+SubEvent subscriber1, subscriber1, /desporto/futebol, 1
+Subscriber subscriber0 Subscribe /desporto/*
+Subscriber subscriber1 Subscribe /desporto/futebol
+Publisher publisher0 Publish 3 Ontopic /desporto/futebol Interval 100
+Publisher publisher0 Publish 3 Ontopic /desporto/basquetebol Interval 100
+PubEvent publisher0, publisher0, /desporto/futebol, 1
+BroEvent broker0, broker1, /desporto/futebol, 0
+BroEvent broker1, broker4, /desporto/futebol, 0
+BroEvent broker4, broker5, /desporto/futebol, 0
+SubEvent broker5, subscriber0, /desporto/futebol, 0
+BroEvent broker0, broker2, /desporto/futebol, 1
+PubEvent publisher0, publisher0, /desporto/basquetebol, 2
+BroEvent broker0, broker1, /desporto/basquetebol, 2
+BroEvent broker1, broker4, /desporto/basquetebol, 1
+BroEvent broker4, broker5, /desporto/basquetebol, 1
+SubEvent broker5, subscriber0, /desporto/basquetebol, 1
+PubEvent publisher0, publisher0, /desporto/futebol, 3
+BroEvent broker0, broker1, /desporto/futebol, 3
+BroEvent broker0, broker2, /desporto/futebol, 4
+BroEvent broker1, broker4, /desporto/futebol, 2
+PubEvent publisher0, publisher0, /desporto/basquetebol, 4
+BroEvent broker4, broker5, /desporto/futebol, 2
+BroEvent broker0, broker1, /desporto/basquetebol, 5
+SubEvent broker5, subscriber0, /desporto/futebol, 2
+BroEvent broker1, broker4, /desporto/basquetebol, 3
+BroEvent broker4, broker5, /desporto/basquetebol, 3
+SubEvent broker5, subscriber0, /desporto/basquetebol, 3
+PubEvent publisher0, publisher0, /desporto/futebol, 5
+BroEvent broker0, broker1, /desporto/futebol, 6
+BroEvent broker1, broker4, /desporto/futebol, 4
+BroEvent broker0, broker2, /desporto/futebol, 7
+BroEvent broker4, broker5, /desporto/futebol, 4
+PubEvent publisher0, publisher0, /desporto/basquetebol, 6
+SubEvent broker5, subscriber0, /desporto/futebol, 4
+BroEvent broker0, broker1, /desporto/basquetebol, 8
+BroEvent broker1, broker4, /desporto/basquetebol, 5
+BroEvent broker4, broker5, /desporto/basquetebol, 5
+SubEvent broker5, subscriber0, /desporto/basquetebol, 5
+SubEvent broker2, subscriber1, /desporto/futebol, 0
+SubEvent subscriber0, subscriber0, /desporto/futebol, 1
+SubEvent broker2, subscriber1, /desporto/futebol, 1
+SubEvent subscriber0, subscriber0, /desporto/basquetebol, 6
+SubEvent broker2, subscriber1, /desporto/futebol, 2
+SubEvent subscriber0, subscriber0, /desporto/basquetebol, 2
+SubEvent subscriber0, subscriber0, /desporto/futebol, 3
+SubEvent subscriber0, subscriber0, /desporto/basquetebol, 4
+SubEvent subscriber0, subscriber0, /desporto/futebol, 5
+SubEvent subscriber1, subscriber1, /desporto/futebol, 1
+SubEvent subscriber1, subscriber1, /desporto/futebol, 3
+SubEvent subscriber1, subscriber1, /desporto/futebol, 2
+Subscriber subscriber0 Subscribe /desporto/*
+Subscriber subscriber1 Subscribe /desporto/futebol
+Publisher publisher0 Publish 3 Ontopic /desporto/futebol Interval 100
+Publisher publisher0 Publish 3 Ontopic /desporto/basquetebol Interval 100
+PubEvent publisher0, publisher0, /desporto/futebol, 1
+BroEvent broker1, publisher0, /desporto/futebol, 0
+BroEvent broker0, publisher0, /desporto/futebol, 0
+BroEvent broker0, publisher0, /desporto/futebol, 1
+PubEvent publisher0, publisher0, /desporto/basquetebol, 2
+BroEvent broker4, publisher0, /desporto/futebol, 0
+BroEvent broker0, publisher0, /desporto/basquetebol, 2
+BroEvent broker1, publisher0, /desporto/basquetebol, 1
+SubEvent broker5, publisher0, /desporto/futebol, 0
+BroEvent broker4, publisher0, /desporto/basquetebol, 1
+SubEvent broker5, publisher0, /desporto/basquetebol, 1
+PubEvent publisher0, publisher0, /desporto/futebol, 3
+BroEvent broker0, publisher0, /desporto/futebol, 3
+BroEvent broker0, publisher0, /desporto/futebol, 4
+BroEvent broker1, publisher0, /desporto/futebol, 2
+PubEvent publisher0, publisher0, /desporto/basquetebol, 4
+BroEvent broker4, publisher0, /desporto/futebol, 2
+BroEvent broker0, publisher0, /desporto/basquetebol, 5
+SubEvent broker5, publisher0, /desporto/futebol, 2
+BroEvent broker1, publisher0, /desporto/basquetebol, 3
+BroEvent broker4, publisher0, /desporto/basquetebol, 3
+SubEvent broker5, publisher0, /desporto/basquetebol, 3
+PubEvent publisher0, publisher0, /desporto/futebol, 5
+BroEvent broker0, publisher0, /desporto/futebol, 6
+BroEvent broker0, publisher0, /desporto/futebol, 7
+BroEvent broker1, publisher0, /desporto/futebol, 4
+BroEvent broker4, publisher0, /desporto/futebol, 4
+PubEvent publisher0, publisher0, /desporto/basquetebol, 6
+SubEvent broker5, publisher0, /desporto/futebol, 4
+BroEvent broker0, publisher0, /desporto/basquetebol, 8
+BroEvent broker1, publisher0, /desporto/basquetebol, 5
+BroEvent broker4, publisher0, /desporto/basquetebol, 5
+SubEvent broker5, publisher0, /desporto/basquetebol, 5
+SubEvent broker2, publisher0, /desporto/futebol, 0
+SubEvent broker2, publisher0, /desporto/futebol, 1
+SubEvent broker2, publisher0, /desporto/futebol, 2
+Subscriber subscriber0 Subscribe /desporto/*
+Subscriber subscriber1 Subscribe /desporto/futebol
+Publisher publisher0 Publish 3 Ontopic /desporto/futebol Interval 100
+Publisher publisher0 Publish 3 Ontopic /desporto/basquetebol Interval 100
+PubEvent publisher0, publisher0, /desporto/futebol, 1
+BroEvent broker0, publisher0, /desporto/futebol, 0
+BroEvent broker0, publisher0, /desporto/futebol, 1
+PubEvent publisher0, publisher0, /desporto/basquetebol, 2
+BroEvent broker1, publisher0, /desporto/futebol, 0
+BroEvent broker0, publisher0, /desporto/basquetebol, 2
+BroEvent broker4, publisher0, /desporto/futebol, 0
+SubEvent broker5, publisher0, /desporto/futebol, 0
+BroEvent broker1, publisher0, /desporto/basquetebol, 1
+BroEvent broker4, publisher0, /desporto/basquetebol, 1
+SubEvent broker5, publisher0, /desporto/basquetebol, 1
+PubEvent publisher0, publisher0, /desporto/futebol, 3
+BroEvent broker0, publisher0, /desporto/futebol, 3
+BroEvent broker0, publisher0, /desporto/futebol, 4
+BroEvent broker1, publisher0, /desporto/futebol, 2
+PubEvent publisher0, publisher0, /desporto/basquetebol, 4
+BroEvent broker4, publisher0, /desporto/futebol, 2
+BroEvent broker0, publisher0, /desporto/basquetebol, 5
+SubEvent broker5, publisher0, /desporto/futebol, 2
+BroEvent broker1, publisher0, /desporto/basquetebol, 3
+BroEvent broker4, publisher0, /desporto/basquetebol, 3
+SubEvent broker5, publisher0, /desporto/basquetebol, 3
+PubEvent publisher0, publisher0, /desporto/futebol, 5
+BroEvent broker0, publisher0, /desporto/futebol, 6
+BroEvent broker0, publisher0, /desporto/futebol, 7
+BroEvent broker1, publisher0, /desporto/futebol, 4
+PubEvent publisher0, publisher0, /desporto/basquetebol, 6
+BroEvent broker4, publisher0, /desporto/futebol, 4
+SubEvent broker5, publisher0, /desporto/futebol, 4
+BroEvent broker0, publisher0, /desporto/basquetebol, 8
+BroEvent broker1, publisher0, /desporto/basquetebol, 5
+BroEvent broker4, publisher0, /desporto/basquetebol, 5
+SubEvent broker5, publisher0, /desporto/basquetebol, 5
+SubEvent broker2, publisher0, /desporto/futebol, 0
+SubEvent broker2, publisher0, /desporto/futebol, 1
+SubEvent broker2, publisher0, /desporto/futebol, 2
+Subscriber subscriber0 Subscribe /desporto/*
+Subscriber subscriber1 Subscribe /desporto/futebol
+Publisher publisher0 Publish 3 Ontopic /desporto/futebol Interval 100
+Publisher publisher0 Publish 3 Ontopic /desporto/basquetebol Interval 100
+PubEvent publisher0, publisher0, /desporto/futebol, 1
+BroEvent broker0, publisher0, /desporto/futebol, 0
+BroEvent broker0, publisher0, /desporto/futebol, 1
+PubEvent publisher0, publisher0, /desporto/basquetebol, 2
+BroEvent broker1, publisher0, /desporto/futebol, 0
+BroEvent broker0, publisher0, /desporto/basquetebol, 2
+BroEvent broker4, publisher0, /desporto/futebol, 0
+BroEvent broker1, publisher0, /desporto/basquetebol, 1
+SubEvent broker5, publisher0, /desporto/futebol, 0
+BroEvent broker4, publisher0, /desporto/basquetebol, 1
+SubEvent broker5, publisher0, /desporto/basquetebol, 1
+PubEvent publisher0, publisher0, /desporto/futebol, 3
+BroEvent broker0, publisher0, /desporto/futebol, 3
+BroEvent broker0, publisher0, /desporto/futebol, 4
+PubEvent publisher0, publisher0, /desporto/basquetebol, 4
+BroEvent broker1, publisher0, /desporto/futebol, 2
+BroEvent broker4, publisher0, /desporto/futebol, 2
+BroEvent broker0, publisher0, /desporto/basquetebol, 5
+SubEvent broker5, publisher0, /desporto/futebol, 2
+BroEvent broker1, publisher0, /desporto/basquetebol, 3
+BroEvent broker4, publisher0, /desporto/basquetebol, 3
+SubEvent broker5, publisher0, /desporto/basquetebol, 3
+PubEvent publisher0, publisher0, /desporto/futebol, 5
+BroEvent broker0, publisher0, /desporto/futebol, 6
+BroEvent broker0, publisher0, /desporto/futebol, 7
+BroEvent broker1, publisher0, /desporto/futebol, 4
+PubEvent publisher0, publisher0, /desporto/basquetebol, 6
+BroEvent broker4, publisher0, /desporto/futebol, 4
+SubEvent broker5, publisher0, /desporto/futebol, 4
+BroEvent broker0, publisher0, /desporto/basquetebol, 8
+BroEvent broker1, publisher0, /desporto/basquetebol, 5
+BroEvent broker4, publisher0, /desporto/basquetebol, 5
+SubEvent broker5, publisher0, /desporto/basquetebol, 5
+SubEvent broker2, publisher0, /desporto/futebol, 0
+SubEvent broker2, publisher0, /desporto/futebol, 1
+SubEvent broker2, publisher0, /desporto/futebol, 2

@@ -63,7 +63,7 @@ namespace SubscriberConsole
             //we need to register each remote object
             ObjRef o = RemotingServices.Marshal(subscriber, name, typeof(Subscriber));
             subscriber.setURI(string.Format("{0}/{1}", channelURI, name));
-            Console.WriteLine("Created Broker at \"{0}\"", subscriber.getURI());
+            Console.WriteLine("Created Subscriber at site:\"{0}\" uri:\"{1}\"", site, subscriber.getURI());
 
             //now that broker is created and marshalled
             //send remote to puppetMaster which is Monitor.waiting for the remote            
@@ -171,10 +171,8 @@ namespace SubscriberConsole
         {
 
             seq++;
-            c.reportEvent("SubEvent", getURI(), getURI(), topic, seq);
+            //c.reportEvent("SubEvent", getURI(), getURI(), topic, seq);
             log(string.Format("Received. topic:'{0}' content:'{1}'", topic, content));
-
-
 
         }
 

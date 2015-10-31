@@ -62,7 +62,7 @@ namespace PublisherConsole
             //we need to register each remote object
             ObjRef o = RemotingServices.Marshal(publisher, name, typeof(Publisher));
             publisher.setURI(string.Format("{0}/{1}", channelURI, name));
-            Console.WriteLine("Created Publisher at \"{0}\"", publisher.getURI());
+            Console.WriteLine("Created Publisher at site:\"{0}\" uri:\"{1}\"", site, publisher.getURI());
 
             //now that broker is created and marshalled
             //send remote to puppetMaster which is Monitor.waiting for the remote            
@@ -143,8 +143,12 @@ namespace PublisherConsole
                 }
                 topic_seqnum = _topics_seqnum[topic];
                 _topics_seqnum[topic] += 1;
-
-                var msg = new PublishMessage() { senderURI = getURI(), total_seqnum = total_seqnum, topic = topic, content = content };
+                string cc = "";
+                if (content == "timestamps")
+                {
+                    cc = string.Format("[Content] seqnum:{0} timestamp:{1}", total_seqnum, DateTime.Now.ToString());
+                }
+                var msg = new PublishMessage() { senderURI = getURI(), total_seqnum = total_seqnum, topic = topic, content = cc };
                 log(string.Format("[publish] {0}", msg));
                 // TODO make all calls assyncs
                 seq++;
