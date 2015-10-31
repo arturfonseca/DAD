@@ -7,7 +7,7 @@ using DADInterfaces;
 
 namespace PuppetMastersCoordinatorGUI
 {
-    public delegate void recebeMsgDelegate(string str);
+    public delegate void recebeMsgDelegate(string type, string uri1, string uri2, string topic, int seqnum);
     public class CoordinatorRem : MarshalByRefObject, ICoordinator
     {
         Form1 _form;
@@ -19,7 +19,7 @@ namespace PuppetMastersCoordinatorGUI
 
         public void reportEvent(string type, string uri1, string uri2, string topic, int seqnum)
         {
-            _form.BeginInvoke(new recebeMsgDelegate(_form.log_), new object[] { type+" "+uri1+", "+uri2+", "+topic+", "+seqnum });
+            _form.BeginInvoke(new recebeMsgDelegate(_form.log_), new object[] { type,uri1,uri2,topic,seqnum });
         }
     }
 

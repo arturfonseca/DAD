@@ -47,9 +47,7 @@ namespace PuppetMasterConsole
             ObjRef o = RemotingServices.Marshal(pm, service, typeof(PuppetMaster));
             pm.URI = string.Format("{0}/{1}", channelURI, service);
             Console.WriteLine("Created PuppetMaster at \"{0}\"", pm.URI);
-
-           //test1(pm);
-            //test2(pm);
+            
             Console.WriteLine("Press key to leave");
             Console.Read();
             // quick way to close all windows

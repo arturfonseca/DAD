@@ -22,6 +22,7 @@ namespace PublisherConsole
         private Object thisLock = new Object();
         private ICoordinator c;
         private int seq;
+        private bool _freeze_state=false;
 
         public PublisherRemote(PuppetMaster pm, string name, string site,string addr)
         {
@@ -78,12 +79,25 @@ namespace PublisherConsole
 
         public void crash()
         {
-            throw new NotImplementedException();
+            Process.GetCurrentProcess().Kill();
+            
         }
+
+       
 
         public void freeze()
         {
-            throw new NotImplementedException();
+            _freeze_state = true;
+            while (_freeze_state)
+            {
+
+            }
+
+        }
+
+        public void unfreeze()
+        {
+            _freeze_state = false;
         }
 
         public string getName()
@@ -108,13 +122,10 @@ namespace PublisherConsole
 
         public string status()
         {
-            throw new NotImplementedException();
+            return "OK";
         }
 
-        public void unfreeze()
-        {
-            throw new NotImplementedException();
-        }
+        
 
         delegate void publish_delegate(string topic, string content, int quantity, int interval);
 
@@ -136,7 +147,8 @@ namespace PublisherConsole
                 var msg = new PublishMessage() { senderURI = getURI(), total_seqnum = total_seqnum, topic = topic, content = content };
                 log(string.Format("[publish] {0}", msg));
                 // TODO make all calls assyncs
-                c.reportEvent("PubEvent", "name", "publisher", topic, seq);
+                seq++;
+                c.reportEvent("PubEvent", getURI(), getURI(), topic, seq);
                 _broker.publish(msg);
             }
 

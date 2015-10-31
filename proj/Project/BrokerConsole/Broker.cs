@@ -64,6 +64,7 @@ namespace BrokerConsole
 		private Site _parentSite;
         private ICoordinator c;
         private int seq;
+        private string _addr;
 
 		private OrderingPolicy _orderingPolicy;
 		private RoutingPolicy _routingPolicy;
@@ -75,7 +76,7 @@ namespace BrokerConsole
         //string= site.URI
         private Dictionary<string, List<FIFOstruct>> _siteToFifoStruct = new Dictionary<string, List<FIFOstruct>>();
         private List<FIFOstruct> _fifostructs = new List<FIFOstruct>();
-
+        private bool _freeze_state=false;
 
         public BrokerRemote(PuppetMaster pm, string uri, string name, string site,string addr)
 		{
@@ -85,8 +86,8 @@ namespace BrokerConsole
 			_site = site;
 			_orderingPolicy = OrderingPolicy.fifo;
 			_routingPolicy = RoutingPolicy.flooding;
-            c = (ICoordinator)Activator.GetObject(typeof(ICoordinator), addr);
             seq = 0;
+            _addr = addr;
 
 
         }
@@ -141,6 +142,10 @@ namespace BrokerConsole
         public void setLoggingLevel(LoggingLevel l)
         {
             _loggingLevel = l;
+            if (l==LoggingLevel.full)
+            {
+                c = (ICoordinator)Activator.GetObject(typeof(ICoordinator), _addr);
+            }
         }
 
 
@@ -200,26 +205,32 @@ namespace BrokerConsole
 			return _isRoot;
 		}
 
-		// Puppet Master functions
-		public void crash()
+        // Puppet Master functions
+        public void crash()
+        {
+            Process.GetCurrentProcess().Kill();
+        }
+
+        public void freeze()
+        {
+            _freeze_state = true;
+            while (_freeze_state)
+            {
+
+            }
+
+        }
+
+        public void unfreeze()
+        {
+            _freeze_state = false;
+        }
+        public string status()
 		{
-			throw new NotImplementedException();
+            return "OK";
 		}
 
-		public void freeze()
-		{
-			throw new NotImplementedException();
-		}
-		public string status()
-		{
-			throw new NotImplementedException();
-		}
-
-		public void unfreeze()
-		{
-			throw new NotImplementedException();
-		}
-
+		
 		// *end* Puppet Master functions
 
 		/*

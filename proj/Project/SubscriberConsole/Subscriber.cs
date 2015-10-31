@@ -22,6 +22,7 @@ namespace SubscriberConsole
         private Object thisLock = new Object();
         private ICoordinator c;
         private int seq;
+        private bool _freeze_state = false;
 
         public SubscriberRemote(PuppetMaster pm, string name, string site, string addr)
         {
@@ -89,7 +90,7 @@ namespace SubscriberConsole
 
         public string status()
         {
-            throw new NotImplementedException();
+            return "OK";
         }
 
         public string getName()
@@ -104,17 +105,22 @@ namespace SubscriberConsole
 
         public void crash()
         {
-            throw new NotImplementedException();
+            Process.GetCurrentProcess().Kill();
         }
 
         public void freeze()
         {
-            throw new NotImplementedException();
+            _freeze_state = true;
+            while (_freeze_state)
+            {
+
+            }
+            
         }
 
         public void unfreeze()
         {
-            throw new NotImplementedException();
+            _freeze_state = false;
         }
 
         public void subscribe(string topic)
@@ -165,7 +171,7 @@ namespace SubscriberConsole
         {
 
             seq++;
-            c.reportEvent("SubEvent", "name", "publisher", topic, seq);
+            c.reportEvent("SubEvent", getURI(), getURI(), topic, seq);
             log(string.Format("Received. topic:'{0}' content:'{1}'", topic, content));
 
 

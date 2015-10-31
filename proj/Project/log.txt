@@ -1,0 +1,18 @@
+Subscriber subscriber0 Subscribe /desporto/*
+Subscriber subscriber1 Subscribe /desporto/futebol
+Publisher publisher0 Publish 1 Ontopic /desporto/futebol Interval 1000
+PubEvent publisher0, publisher0, /desporto/futebol, 0
+SubEvent subscriber0, subscriber0, /desporto/futebol, 1
+SubEvent subscriber1, subscriber1, /desporto/futebol, 1
+Crash publisher0
+Subscriber subscriber0 Subscribe /desporto/*
+Subscriber subscriber1 Subscribe /desporto/futebol
+Publisher publisher0 Publish 1 Ontopic /desporto/futebol Interval 1000
+PubEvent publisher0, publisher0, /desporto/futebol, 0
+SubEvent subscriber0, subscriber0, /desporto/futebol, 1
+SubEvent subscriber1, subscriber1, /desporto/futebol, 1
+Crash subscriber1
+Publisher publisher0 Publish 1 Ontopic /desporto/tenis Interval 10
+PubEvent publisher0, publisher0, /desporto/tenis, 0
+SubEvent subscriber0, subscriber0, /desporto/tenis, 2
+Status
