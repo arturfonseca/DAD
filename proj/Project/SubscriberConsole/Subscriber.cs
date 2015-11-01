@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Runtime.Remoting;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace SubscriberConsole
@@ -21,8 +22,8 @@ namespace SubscriberConsole
         private List<string> _subscribedTopics = new List<string>();
         private Object thisLock = new Object();
         private ICoordinator c;
-        private int seq;
-        private bool _freeze_state = false;
+        private bool _freezed = false;
+        private List<ThreadStart> _freezedThreads = new List<ThreadStart>();
 
         public SubscriberRemote(PuppetMaster pm, string name, string site, string addr)
         {
@@ -30,8 +31,7 @@ namespace SubscriberConsole
             _pm = pm;
             _site = site;
             c = (ICoordinator)Activator.GetObject(typeof(ICoordinator), addr);
-            seq = 0;
-
+            
         }
 
         public override object InitializeLifetimeService()
@@ -92,8 +92,8 @@ namespace SubscriberConsole
         {
             string subscribedTopics="";
             foreach (string t in _subscribedTopics)
-                subscribedTopics += t+";";
-            Console.WriteLine("[STATUS] Freeze=:" + _freeze_state + " Subscribing:" + subscribedTopics);
+                subscribedTopics += t+"; ";
+            Console.WriteLine("[STATUS] Freeze:" + _freezed + " Subscribing: " + subscribedTopics);
             return "OK";
         }
 
@@ -112,20 +112,30 @@ namespace SubscriberConsole
             Process.GetCurrentProcess().Kill();
         }
 
+
         public void freeze()
         {
-            _freeze_state = true;
-            while (_freeze_state)
+            lock (_freezedThreads)
             {
-
+                _freezed = true;
             }
-            
         }
 
         public void unfreeze()
         {
-            _freeze_state = false;
+            lock (_freezedThreads)
+            {
+                if (!_freezed)
+                {
+                    return;
+                }
+                foreach (var ts in _freezedThreads)
+                    new Thread(ts).Start();
+                _freezedThreads.Clear();
+                _freezed = false;
+            }
         }
+
 
         public void subscribe(string topic)
         {
@@ -173,12 +183,31 @@ namespace SubscriberConsole
 
         public void receive(string topic, string content)
         {
+            ThreadStart x = () => receive_job(topic, content);
+            lock (_freezedThreads)
+            {
+                if (_freezed)
+                {
+                    _freezedThreads.Add(x);
+                }
+                else
+                {
+                    new Thread(x).Start();
+                }
+            }            
+           }
+        
 
-            seq++;
-            //c.reportEvent("SubEvent", getURI(), getURI(), topic, seq);
+            
+
+        public void receive_job(string topic, string content)
+        {
+            //TEM DE FICAR AQUI O LOG
+           // c.reportEvent(EventType.SubEvent, uri, msg.senderURI, topic, msg.total_seqnum);
             log(string.Format("Received. topic:'{0}' content:'{1}'", topic, content));
-
         }
+
+
 
         void log(string e)
         {

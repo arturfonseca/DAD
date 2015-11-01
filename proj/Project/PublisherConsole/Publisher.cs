@@ -107,7 +107,7 @@ namespace PublisherConsole
 
         public string status()
         {
-            Console.WriteLine("[STATUS: Freeze=" + _freeze_state);
+            Console.WriteLine("[STATUS] Freeze:" + _freezed);
             return "OK";
         }
 

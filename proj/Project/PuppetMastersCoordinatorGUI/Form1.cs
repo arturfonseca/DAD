@@ -316,7 +316,7 @@ namespace PuppetMastersCoordinatorGUI
 
         }
 
-
+        //TODO: remove warnings
         public void readInput(String[] lines)
         {
             foreach (String line in lines)
@@ -333,7 +333,7 @@ namespace PuppetMastersCoordinatorGUI
                         }
                         catch (Exception e)
                         {
-                            textBox13.Text += entry.Key + "failed \r\n";
+                            textBox13.Text += entry.Key + " failed \r\n";
                         }
                     }
 
@@ -345,7 +345,7 @@ namespace PuppetMastersCoordinatorGUI
                         }
                         catch (Exception e)
                         {
-                            textBox13.Text += entry.Key + "failed \r\n";
+                            textBox13.Text += entry.Key + " failed \r\n";
                         }
                     }
                     foreach (KeyValuePair<string, Subscriber> entry in all_subscribers)
