@@ -61,13 +61,13 @@ namespace DADInterfaces
         void publish(string topic, string msg, int quantity, int interval);
         
     }
-    public delegate void ReceiveDelegate(string topic, string content);
+    public delegate void ReceiveDelegate(string topic, string content, string publisherURI);
     public interface Subscriber: Node
     {
         void setSiteBroker(Broker site_broker);
         void subscribe(string topic);
         void unsubscribe(string topic);
-        void receive(string topic, string content);
+        void receive(string topic, string content, string publisherURI);
     }
 
     public interface ICoordinator

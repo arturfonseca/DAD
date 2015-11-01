@@ -86,6 +86,8 @@ namespace PuppetMastersCoordinatorGUI
 
         public void log_(string type, string uri1, string uri2, string topic, int seqnum)
         {
+            if (log == LoggingLevel.light && type == EventType.BroEvent)
+                return;
             string str = type + " " + uri_processname[uri1] + ", " + uri_processname[uri2] + ", " + topic + ", " + seqnum;
             textBox13.Text += str + "\r\n";
             StreamWriter writetext = new StreamWriter(ConfigurationManager.AppSettings["logs"], true);

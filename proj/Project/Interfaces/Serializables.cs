@@ -83,7 +83,7 @@ namespace DADInterfaces
     public class PublishMessage
     {
         //sender URI
-        public string senderURI;
+        public string publisherURI;
         // used to avoid duplicates
 
         public int total_seqnum;
@@ -93,7 +93,7 @@ namespace DADInterfaces
         public override string ToString()
         {
             return string.Format("[PublishMessage] publisher_uri:'{0}' topic:'{1}' content :'{2}' total_seqnum :'{3}'",
-                senderURI, topic, content, total_seqnum);
+                publisherURI, topic, content, total_seqnum);
         }
     }
     [Serializable]
@@ -102,7 +102,7 @@ namespace DADInterfaces
         public string origin_site;
         public PropagatedPublishMessage(PublishMessage msg, string site)
         {
-            senderURI = msg.senderURI;
+            publisherURI = msg.publisherURI;
             total_seqnum = msg.total_seqnum;
             topic = msg.topic;
             content = msg.content;
@@ -112,7 +112,7 @@ namespace DADInterfaces
         {
             return String.Format(
                 "[PropagatedPublishMessage] publisher_uri:'{0}', total_seqnum:'{1}', topic:'{2}' content:'{3}', source_site:'{4}'",
-                senderURI, total_seqnum, topic, content, origin_site);
+                publisherURI, total_seqnum, topic, content, origin_site);
         }
     }
 }

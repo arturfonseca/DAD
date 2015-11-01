@@ -20,7 +20,6 @@ namespace PublisherConsole
         private int _total_seqnum;
         private Object thisLock = new Object();
         private ICoordinator c;
-        private int seq;
         private bool _freezed=false;
         private List<ThreadStart> _freezedThreads = new List<ThreadStart>();
 
@@ -30,7 +29,6 @@ namespace PublisherConsole
             _pm = pm;
             _site = site;
             c = (ICoordinator)Activator.GetObject(typeof(ICoordinator), addr);
-            seq = 0;
         }
 
         public override object InitializeLifetimeService()
@@ -126,11 +124,11 @@ namespace PublisherConsole
                 {
                     cc = string.Format("[Content] seqnum:{0} timestamp:{1}", total_seqnum, DateTime.Now.ToString());
                 }
-                var msg = new PublishMessage() { senderURI = getURI(), total_seqnum = total_seqnum, topic = topic, content = cc };
+                var msg = new PublishMessage() { publisherURI = getURI(), total_seqnum = total_seqnum, topic = topic, content = cc };
                 log(string.Format("[publish] {0}", msg));
                 // TODO make all calls assyncs
-                seq++;
-                c.reportEvent("PubEvent", getURI(), getURI(), topic, seq);
+              
+                c.reportEvent(EventType.PubEvent, getURI(), getURI(), topic, total_seqnum);
                 _broker.publish(msg);
             }
 

@@ -25,12 +25,12 @@ namespace SubscriberConsole
         private bool _freezed = false;
         private List<ThreadStart> _freezedThreads = new List<ThreadStart>();
 
-        public SubscriberRemote(PuppetMaster pm, string name, string site, string addr)
+        public SubscriberRemote(PuppetMaster pm, string name, string site, string coordinatorURI)
         {
             _name = name;
             _pm = pm;
             _site = site;
-            c = (ICoordinator)Activator.GetObject(typeof(ICoordinator), addr);
+            c = (ICoordinator)Activator.GetObject(typeof(ICoordinator), coordinatorURI);
             
         }
 
@@ -53,13 +53,13 @@ namespace SubscriberConsole
             string name = args[1];
             string site = args[2];
             int port = int.Parse(args[3]);
-            string addr = args[4];
+            string coordinatorURI = args[4];
 
             string channelURI = Utility.setupChannel(port);
 
             // get the puppetMaster that started this process
             PuppetMaster pm = (PuppetMaster)Activator.GetObject(typeof(PuppetMaster), puppetMasterURI);
-            SubscriberRemote subscriber = new SubscriberRemote(pm, name, site, addr);
+            SubscriberRemote subscriber = new SubscriberRemote(pm, name, site, coordinatorURI);
             //we need to register each remote object
             ObjRef o = RemotingServices.Marshal(subscriber, name, typeof(Subscriber));
             subscriber.setURI(string.Format("{0}/{1}", channelURI, name));
@@ -181,7 +181,7 @@ namespace SubscriberConsole
 
         }
 
-        public void receive(string topic, string content)
+        public void receive(string topic, string content, string publisherURI)
         {
             ThreadStart x = () => receive_job(topic, content);
             lock (_freezedThreads)
