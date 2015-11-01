@@ -90,6 +90,10 @@ namespace SubscriberConsole
 
         public string status()
         {
+            string subscribedTopics="";
+            foreach (string t in _subscribedTopics)
+                subscribedTopics += t+";";
+            Console.WriteLine("[STATUS] Freeze=:" + _freeze_state + " Subscribing:" + subscribedTopics);
             return "OK";
         }
 

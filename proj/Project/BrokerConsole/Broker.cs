@@ -230,6 +230,7 @@ namespace BrokerConsole
         }
         public string status()
         {
+            Console.WriteLine("[STATUS: Freeze=" + _freeze_state);
             return "OK";
         }
 
@@ -577,7 +578,8 @@ namespace BrokerConsole
 
                                 PropagatePublishDelegate d = new PropagatePublishDelegate(broker.propagatePublish);
                                 d.BeginInvoke(pmsg, null, null);
-                                c.reportEvent(EventType.BroEvent, getURI(), msg.senderURI, msg.topic, _broEventSeqNum++);
+                                if (_loggingLevel == LoggingLevel.full)
+                                    c.reportEvent(EventType.BroEvent, getURI(), msg.senderURI, msg.topic, _broEventSeqNum++);
                             }
                         }
 
@@ -653,17 +655,19 @@ namespace BrokerConsole
                                                 PropagatePublishDelegate d = new PropagatePublishDelegate(broker.propagatePublish);
                                                 log(string.Format("[filtering routing] sent event '{0}' to '{1}'", _pmsg, broker.getURI()));
                                                 d.BeginInvoke(_pmsg, null, null);
-                                                c.reportEvent(EventType.BroEvent, getURI(), _pmsg.senderURI, _pmsg.topic, _broEventSeqNum++);
+                                                if (_loggingLevel == LoggingLevel.full)
+                                                    c.reportEvent(EventType.BroEvent, getURI(), _pmsg.senderURI, _pmsg.topic, _broEventSeqNum++);
                                                 _siteToFifoStruct[site.name][index].listOfmessages.Remove(_pmsg);
                                             }
                                         }
                                     }
                                     else
-                                    {      
+                                    {
                                         PropagatePublishDelegate d = new PropagatePublishDelegate(broker.propagatePublish);
                                         log(string.Format("[filtering routing] sent event '{0}' to '{1}'", pmsg, broker.getURI()));
                                         d.BeginInvoke(pmsg, null, null);
-                                        c.reportEvent(EventType.BroEvent, getURI(), pmsg.senderURI, pmsg.topic, _broEventSeqNum++);                                       
+                                        if (_loggingLevel == LoggingLevel.full)
+                                            c.reportEvent(EventType.BroEvent, getURI(), pmsg.senderURI, pmsg.topic, _broEventSeqNum++);
 
                                     }
                                 }
@@ -687,8 +691,9 @@ namespace BrokerConsole
                         PropagatePublishDelegate d = new PropagatePublishDelegate(broker.propagatePublish);
                         log(string.Format("[Routing] sent event '{0}' to parent broker '{1}'", pmsg, broker.getURI()));
                         d.BeginInvoke(pmsg, null, null);
-                        c.reportEvent(EventType.BroEvent, getURI(), pmsg.senderURI, pmsg.topic, _broEventSeqNum++);
-                        
+                        if (_loggingLevel == LoggingLevel.full)
+                            c.reportEvent(EventType.BroEvent, getURI(), pmsg.senderURI, pmsg.topic, _broEventSeqNum++);
+
                     }
                 }
             }
@@ -734,8 +739,9 @@ namespace BrokerConsole
                                     PropagatePublishDelegate d = new PropagatePublishDelegate(broker.propagatePublish);
                                     log(string.Format("[propagatingRouting] flooding. sent event '{0}' to '{1}'", msg, broker.getURI()));
                                     d.BeginInvoke(msg, null, null);
-                                    c.reportEvent(EventType.BroEvent, getURI(), msg.senderURI, msg.topic, _broEventSeqNum++);
-                                                       
+                                    if (_loggingLevel == LoggingLevel.full)
+                                        c.reportEvent(EventType.BroEvent, getURI(), msg.senderURI, msg.topic, _broEventSeqNum++);
+
                                 }
                             }
                         }
@@ -797,16 +803,16 @@ namespace BrokerConsole
                                         {
                                             foreach (PropagatedPublishMessage _pmsg in _siteToFifoStruct[site.name][index].listOfmessages.ToList())
                                             {
-                                                
+
 
 
                                                 PropagatePublishDelegate d = new PropagatePublishDelegate(broker.propagatePublish);
                                                 log(string.Format("[filtering routing] sent event '{0}' to '{1}'", _pmsg, broker.getURI()));
                                                 d.BeginInvoke(_pmsg, null, null);
-                                                
-                                                c.reportEvent(EventType.BroEvent, getURI(),msg.senderURI, _pmsg.topic, _broEventSeqNum++);
+                                                if (_loggingLevel == LoggingLevel.full)
+                                                    c.reportEvent(EventType.BroEvent, getURI(), msg.senderURI, _pmsg.topic, _broEventSeqNum++);
                                                 _siteToFifoStruct[site.name][index].listOfmessages.Remove(_pmsg);
-    
+
                                             }
                                         }
                                     }
@@ -817,7 +823,8 @@ namespace BrokerConsole
                                         log(string.Format("sent '{0}' to '{1}'", msg, broker.getURI()));
                                         PropagatePublishDelegate d = new PropagatePublishDelegate(broker.propagatePublish);
                                         d.BeginInvoke(msg, null, null);
-                                        c.reportEvent(EventType.BroEvent, getURI(), msg.senderURI, msg.topic, _broEventSeqNum++);
+                                        if (_loggingLevel == LoggingLevel.full)
+                                            c.reportEvent(EventType.BroEvent, getURI(), msg.senderURI, msg.topic, _broEventSeqNum++);
                                         //broker.propagatePublish(msg);
                                     }
 

@@ -85,7 +85,7 @@ namespace PuppetMastersCoordinatorGUI
         }
 
         public void log_(string type, string uri1, string uri2, string topic, int seqnum)
-        {            
+        {
             string str = type + " " + uri_processname[uri1] + ", " + uri_processname[uri2] + ", " + topic + ", " + seqnum;
             textBox13.Text += str + "\r\n";
             StreamWriter writetext = new StreamWriter(ConfigurationManager.AppSettings["logs"], true);
@@ -210,7 +210,7 @@ namespace PuppetMastersCoordinatorGUI
                             site_publishers[site].Add(p);
                             if (ip == "localhost")
                                 uri = uri.Replace("localhost", LocalIPAddress().ToString());
-                            uri_processname.Add(uri,process_name);
+                            uri_processname.Add(uri, process_name);
                             break;
                         case "broker":
                             Broker b = pms[ip].createBroker(name, site, Int32.Parse(port), myaddr);
@@ -326,11 +326,39 @@ namespace PuppetMastersCoordinatorGUI
                 if (keywords[0] == "Status" && keywords.Length >= 1)
                 {
                     foreach (KeyValuePair<string, Broker> entry in all_brokers)
-                        entry.Value.status();
+                    {
+                        try
+                        {
+                            entry.Value.status();
+                        }
+                        catch (Exception e)
+                        {
+                            textBox13.Text += entry.Key + "failed \r\n";
+                        }
+                    }
+
                     foreach (KeyValuePair<string, Publisher> entry in all_publishers)
-                        entry.Value.status();
+                    {
+                        try
+                        {
+                            entry.Value.status();
+                        }
+                        catch (Exception e)
+                        {
+                            textBox13.Text += entry.Key + "failed \r\n";
+                        }
+                    }
                     foreach (KeyValuePair<string, Subscriber> entry in all_subscribers)
-                        entry.Value.status();
+                    {
+                        try
+                        {
+                            entry.Value.status();
+                        }
+                        catch (Exception e)
+                        {
+                            textBox13.Text += entry.Key + " failed \r\n";
+                        }
+                    }
 
                 }
                 else if (keywords[0] == "Crash" && keywords.Length >= 2)
@@ -344,12 +372,12 @@ namespace PuppetMastersCoordinatorGUI
                         if (all_subscribers.ContainsKey(keywords[1]))
                             all_subscribers[keywords[1]].crash();
                     }
-                    catch(System.IO.IOException e)
+                    catch (System.IO.IOException e)
                     {
                         //PROCESS KILLED SUCESSFULLY
-                        //MessageBox.Show(e.ToString());
+                        
                     }
-                    
+
 
                 }
                 else if (keywords[0] == "Freeze" && keywords.Length >= 2)
@@ -390,7 +418,7 @@ namespace PuppetMastersCoordinatorGUI
                     //Publisher publisher0 Publish 1 Ontopic /desporto/futebol Interval 100
                     int quantity = int.Parse(keywords[3]);
                     int interval = int.Parse(keywords[7]);
-                    string topic = keywords[5];                    
+                    string topic = keywords[5];
                     all_publishers[keywords[1]].publish(topic, "timestamps", quantity, interval);
                 }
                 else
@@ -456,12 +484,12 @@ namespace PuppetMastersCoordinatorGUI
 
         private void button10_Click(object sender, EventArgs e)
         {
-            
+
             String[] str = new string[1];
             str[0] = "Unfreeze " + textBox12.Text;
             readInput(str);
         }
-        
+
         private IPAddress LocalIPAddress()
         {
             if (!System.Net.NetworkInformation.NetworkInterface.GetIsNetworkAvailable())
@@ -476,9 +504,6 @@ namespace PuppetMastersCoordinatorGUI
                 .FirstOrDefault(ip => ip.AddressFamily == AddressFamily.InterNetwork);
         }
 
-        private void Form1_Load(object sender, EventArgs e)
-        {
-
-        }
+        
     }
 }
