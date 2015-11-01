@@ -18,11 +18,11 @@ namespace PublisherConsole
         private string _uri;
         private Broker _broker;
         private int _total_seqnum;
-        private Dictionary<string, int> _topics_seqnum = new Dictionary<string, int>();
         private Object thisLock = new Object();
         private ICoordinator c;
         private int seq;
-        private bool _freeze_state=false;
+        private bool _freezed=false;
+        private List<ThreadStart> _freezedThreads = new List<ThreadStart>();
 
         public PublisherRemote(PuppetMaster pm, string name, string site,string addr)
         {
@@ -79,26 +79,11 @@ namespace PublisherConsole
 
         public void crash()
         {
-            Process.GetCurrentProcess().Kill();
-            
+            Process.GetCurrentProcess().Kill();            
         }
 
        
 
-        public void freeze()
-        {
-            _freeze_state = true;
-            while (_freeze_state)
-            {
-
-            }
-
-        }
-
-        public void unfreeze()
-        {
-            _freeze_state = false;
-        }
 
         public string getName()
         {
@@ -136,14 +121,6 @@ namespace PublisherConsole
             {
                 int total_seqnum = _total_seqnum;
                 _total_seqnum += 1;
-                int topic_seqnum = 0;
-                if (!_topics_seqnum.ContainsKey(topic))
-                {
-                    // obvious memory leak, because we never release tuples from dict
-                    _topics_seqnum.Add(topic, 0);
-                }
-                topic_seqnum = _topics_seqnum[topic];
-                _topics_seqnum[topic] += 1;
                 string cc = "";
                 if (content == "timestamps")
                 {
@@ -175,10 +152,43 @@ namespace PublisherConsole
 
             // interval in milliseconds
             // we dont remove thread gracefully
+            ThreadStart x = () => publish_job(topic, content, quantity, interval);
+            lock (_freezedThreads)
+            {
+                log(string.Format("[Publish] freezed? {0}", _freezed ? "yes" : "no"));
+                if (_freezed)
+                {
+                    _freezedThreads.Add(x);
+                }
+                else
+                {
+                    new Thread(x).Start();
+                }
+            }           
+        }
 
-            Thread t = new Thread(() => publish_job(topic, content, quantity, interval));
-            t.Start();
-            log(string.Format("[Publish Thread Started]"));
+
+        public void freeze()
+        {
+            lock (_freezedThreads)
+            {
+                _freezed = true;
+            }
+        }
+
+        public void unfreeze()
+        {
+            lock (_freezedThreads)
+            {
+                if (!_freezed)
+                {
+                    return;
+                }
+                foreach (var ts in _freezedThreads)
+                    new Thread(ts).Start();
+                _freezedThreads.Clear();
+                _freezed = false;
+            }
         }
 
 
