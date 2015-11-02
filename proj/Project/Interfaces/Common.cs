@@ -26,6 +26,8 @@ namespace DADInterfaces
         
         void freeze();
         void unfreeze();
+        void imAlive();
+       
     }
 
     public delegate void PropagateSubscribeDelegate(PropagatedSubcribeMessage msg);
@@ -61,13 +63,13 @@ namespace DADInterfaces
         void publish(string topic, string msg, int quantity, int interval);
         
     }
-    public delegate void ReceiveDelegate(string topic, string content, string publisherURI);
+    public delegate void ReceiveDelegate(PublishMessage p);
     public interface Subscriber: Node
     {
         void setSiteBroker(Broker site_broker);
         void subscribe(string topic);
         void unsubscribe(string topic);
-        void receive(string topic, string content, string publisherURI);
+        void receive(PublishMessage p);
     }
 
     public interface ICoordinator

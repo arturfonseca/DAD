@@ -23,15 +23,15 @@ namespace SubscriberConsole
         private Object thisLock = new Object();
         private ICoordinator c;
         private bool _freezed = false;
-        private List<ThreadStart> _freezedThreads = new List<ThreadStart>();
-
+        private List<PublishMessage> _freezedReceives = new List<PublishMessage>();
+        private object _freezedLock = new object();
         public SubscriberRemote(PuppetMaster pm, string name, string site, string coordinatorURI)
         {
             _name = name;
             _pm = pm;
             _site = site;
             c = (ICoordinator)Activator.GetObject(typeof(ICoordinator), coordinatorURI);
-            
+
         }
 
         public override object InitializeLifetimeService()
@@ -90,10 +90,21 @@ namespace SubscriberConsole
 
         public string status()
         {
-            string subscribedTopics="";
+            bool _alive;
+            Console.WriteLine("Trying to get broker status");
+            try
+            {
+                _broker.imAlive();
+                _alive = true;
+            }
+            catch (Exception e)
+            {
+                _alive = false;
+            }
+            string subscribedTopics = "[";
             foreach (string t in _subscribedTopics)
-                subscribedTopics += t+"; ";
-            Console.WriteLine("[STATUS] Freeze:" + _freezed + " Subscribing: " + subscribedTopics);
+                subscribedTopics += t + "; ";
+            Console.WriteLine("[STATUS] Broker is alive:"+_alive+" Freeze:" + _freezed + " Subscribing: " + subscribedTopics + "]");
             return "OK";
         }
 
@@ -115,7 +126,7 @@ namespace SubscriberConsole
 
         public void freeze()
         {
-            lock (_freezedThreads)
+            lock (_freezedLock)
             {
                 _freezed = true;
             }
@@ -123,16 +134,16 @@ namespace SubscriberConsole
 
         public void unfreeze()
         {
-            lock (_freezedThreads)
+            lock (_freezedLock)
             {
                 if (!_freezed)
                 {
                     return;
                 }
-                foreach (var ts in _freezedThreads)
-                    new Thread(ts).Start();
-                _freezedThreads.Clear();
+                foreach (var ts in _freezedReceives)
+                    receive_job(ts);
                 _freezed = false;
+                _freezedReceives.Clear();
             }
         }
 
@@ -181,37 +192,43 @@ namespace SubscriberConsole
 
         }
 
-        public void receive(string topic, string content, string publisherURI)
+        public void receive(PublishMessage p)
         {
-            ThreadStart x = () => receive_job(topic, content);
-            lock (_freezedThreads)
+            bool freezed =false;
+            lock (_freezedLock)
             {
                 if (_freezed)
                 {
-                    _freezedThreads.Add(x);
+                    freezed = true;
+                    _freezedReceives.Add(p);
                 }
-                else
-                {
-                    new Thread(x).Start();
-                }
-            }            
-           }
-        
+                    
 
-            
-
-        public void receive_job(string topic, string content)
-        {
-            //TEM DE FICAR AQUI O LOG
-           // c.reportEvent(EventType.SubEvent, uri, msg.senderURI, topic, msg.total_seqnum);
-            log(string.Format("Received. topic:'{0}' content:'{1}'", topic, content));
+            }
+            if (!freezed)
+            {
+                receive_job(p);
+            }
         }
 
 
 
+
+        public void receive_job(PublishMessage m)
+        {
+            //TEM DE FICAR AQUI O LOG
+            c.reportEvent(EventType.SubEvent, getURI(), m.publisherURI, m.topic, m.seqnum);
+            log(string.Format("Received. topic:'{0}' content:'{1}'", m.topic, m.content));
+        }
+
+        public void imAlive()
+        {
+
+        }
+
         void log(string e)
         {
-           // _pm.reportEvent(getURI(), e);
+            // _pm.reportEvent(getURI(), e);
             Console.WriteLine(e);
         }
     }

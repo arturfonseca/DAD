@@ -46,7 +46,7 @@ namespace BrokerConsole
         private List<Subscriber> _subscribers = new List<Subscriber>();
         // uri to subscriber
         private Dictionary<string, Subscriber> _uriToSubs = new Dictionary<string, Subscriber>();
-
+        private Dictionary<string, Publisher> _uriToPubs = new Dictionary<string, Publisher>();
         // key = topic value= subscribers uri
         Dictionary<string, List<string>> _topicSubscribers = new Dictionary<string, List<string>>();
         // key = subscriber_uri, value = seqnum
@@ -82,6 +82,7 @@ namespace BrokerConsole
         private List<PublishMessage> _freezedPublishMessages = new List<PublishMessage>();
         private List<PropagatedPublishMessage> _freezedPropagatedPublishMessages = new List<PropagatedPublishMessage>();
 
+
         public BrokerRemote(PuppetMaster pm, string uri, string name, string site, string addr)
         {
             _uri = uri;
@@ -92,7 +93,7 @@ namespace BrokerConsole
             _routingPolicy = RoutingPolicy.flooding;
             seq = 0;
             _coordinatorURI = addr;
-            c = (ICoordinator)Activator.GetObject(typeof(ICoordinator), addr);
+            // c = (ICoordinator)Activator.GetObject(typeof(ICoordinator), addr);
 
         }
 
@@ -133,6 +134,11 @@ namespace BrokerConsole
             Console.WriteLine("Just registered at puppetMaster");
             Console.WriteLine("Press key to leave");
             Console.Read();
+        }
+
+        public void imAlive()
+        {
+
         }
 
         public void setOrderingPolicy(OrderingPolicy p)
@@ -188,6 +194,11 @@ namespace BrokerConsole
         public void setPublishers(List<Publisher> site_publishers)
         {
             _publishers = site_publishers;
+            foreach (Publisher p in site_publishers)
+            {
+                _uriToPubs.Add(p.getURI(), p);
+
+            }
         }
 
         public void setSubscribers(List<Subscriber> site_subscribers)
@@ -196,6 +207,7 @@ namespace BrokerConsole
             foreach (Subscriber s in site_subscribers)
             {
                 _uriToSubs.Add(s.getURI(), s);
+
             }
         }
 
@@ -217,6 +229,25 @@ namespace BrokerConsole
 
         public string status()
         {
+            bool _alive;
+            string _out = "[STATUS]Broker: " + getURI();
+            Console.WriteLine("Trying to get  publishers status");
+            foreach (KeyValuePair<string, Publisher> entry in _uriToPubs)
+            {
+                String s = entry.Key;
+                Publisher p = entry.Value;
+                try
+                {
+                    p.imAlive();
+                    _alive = true;
+                    _out += s + " is alive:" + _alive;
+                }
+                catch (Exception e)
+                {
+                    _alive = false;
+                    _out += s + " is alive:" + _alive;
+                }
+            }
             Console.WriteLine("[STATUS] Freeze:" + _freezed);
             return "OK";
         }
@@ -225,8 +256,8 @@ namespace BrokerConsole
         // *end* Puppet Master functions
 
         /*
-		 *  Business logic
-		 */
+         *  Business logic
+         */
 
         private bool isDuplicate(SubscribeMessage msg)
         {
@@ -401,9 +432,9 @@ namespace BrokerConsole
                         ReceiveDelegate rd = new ReceiveDelegate(s.receive);
                         remoteDelegates.Add(rd);
                         //MUDAR ISTO...
-                        c.reportEvent(EventType.SubEvent, uri, msg.publisherURI, msg.topic, msg.total_seqnum);
+                        // c.reportEvent(EventType.SubEvent, uri, msg.publisherURI, msg.topic, msg.total_seqnum);
                         log(string.Format("[Deliver] sent event '{0}' to '{1}'", msg, uri));
-                        
+
                     }
                 }
             }
@@ -411,7 +442,7 @@ namespace BrokerConsole
 
             foreach (ReceiveDelegate subDelegate in remoteDelegates)
             {
-                IAsyncResult result = subDelegate.BeginInvoke(msg.topic, msg.content, msg.publisherURI, null, null);
+                IAsyncResult result = subDelegate.BeginInvoke(msg, null, null);
                 results.Add(result);
             }
             List<WaitHandle> handlesLst = new List<WaitHandle>();
@@ -433,20 +464,20 @@ namespace BrokerConsole
             lock (_freezedLock)
             {
                 if (!_freezed)
-                    return;                          
-                       
-                foreach(var msg in _freezedPublishMessages)
+                    return;
+
+                foreach (var msg in _freezedPublishMessages)
                 {
                     publishWork(msg);
                 }
-                _freezedPublishMessages.Clear();            
-                    
-                foreach(var msg in _freezedPropagatedPublishMessages)
+                _freezedPublishMessages.Clear();
+
+                foreach (var msg in _freezedPropagatedPublishMessages)
                 {
                     propagatePublishWork(msg);
                 }
                 _freezedPropagatedPublishMessages.Clear();
-               
+
                 _freezed = false;
             }
         }
@@ -461,7 +492,7 @@ namespace BrokerConsole
                 {
                     freezed = true;
                     log(string.Format("[propagatePublish] freezed"));
-                    _freezedPropagatedPublishMessages.Add(msg);                    
+                    _freezedPropagatedPublishMessages.Add(msg);
                 }
             }
             if (!freezed)
@@ -473,7 +504,7 @@ namespace BrokerConsole
         public void publish(PublishMessage msg)
         {
             bool freezed = false;
-           
+
             lock (_freezedLock)
             {
                 if (_freezed)
@@ -483,11 +514,11 @@ namespace BrokerConsole
                     _freezedPublishMessages.Add(msg);
                 }
             }
-            if (!freezed) 
+            if (!freezed)
             {
                 publishWork(msg);
             }
-            
+
         }
 
         public void publishWork(PublishMessage msg)
@@ -517,7 +548,7 @@ namespace BrokerConsole
                     var fifo = _fifostructs[index];
                     //TODO Verify duplicates
                     fifo.listOfmessages.Add(msg);
-                    fifo.listOfmessages.OrderBy(item => item.total_seqnum).ToList();
+                    fifo.listOfmessages.OrderBy(item => item.seqnum).ToList();
 
                     //DEBUG ListOfMessages
                     foreach (PublishMessage _msg in fifo.listOfmessages)
@@ -528,7 +559,7 @@ namespace BrokerConsole
                     foreach (PublishMessage _msg in fifo.listOfmessages.ToList())
                     {
 
-                        if (_msg.total_seqnum == fifo._seq_num)
+                        if (_msg.seqnum == fifo._seq_num)
                         {
                             //Prepare to send the msg to interested sites
                             deliver(_msg);
@@ -574,7 +605,7 @@ namespace BrokerConsole
                     var fifo = _fifostructs[index];
                     //TODO Verify duplicates
                     fifo.listOfmessages.Add(msg);
-                    fifo.listOfmessages.OrderBy(item => item.total_seqnum).ToList();
+                    fifo.listOfmessages.OrderBy(item => item.seqnum).ToList();
 
                     //DEBUG ListOfMessages
                     foreach (PublishMessage _msg in fifo.listOfmessages)
@@ -585,7 +616,7 @@ namespace BrokerConsole
                     foreach (PublishMessage _msg in fifo.listOfmessages.ToList())
                     {
 
-                        if (_msg.total_seqnum == fifo._seq_num)
+                        if (_msg.seqnum == fifo._seq_num)
                         {
                             //Prepare to send the msg to interested sites
                             deliver(_msg);
@@ -639,8 +670,8 @@ namespace BrokerConsole
                                 d.BeginInvoke(pmsg, null, null);
 
                                 if (_loggingLevel == LoggingLevel.full)
-                                    c.reportEvent(EventType.BroEvent, getURI(), msg.publisherURI, msg.topic, msg.total_seqnum);
-    }
+                                    c.reportEvent(EventType.BroEvent, getURI(), msg.publisherURI, msg.topic, msg.seqnum);
+                            }
                         }
 
                     }
@@ -690,7 +721,7 @@ namespace BrokerConsole
                                     PropagatedPublishMessage local_pmsg = new PropagatedPublishMessage(msg, _site);
                                     local_pmsg.origin_site = _site;
 
-                                    local_pmsg.total_seqnum = fifo._seq_num;
+                                    local_pmsg.seqnum = fifo._seq_num;
                                     fifo.listOfmessages.Add(local_pmsg);
 
                                     fifo._seq_num++;
@@ -717,7 +748,7 @@ namespace BrokerConsole
                                                 d.BeginInvoke(_pmsg, null, null);
 
                                                 if (_loggingLevel == LoggingLevel.full)
-                                                    c.reportEvent(EventType.BroEvent, getURI(), _pmsg.publisherURI, _pmsg.topic, msg.total_seqnum);
+                                                    c.reportEvent(EventType.BroEvent, getURI(), _pmsg.publisherURI, _pmsg.topic, msg.seqnum);
 
                                                 _siteToFifoStruct[site.name][index].listOfmessages.Remove(_pmsg);
                                             }
@@ -730,7 +761,7 @@ namespace BrokerConsole
                                         d.BeginInvoke(pmsg, null, null);
 
                                         if (_loggingLevel == LoggingLevel.full)
-                                            c.reportEvent(EventType.BroEvent, getURI(), pmsg.publisherURI, pmsg.topic, msg.total_seqnum);
+                                            c.reportEvent(EventType.BroEvent, getURI(), pmsg.publisherURI, pmsg.topic, msg.seqnum);
 
                                     }
                                 }
@@ -756,7 +787,7 @@ namespace BrokerConsole
                         d.BeginInvoke(pmsg, null, null);
 
                         if (_loggingLevel == LoggingLevel.full)
-                            c.reportEvent(EventType.BroEvent, getURI(), pmsg.publisherURI, pmsg.topic, msg.total_seqnum);
+                            c.reportEvent(EventType.BroEvent, getURI(), pmsg.publisherURI, pmsg.topic, msg.seqnum);
 
 
                     }
@@ -806,7 +837,7 @@ namespace BrokerConsole
                                     d.BeginInvoke(msg, null, null);
 
                                     if (_loggingLevel == LoggingLevel.full)
-                                        c.reportEvent(EventType.BroEvent, getURI(), msg.publisherURI, msg.topic, msg.total_seqnum);
+                                        c.reportEvent(EventType.BroEvent, getURI(), msg.publisherURI, msg.topic, msg.seqnum);
 
 
                                 }
@@ -853,7 +884,7 @@ namespace BrokerConsole
                                     //create a new message for each site interested sites with possibly a different seqnum
                                     PropagatedPublishMessage local_pmsg = new PropagatedPublishMessage(msg, _site);
                                     local_pmsg.origin_site = _site;
-                                    local_pmsg.total_seqnum = fifo._seq_num;
+                                    local_pmsg.seqnum = fifo._seq_num;
                                     fifo.listOfmessages.Add(local_pmsg);
                                     fifo._seq_num++;
                                 }
@@ -878,7 +909,7 @@ namespace BrokerConsole
                                                 d.BeginInvoke(_pmsg, null, null);
 
                                                 if (_loggingLevel == LoggingLevel.full)
-
+                                                    c.reportEvent(EventType.BroEvent, getURI(), _pmsg.publisherURI, _pmsg.topic, _pmsg.seqnum);
                                                 _siteToFifoStruct[site.name][index].listOfmessages.Remove(_pmsg);
 
                                             }
@@ -893,8 +924,8 @@ namespace BrokerConsole
                                         d.BeginInvoke(msg, null, null);
 
                                         if (_loggingLevel == LoggingLevel.full)
-                                            c.reportEvent(EventType.BroEvent, getURI(), msg.publisherURI, msg.topic, msg.total_seqnum);
-               //broker.propagatePublish(msg);
+                                            c.reportEvent(EventType.BroEvent, getURI(), msg.publisherURI, msg.topic, msg.seqnum);
+                                        //broker.propagatePublish(msg);
                                     }
 
                                 }
@@ -920,7 +951,7 @@ namespace BrokerConsole
                         log(string.Format("Sent '{0}' to parent broker '{1}'", msg, broker.getURI()));
                         PropagatePublishDelegate d = new PropagatePublishDelegate(broker.propagatePublish);
                         d.BeginInvoke(msg, null, null);
-                        c.reportEvent(EventType.BroEvent, getURI(), msg.publisherURI, msg.topic, msg.total_seqnum);
+                        c.reportEvent(EventType.BroEvent, getURI(), msg.publisherURI, msg.topic, msg.seqnum);
                     }
                 }
             }

@@ -1,16 +1,46 @@
 Subscriber subscriber0 Subscribe /desporto/*
 Subscriber subscriber1 Subscribe /desporto/futebol
 Publisher publisher0 Publish 1 Ontopic /desporto/futebol Interval 100
+PubEvent publisher0, publisher0, /desporto/futebol, 0
+BroEvent broker0, publisher0, /desporto/futebol, 0
+BroEvent broker0, publisher0, /desporto/futebol, 0
+BroEvent broker1, publisher0, /desporto/futebol, 0
+BroEvent broker4, publisher0, /desporto/futebol, 0
+Subscriber subscriber0 Subscribe /desporto/*
+Subscriber subscriber1 Subscribe /desporto/futebol
+Publisher publisher0 Publish 1 Ontopic /desporto/futebol Interval 100
+Subscriber subscriber0 Subscribe /desporto/*
+Subscriber subscriber1 Subscribe /desporto/futebol
+Publisher publisher0 Publish 1 Ontopic /desporto/futebol Interval 100
+PubEvent publisher0, publisher0, /desporto/futebol, 0
+BroEvent broker1, publisher0, /desporto/futebol, 0
+BroEvent broker0, publisher0, /desporto/futebol, 0
+BroEvent broker0, publisher0, /desporto/futebol, 0
 PubEvent publisher0, publisher0, /desporto/futebol, 1
-BroEvent broker0, publisher0, /desporto/futebol, 0
-BroEvent broker0, publisher0, /desporto/futebol, 0
+BroEvent broker0, publisher0, /desporto/futebol, 1
 SubEvent subscriber0, publisher0, /desporto/futebol, 0
+BroEvent broker4, publisher0, /desporto/futebol, 0
+BroEvent broker0, publisher0, /desporto/futebol, 1
+BroEvent broker1, publisher0, /desporto/futebol, 1
+BroEvent broker4, publisher0, /desporto/futebol, 1
+SubEvent subscriber0, publisher0, /desporto/futebol, 1
 SubEvent subscriber1, publisher0, /desporto/futebol, 0
+SubEvent subscriber1, publisher0, /desporto/futebol, 1
 Subscriber subscriber0 Subscribe /desporto/*
 Subscriber subscriber1 Subscribe /desporto/futebol
 Publisher publisher0 Publish 1 Ontopic /desporto/futebol Interval 100
 PubEvent publisher0, publisher0, /desporto/futebol, 0
 BroEvent broker0, publisher0, /desporto/futebol, 0
 BroEvent broker0, publisher0, /desporto/futebol, 0
+BroEvent broker1, publisher0, /desporto/futebol, 0
+BroEvent broker4, publisher0, /desporto/futebol, 0
 SubEvent subscriber0, publisher0, /desporto/futebol, 0
 SubEvent subscriber1, publisher0, /desporto/futebol, 0
+Status
+Crash broker0
+Status
+Freeze subscriber0
+Status
+Status
+Crash broker0
+Subscriber subscriber0 Subscribe /desporto/*

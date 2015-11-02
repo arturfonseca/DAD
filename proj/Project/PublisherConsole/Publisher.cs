@@ -20,10 +20,10 @@ namespace PublisherConsole
         private int _total_seqnum;
         private Object thisLock = new Object();
         private ICoordinator c;
-        private bool _freezed=false;
+        private bool _freezed = false;
         private List<ThreadStart> _freezedThreads = new List<ThreadStart>();
 
-        public PublisherRemote(PuppetMaster pm, string name, string site,string addr)
+        public PublisherRemote(PuppetMaster pm, string name, string site, string addr)
         {
             _name = name;
             _pm = pm;
@@ -56,7 +56,7 @@ namespace PublisherConsole
 
             // get the puppetMaster that started this process
             PuppetMaster pm = (PuppetMaster)Activator.GetObject(typeof(PuppetMaster), puppetMasterURI);
-            PublisherRemote publisher = new PublisherRemote(pm, name, site,addr);
+            PublisherRemote publisher = new PublisherRemote(pm, name, site, addr);
             //we need to register each remote object
             ObjRef o = RemotingServices.Marshal(publisher, name, typeof(Publisher));
             publisher.setURI(string.Format("{0}/{1}", channelURI, name));
@@ -77,10 +77,10 @@ namespace PublisherConsole
 
         public void crash()
         {
-            Process.GetCurrentProcess().Kill();            
+            Process.GetCurrentProcess().Kill();
         }
 
-       
+
 
 
         public string getName()
@@ -105,12 +105,26 @@ namespace PublisherConsole
 
         public string status()
         {
-            Console.WriteLine("[STATUS] Freeze:" + _freezed);
+            bool _alive;
+            Console.WriteLine("Trying to get broker status");
+            try
+            {
+                _broker.imAlive();
+                _alive = true;
+            }
+            catch(Exception e)
+            {
+                _alive = false;
+            }
+            Console.WriteLine("[STATUS] Broker is alive:"+_alive +" Freeze:" + _freezed);
             return "OK";
         }
 
-        
 
+ public void imAlive()
+        {
+
+        }
         delegate void publish_delegate(string topic, string content, int quantity, int interval);
 
         private void publish_work(string topic, string content)
@@ -120,14 +134,12 @@ namespace PublisherConsole
                 int total_seqnum = _total_seqnum;
                 _total_seqnum += 1;
                 string cc = "";
-                if (content == "timestamps")
-                {
-                    cc = string.Format("[Content] seqnum:{0} timestamp:{1}", total_seqnum, DateTime.Now.ToString());
-                }
-                var msg = new PublishMessage() { publisherURI = getURI(), total_seqnum = total_seqnum, topic = topic, content = cc };
+                cc = string.Format("[Content]PublisherURI:'{0}' seqnum:{1} timestamp:{2}",getURI(), total_seqnum, DateTime.Now.ToString());
+
+                var msg = new PublishMessage() { publisherURI = getURI(), seqnum = total_seqnum, topic = topic, content = cc };
                 log(string.Format("[publish] {0}", msg));
                 // TODO make all calls assyncs
-              
+
                 c.reportEvent(EventType.PubEvent, getURI(), getURI(), topic, total_seqnum);
                 _broker.publish(msg);
             }
@@ -162,7 +174,7 @@ namespace PublisherConsole
                 {
                     new Thread(x).Start();
                 }
-            }           
+            }
         }
 
 
