@@ -112,7 +112,7 @@ namespace PublisherConsole
                 _broker.imAlive();
                 _alive = true;
             }
-            catch(Exception e)
+            catch(Exception)
             {
                 _alive = false;
             }

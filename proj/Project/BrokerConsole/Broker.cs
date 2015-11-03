@@ -255,7 +255,7 @@ namespace BrokerConsole
                     Console.WriteLine("         " + s + " is alive:" + _alive);
 
                 }
-                catch (Exception e)
+                catch (Exception)
                 {
                     _alive = false;
                     Console.WriteLine("         " + s + " is alive:" + _alive);
@@ -278,7 +278,7 @@ namespace BrokerConsole
                     Console.WriteLine("         " + s + " is alive:" + _alive);
 
                 }
-                catch (Exception e)
+                catch (Exception)
                 {
                     _alive = false;
                     Console.WriteLine("         " + s + " is alive:" + _alive);
@@ -304,7 +304,7 @@ namespace BrokerConsole
                 Console.WriteLine("         " + _parentSite.brokers[0].getURI() + " is alive:" + _alive);
 
             }
-            catch (Exception e)
+            catch (Exception)
             {
                 _alive = false;
                 Console.WriteLine("         " + _parentSite.brokers[0].getURI() + " is alive:" + _alive);
@@ -324,7 +324,7 @@ namespace BrokerConsole
                     _alive = true;
                     Console.WriteLine("         " + b.getURI() + " is alive:" + _alive);
                 }
-                catch (Exception e)
+                catch (Exception)
                 {
                     _alive = false;
                     Console.WriteLine("         " + b.getURI() + " is alive:" + _alive);

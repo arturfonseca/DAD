@@ -337,7 +337,7 @@ namespace PuppetMastersCoordinatorGUI
                         {
                             entry.Value.status();
                         }
-                        catch (Exception e)
+                        catch (Exception)
                         {
                             textBox13.Text += entry.Key + " failed \r\n";
                         }
@@ -349,7 +349,7 @@ namespace PuppetMastersCoordinatorGUI
                         {
                             entry.Value.status();
                         }
-                        catch (Exception e)
+                        catch (Exception)
                         {
                             textBox13.Text += entry.Key + " failed \r\n";
                         }
@@ -360,7 +360,7 @@ namespace PuppetMastersCoordinatorGUI
                         {
                             entry.Value.status();
                         }
-                        catch (Exception e)
+                        catch (Exception )
                         {
                             textBox13.Text += entry.Key + " failed \r\n";
                         }
@@ -378,7 +378,7 @@ namespace PuppetMastersCoordinatorGUI
                         if (all_subscribers.ContainsKey(keywords[1]))
                             all_subscribers[keywords[1]].crash();
                     }
-                    catch (System.IO.IOException e)
+                    catch (System.IO.IOException)
                     {
                         //PROCESS KILLED SUCESSFULLY
                         
