@@ -91,7 +91,7 @@ namespace SubscriberConsole
         public string status()
         {
             bool _alive;
-            Console.WriteLine("Trying to get broker status");
+            Console.WriteLine("[STATUS] Trying to get broker status");
             try
             {
                 _broker.imAlive();
@@ -101,10 +101,13 @@ namespace SubscriberConsole
             {
                 _alive = false;
             }
-            string subscribedTopics = "[";
+            string subscribedTopics = "";
             foreach (string t in _subscribedTopics)
-                subscribedTopics += t + "; ";
-            Console.WriteLine("[STATUS] Broker is alive:"+_alive+" Freeze:" + _freezed + " Subscribing: " + subscribedTopics + "]");
+                subscribedTopics += "\""+t + "\" ";
+            Console.WriteLine("[STATUS] Broker is alive:" + _alive);
+            Console.WriteLine("[STATUS] Subscribing: " + subscribedTopics);
+            Console.WriteLine("[STATUS] Freeze:" + _freezed);
+
             return "OK";
         }
 

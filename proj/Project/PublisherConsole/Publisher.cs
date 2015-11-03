@@ -106,7 +106,7 @@ namespace PublisherConsole
         public string status()
         {
             bool _alive;
-            Console.WriteLine("Trying to get broker status");
+            Console.WriteLine("[STATUS] Trying to get broker status");
             try
             {
                 _broker.imAlive();
@@ -116,7 +116,9 @@ namespace PublisherConsole
             {
                 _alive = false;
             }
-            Console.WriteLine("[STATUS] Broker is alive:"+_alive +" Freeze:" + _freezed);
+            Console.WriteLine("[STATUS] Broker is alive:" + _alive);
+            Console.WriteLine("[STATUS] Freeze: " + _freezed);
+         
             return "OK";
         }
 

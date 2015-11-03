@@ -229,9 +229,21 @@ namespace BrokerConsole
 
         public string status()
         {
+            Console.WriteLine("[STATUS] MyURI: " + getURI());
+            pubStatus();
+            subStatus();
+            parentStatus();
+            childsStatus();
+            Console.WriteLine("[STATUS] Freeze:" + _freezed);
+
+
+            return "OK";
+        }
+
+        private void pubStatus()
+        {
             bool _alive;
-            string _out = "[STATUS]Broker: " + getURI();
-            Console.WriteLine("Trying to get  publishers status");
+            Console.WriteLine("[STATUS] Trying to get  Publishers status");
             foreach (KeyValuePair<string, Publisher> entry in _uriToPubs)
             {
                 String s = entry.Key;
@@ -240,18 +252,85 @@ namespace BrokerConsole
                 {
                     p.imAlive();
                     _alive = true;
-                    _out += s + " is alive:" + _alive;
+                    Console.WriteLine("         " + s + " is alive:" + _alive);
+
                 }
                 catch (Exception e)
                 {
                     _alive = false;
-                    _out += s + " is alive:" + _alive;
+                    Console.WriteLine("         " + s + " is alive:" + _alive);
                 }
             }
-            Console.WriteLine("[STATUS] Freeze:" + _freezed);
-            return "OK";
         }
 
+        private void subStatus()
+        {
+            bool _alive;
+            Console.WriteLine("[STATUS] Trying to get  Subscribers status");
+            foreach (KeyValuePair<string, Subscriber> entry in _uriToSubs)
+            {
+                String s = entry.Key;
+                Subscriber p = entry.Value;
+                try
+                {
+                    p.imAlive();
+                    _alive = true;
+                    Console.WriteLine("         " + s + " is alive:" + _alive);
+
+                }
+                catch (Exception e)
+                {
+                    _alive = false;
+                    Console.WriteLine("         " + s + " is alive:" + _alive);
+                }
+            }
+        }
+
+        private void parentStatus()
+        {
+            if (_isRoot)
+            {
+                Console.WriteLine("[STATUS] I'm root");
+                return;
+            }
+
+
+            Console.WriteLine("[STATUS] Trying to get  Parent status");
+            bool _alive;
+            try
+            {
+                _parentSite.brokers[0].imAlive();
+                _alive = true;
+                Console.WriteLine("         " + _parentSite.brokers[0].getURI() + " is alive:" + _alive);
+
+            }
+            catch (Exception e)
+            {
+                _alive = false;
+                Console.WriteLine("         " + _parentSite.brokers[0].getURI() + " is alive:" + _alive);
+            }
+
+        }
+        private void childsStatus()
+        {
+            bool _alive;
+            Console.WriteLine("[STATUS] Trying to get  Childs status");
+            foreach (Site s in _childSites)
+            {
+                Broker b = s.brokers[0];
+                try
+                {
+                    b.imAlive();
+                    _alive = true;
+                    Console.WriteLine("         " + b.getURI() + " is alive:" + _alive);
+                }
+                catch (Exception e)
+                {
+                    _alive = false;
+                    Console.WriteLine("         " + b.getURI() + " is alive:" + _alive);
+                }
+            }
+        }
 
         // *end* Puppet Master functions
 

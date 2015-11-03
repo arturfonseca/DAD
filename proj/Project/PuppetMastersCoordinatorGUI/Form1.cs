@@ -105,6 +105,10 @@ namespace PuppetMastersCoordinatorGUI
 
         private void button1_Click(object sender, EventArgs e)
         {
+            StreamWriter writetext = new StreamWriter(ConfigurationManager.AppSettings["logs"], false);
+            writetext.Write("");
+            writetext.Close();
+
             myaddr = ConfigurationManager.AppSettings["myaddr"];
             int myport = Int32.Parse(parseURI(myaddr)[2]);
             TcpChannel channel = new TcpChannel(myport);
