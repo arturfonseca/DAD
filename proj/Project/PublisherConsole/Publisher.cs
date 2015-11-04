@@ -13,7 +13,7 @@ namespace PublisherConsole
     class PublisherRemote : MarshalByRefObject, Publisher
     {
         private PuppetMaster _pm;
-        private string _name;
+        private string _serviceName;
         private string _site;
         private string _uri;
         private Broker _broker;
@@ -22,10 +22,11 @@ namespace PublisherConsole
         private ICoordinator c;
         private bool _freezed = false;
         private List<ThreadStart> _freezedThreads = new List<ThreadStart>();
+        private static string _processName;
 
         public PublisherRemote(PuppetMaster pm, string name, string site, string addr)
         {
-            _name = name;
+            _serviceName = name;
             _pm = pm;
             _site = site;
             c = (ICoordinator)Activator.GetObject(typeof(ICoordinator), addr);
@@ -39,7 +40,7 @@ namespace PublisherConsole
         static void Main(string[] args)
         {
             Console.WriteLine("Started Publisher, pid=\"{0}\"", Process.GetCurrentProcess().Id);
-            int nargs = 5;
+            int nargs = 6;
             if (args.Length != nargs)
             {
                 Console.WriteLine("Expected {0} arguments, got {1}", nargs, args.Length);
@@ -51,7 +52,8 @@ namespace PublisherConsole
             string site = args[2];
             int port = int.Parse(args[3]);
             string addr = args[4];
-
+            string processName = args[5];
+            _processName = processName;
             string channelURI = Utility.setupChannel(port);
 
             // get the puppetMaster that started this process
@@ -83,10 +85,7 @@ namespace PublisherConsole
 
 
 
-        public string getName()
-        {
-            return _name;
-        }
+
 
         public string getSite()
         {
@@ -209,6 +208,16 @@ namespace PublisherConsole
         {
             _pm.reportEvent(getURI(), e);
             Console.WriteLine(e);
+        }
+
+        public string getProcessName()
+        {
+            return _processName;
+        }
+
+        public string getServiceName()
+        {
+            return _serviceName;
         }
     }
 }

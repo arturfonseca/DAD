@@ -13,7 +13,7 @@ namespace SubscriberConsole
     class SubscriberRemote : MarshalByRefObject, Subscriber
     {
         private PuppetMaster _pm;
-        private string _name;
+        private string _serviceName;
         private string _site;
         private string _uri;
         private Broker _broker;
@@ -25,9 +25,11 @@ namespace SubscriberConsole
         private bool _freezed = false;
         private List<PublishMessage> _freezedReceives = new List<PublishMessage>();
         private object _freezedLock = new object();
+        private static string _processName;
+
         public SubscriberRemote(PuppetMaster pm, string name, string site, string coordinatorURI)
         {
-            _name = name;
+            _serviceName = name;
             _pm = pm;
             _site = site;
             c = (ICoordinator)Activator.GetObject(typeof(ICoordinator), coordinatorURI);
@@ -42,7 +44,7 @@ namespace SubscriberConsole
         static void Main(string[] args)
         {
             Console.WriteLine("Started Subscriber, pid=\"{0}\"", Process.GetCurrentProcess().Id);
-            int nargs = 5;
+            int nargs = 6;
             if (args.Length != nargs)
             {
                 Console.WriteLine("Expected {0} arguments, got {1}", nargs, args.Length);
@@ -54,6 +56,8 @@ namespace SubscriberConsole
             string site = args[2];
             int port = int.Parse(args[3]);
             string coordinatorURI = args[4];
+            string processName = args[5];
+            _processName = processName;
 
             string channelURI = Utility.setupChannel(port);
 
@@ -111,10 +115,6 @@ namespace SubscriberConsole
             return "OK";
         }
 
-        public string getName()
-        {
-            return _name;
-        }
 
         public string getSite()
         {
@@ -151,49 +151,9 @@ namespace SubscriberConsole
         }
 
 
-        public void subscribe(string topic)
-        {
-            lock (thisLock)
-            {
-                // TODO LOG
-                if (_subscribedTopics.Contains(topic))
-                {
-                    // do nothing
-                    return;
-                }
-                _subscribedTopics.Add(topic);
-                // TODO make all calls assyncs
-                SubscribeMessage msg = new SubscribeMessage() { sub = this, seqnum = _seqnum, topic = topic, uri = getURI() };
-                log(string.Format("Subscribe. '{0}'", msg));
+        
 
-                _broker.subscribe(msg);
-                _seqnum += 1;
-            }
-
-
-        }
-
-        public void unsubscribe(string topic)
-        {
-            lock (thisLock)
-            {
-                if (!_subscribedTopics.Contains(topic))
-                {
-                    // do nothing or throw exception?
-                    return;
-                }
-                _subscribedTopics.Remove(topic);
-                // TODO LOG
-                // TODO make all calls assyncs
-                UnsubscribeMessage msg = new UnsubscribeMessage() { sub = this, seqnum = _seqnum, topic = topic, uri = getURI() };
-                log(string.Format("Unsubscribe. '{0}'", msg));
-                _broker.unsubscribe(msg);
-                _seqnum += 1;
-            }
-
-
-
-        }
+        
 
         public void receive(PublishMessage p)
         {
@@ -233,6 +193,56 @@ namespace SubscriberConsole
         {
             // _pm.reportEvent(getURI(), e);
             Console.WriteLine(e);
+        }
+
+        public string getServiceName()
+        {
+            return _serviceName;
+        }
+
+        public string getProcessName()
+        {
+            return _processName;
+        }
+
+        public void subscribe(string topic)
+        {
+            lock (thisLock)
+            {
+                // TODO LOG
+                if (_subscribedTopics.Contains(topic))
+                {
+                    // do nothing, should we? keep-alive in the future? who knows...
+                    return;
+                }
+                _subscribedTopics.Add(topic);
+                // TODO make all calls assyncs
+                SubscribeMessage msg = new SubscribeMessage() { sub = this, seqnum = _seqnum, topic = topic, uri = getURI() };
+                log(string.Format("Subscribe. '{0}'", msg));
+
+                _broker.subscribe(msg);
+                _seqnum += 1;
+            }
+        }
+
+
+        public void unsubscribe(string topic)
+        {
+            lock (thisLock)
+            {
+                if (!_subscribedTopics.Contains(topic))
+                {
+                    // do nothing or throw exception?
+                    return;
+                }
+                _subscribedTopics.Remove(topic);
+                // TODO LOG
+                // TODO make all calls assyncs
+                UnsubscribeMessage msg = new UnsubscribeMessage() { sub = this, seqnum = _seqnum, topic = topic, uri = getURI() };
+                log(string.Format("Unsubscribe. '{0}'", msg));
+                _broker.unsubscribe(msg);
+                _seqnum += 1;
+            }
         }
     }
 }

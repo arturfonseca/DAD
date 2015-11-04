@@ -62,12 +62,12 @@ namespace PuppetMasterConsole
 
       
 
-        public Broker createBroker(string name,string site,int port,string addr)
+        public Broker createBroker(string processName, string serviceName,string site,int port,string addr)
         {
             //start processes
             Process p = new Process();
             p.StartInfo.FileName = ConfigurationManager.AppSettings["BrokerPath"];
-            var arg = string.Format("{0} {1} {2} {3} {4}", URI, name, site, port,addr);                       
+            var arg = string.Format("{0} {1} {2} {3} {4} {5}", URI, serviceName, site, port,addr, processName);                       
             p.StartInfo.Arguments = arg;
             Console.WriteLine("launching Broker executable '{0}' ", p.StartInfo.FileName);
 
@@ -78,7 +78,7 @@ namespace PuppetMasterConsole
             {
                 while (true)
                 {
-                    b = _brokers.Find(x => x.getName() == name);
+                    b = _brokers.Find(x => x.getProcessName() == processName);
                     if(b != null)
                         break;
                     Monitor.Wait(_brokers);
@@ -87,13 +87,13 @@ namespace PuppetMasterConsole
             return b;
         }
 
-        public Publisher createPublisher(string name, string site, int port, string addr)
+        public Publisher createPublisher(string processName, string serviceName, string site, int port, string addr)
         {
             //start processes
             Process p = new Process();
             p.StartInfo.FileName = ConfigurationManager.AppSettings["PublisherPath"];
             Console.WriteLine("launching Publisher at '{0}'", p.StartInfo.FileName);
-            p.StartInfo.Arguments = string.Format("{0} {1} {2} {3} {4}",URI,name,site,port,addr);
+            p.StartInfo.Arguments = string.Format("{0} {1} {2} {3} {4} {5}",URI,serviceName,site,port,addr, processName);
 
             p.Start();
             processes.Add(p);
@@ -102,7 +102,7 @@ namespace PuppetMasterConsole
             {
                 while (true)
                 {
-                    b = _publishers.Find(x => x.getName() == name);
+                    b = _publishers.Find(x => x.getProcessName() == processName);
                     if (b != null)
                         break;
                     Monitor.Wait(_publishers);
@@ -111,13 +111,13 @@ namespace PuppetMasterConsole
             return b;
         }
 
-        public Subscriber createSubscriber(string name,string site,int port,string addr)
+        public Subscriber createSubscriber(string processName, string serviceName,string site,int port,string addr)
         {
             //start processes
             Process p = new Process();
             p.StartInfo.FileName = ConfigurationManager.AppSettings["SubscriberPath"];
             Console.WriteLine("launching Subscriber at '{0}'", p.StartInfo.FileName);
-            p.StartInfo.Arguments = string.Format("{0} {1} {2} {3} {4}",URI,name,site,port,addr);
+            p.StartInfo.Arguments = string.Format("{0} {1} {2} {3} {4} {5}",URI,serviceName,site,port,addr,processName);
 
             p.Start();
             processes.Add(p);
@@ -126,7 +126,7 @@ namespace PuppetMasterConsole
             {
                 while (true)
                 {
-                    b = _subscribers.Find(x => x.getName() == name);
+                    b = _subscribers.Find(x => x.getProcessName() == processName);
                     if (b != null)
                         break;
                     Monitor.Wait(_subscribers);

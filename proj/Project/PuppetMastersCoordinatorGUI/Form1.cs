@@ -198,44 +198,44 @@ namespace PuppetMastersCoordinatorGUI
                     string uri = keywords[7];
                     string ip = parseURI(uri)[1];
                     string port = parseURI(uri)[2];
-                    string name = parseURI(uri)[3];
+                    string serviceName = parseURI(uri)[3];
                     string process_type = keywords[3];
                     string site = keywords[5];
-                    string process_name = keywords[1];
+                    string processName = keywords[1];
 
                     switch (process_type)
                     {
                         case "publisher":
                             //create
-                            Publisher p = pms[ip].createPublisher(name, site, Int32.Parse(port), myaddr);
+                            Publisher p = pms[ip].createPublisher(processName, serviceName, site, Int32.Parse(port), myaddr);
                             //associate
-                            all_publishers.Add(process_name, p);
+                            all_publishers.Add(processName, p);
                             //add it to site publishers
                             if (!site_publishers.ContainsKey(site))
                                 site_publishers.Add(site, new List<Publisher>());
                             site_publishers[site].Add(p);
                             if (ip == "localhost")
                                 uri = uri.Replace("localhost", LocalIPAddress().ToString());
-                            uri_processname.Add(uri, process_name);
+                            uri_processname.Add(uri, processName);
                             break;
                         case "broker":
-                            Broker b = pms[ip].createBroker(name, site, Int32.Parse(port), myaddr);
-                            all_brokers.Add(process_name, b);
+                            Broker b = pms[ip].createBroker(processName, serviceName, site, Int32.Parse(port), myaddr);
+                            all_brokers.Add(processName, b);
                             site_brokers.Add(site, b);
                             site_site.Add(site, new Site() { name = site, brokers = new List<Broker>() { b } });
                             if (ip == "localhost")
                                 uri = uri.Replace("localhost", LocalIPAddress().ToString());
-                            uri_processname.Add(uri, process_name);
+                            uri_processname.Add(uri, processName);
                             break;
                         case "subscriber":
-                            Subscriber s = pms[ip].createSubscriber(name, site, Int32.Parse(port), myaddr);
-                            all_subscribers.Add(process_name, s);
+                            Subscriber s = pms[ip].createSubscriber(processName, serviceName, site, Int32.Parse(port), myaddr);
+                            all_subscribers.Add(processName, s);
                             if (!site_subscribers.ContainsKey(site))
                                 site_subscribers.Add(site, new List<Subscriber>());
                             site_subscribers[site].Add(s);
                             if (ip == "localhost")
                                 uri = uri.Replace("localhost", LocalIPAddress().ToString());
-                            uri_processname.Add(uri, process_name);
+                            uri_processname.Add(uri, processName);
                             break;
                         default:
                             MessageBox.Show("Error parsing config.file!");
@@ -278,29 +278,29 @@ namespace PuppetMastersCoordinatorGUI
             //Set parents and childs
             foreach (KeyValuePair<string, Broker> entry in site_brokers)
             {
-                if (site_childs.ContainsKey(entry.Key))
+                string site = entry.Key;
+                Broker broker = entry.Value;
+
+                if (site_childs.ContainsKey(site))
                 {
                     List<Site> childs = new List<Site>();
-                    foreach (string str in site_childs[entry.Key])
+                    foreach (string str in site_childs[site])
                     {
                         if (site_site.ContainsKey(str)) // empty sites
                             childs.Add(site_site[str]);
 
                     }
-                    entry.Value.setChildren(childs);
+                    broker.setChildren(childs);
 
                 }
 
-
-
-                if (entry.Key != site_root)
+                //assume we first read root site
+                if (site != site_root)
                 {
-                    Site parentSite = site_site[site_parents[entry.Key]];
+                    string ps = site_parents[site];
+                    Site parentSite = site_site[ps];
                     entry.Value.setParent(parentSite);
                 }
-
-
-
             }
 
 

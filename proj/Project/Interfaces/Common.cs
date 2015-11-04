@@ -19,7 +19,8 @@ namespace DADInterfaces
     {
         string getURI();
         string status();
-        string getName();
+        string getServiceName();
+        string getProcessName();
         string getSite();
 
         void crash();
@@ -61,7 +62,7 @@ namespace DADInterfaces
     {
         void setSiteBroker(Broker site_broker);
         void publish(string topic, string msg, int quantity, int interval);
-        
+        string getProcessName();
     }
     public delegate void ReceiveDelegate(PublishMessage p);
     public interface Subscriber: Node
@@ -83,9 +84,9 @@ namespace DADInterfaces
         List<Subscriber> getSubscribers();
         List<Publisher> getPublishers();
 
-        Broker createBroker(string name,string site,int port,string addr);
-        Publisher createPublisher(string name,string site,int port,string addr);
-        Subscriber createSubscriber(string name,string site,int port,string addr);
+        Broker createBroker(string processName, string serviceName, string site,int port,string addr);
+        Publisher createPublisher(string processName, string serviceName, string site,int port,string addr);
+        Subscriber createSubscriber(string processName, string serviceName, string site,int port,string addr);
 
         // When a PuppetMaster createX it returns a remoteObjectX
         // But the only way to get a remoteObjectX is to wait

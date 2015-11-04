@@ -33,7 +33,7 @@ namespace BrokerConsole
     {
         private PuppetMaster _pm;
         // personal information
-        private string _name;
+        private string _serviceName;
         private string _site;
         private string _uri;
         private bool _isRoot;
@@ -81,12 +81,12 @@ namespace BrokerConsole
         private object _freezedLock = new object();
         private List<PublishMessage> _freezedPublishMessages = new List<PublishMessage>();
         private List<PropagatedPublishMessage> _freezedPropagatedPublishMessages = new List<PropagatedPublishMessage>();
-
+        private static string _processName;
 
         public BrokerRemote(PuppetMaster pm, string uri, string name, string site, string addr)
         {
             _uri = uri;
-            _name = name;
+            _serviceName = name;
             _pm = pm;
             _site = site;
             _orderingPolicy = OrderingPolicy.fifo;
@@ -105,7 +105,7 @@ namespace BrokerConsole
         static void Main(string[] args)
         {
             Console.WriteLine("Started Broker process, pid=\"{0}\"", Process.GetCurrentProcess().Id);
-            int nargs = 5;
+            int nargs = 6;
             if (args.Length != nargs)
             {
                 Console.WriteLine("Expected {0} arguments, got {1}", nargs, args.Length);
@@ -117,6 +117,8 @@ namespace BrokerConsole
             string site = args[2];
             int port = int.Parse(args[3]);
             string coordinatorURI = args[4];
+            string processName = args[5];
+            _processName = processName;
 
             string channelURI = Utility.setupChannel(port);
 
@@ -156,12 +158,6 @@ namespace BrokerConsole
             {
                 c = (ICoordinator)Activator.GetObject(typeof(ICoordinator), _coordinatorURI);
             }
-        }
-
-
-        public string getName()
-        {
-            return _name;
         }
 
         public string getSite()
@@ -1035,6 +1031,16 @@ namespace BrokerConsole
                 }
             }
 
+        }
+
+        public string getServiceName()
+        {
+            return _serviceName;
+        }
+
+        public string getProcessName()
+        {
+            return _processName;
         }
     }
 }

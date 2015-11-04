@@ -1,10 +1,5 @@
+Subscriber subscriber1 Subscribe /testtopic
+Publisher publisher0 Publish 12 Ontopic /testtopic Interval 5000
+Wait 30000
 Status
-Subscriber subscriber0 Subscribe /desporto/*
-Subscriber subscriber1 Subscribe /desporto/futebol
-Publisher publisher0 Publish 1 Ontopic /desporto/futebol Interval 100
-PubEvent publisher0, publisher0, /desporto/futebol, 0
-SubEvent subscriber1, publisher0, /desporto/futebol, 0
-SubEvent subscriber0, publisher0, /desporto/futebol, 0
-Status
-Freeze broker1
-Status
+Subscriber subscriber1 Unsubscribe /testtopic
