@@ -226,6 +226,9 @@ namespace BrokerConsole
         public string status()
         {
             Console.WriteLine("[STATUS] MyURI: " + getURI());
+            Console.WriteLine("[STATUS] ProcessName: " + getProcessName());
+            Console.WriteLine("[STATUS] Site: " + getSite());
+            Console.WriteLine("[STATUS] MyURI: " + getURI());
             pubStatus();
             subStatus();
             parentStatus();
@@ -334,6 +337,7 @@ namespace BrokerConsole
          *  Business logic
          */
 
+        /*
         private bool isDuplicate(SubscribeMessage msg)
         {
             lock (_subscribersSeqNums)
@@ -354,6 +358,7 @@ namespace BrokerConsole
 
             return false;
         }
+        */
 
         void log(string e)
         {
@@ -365,7 +370,7 @@ namespace BrokerConsole
         public void subscribe(SubscribeMessage msg)
         {
             log(string.Format("[Subscribe] Received event '{0}'", msg));
-            if (isDuplicate(msg)) return;
+            //if (isDuplicate(msg)) return;
             // should we have FIFO order here?
             lock (_topicSubscribers)
             {
@@ -411,7 +416,7 @@ namespace BrokerConsole
                 {
                     foreach (var b in _parentSite.brokers)
                     {
-                        log(string.Format("[subscribe] senting '{0}' to parent site '{1}'", msg, _parentSite.name));
+                        log(string.Format("[propagateSubscribe] senting '{0}' to parent site '{1}'", msg, _parentSite.name));
                         //TODO assync
                         b.propagateSubscribe(msg);
                     }
@@ -423,7 +428,7 @@ namespace BrokerConsole
         public void unsubscribe(UnsubscribeMessage msg)
         {
             log(string.Format("[Unsubscribe] Received event '{0}'", msg));
-            if (isDuplicate(msg)) return;
+            //if (isDuplicate(msg)) return;
             // should we have FIFO order here?
             lock (_topicSubscribers)
             {
@@ -444,7 +449,7 @@ namespace BrokerConsole
                 {
                     foreach (Broker b in _parentSite.brokers)
                     {
-                        log(string.Format("[subscribe] senting '{0}' to parent site '{1}'", pmsg, _parentSite.name));
+                        log(string.Format("[Unsubscribe] senting '{0}' to parent site '{1}'", pmsg, _parentSite.name));
                         // TODO assyncronous
                         b.propagateUnsubscribe(pmsg);
                     }
@@ -461,9 +466,9 @@ namespace BrokerConsole
                 if (_topicSites.ContainsKey(msg.topic))
                 {
                     _topicSites[msg.topic].Remove(msg.interested_site);
-                    if (_topicSubscribers[msg.topic].Count == 0)
+                    if (_topicSites[msg.topic].Count == 0)
                     {
-                        _topicSubscribers.Remove(msg.topic);
+                        _topicSites.Remove(msg.topic);
                     }
                 }
             }
