@@ -73,7 +73,7 @@ namespace PuppetMastersCoordinatorGUI
             string[] lines = null;
             // WARNING no file detection done
             lines = System.IO.File.ReadAllLines(puppetMasterConfigFile);
-            //string[] lines = System.IO.File.ReadAllLines(@"./../../../puppermaster.file");
+            
             foreach (string line in lines)
             {
                 PuppetMaster obj = (PuppetMaster)Activator.GetObject(typeof(PuppetMaster), line);
@@ -153,18 +153,27 @@ namespace PuppetMastersCoordinatorGUI
                 {
                     if (keywords[1] == "filter")
                         rout = RoutingPolicy.filter;
+                    else if (keywords[1] == "flooding") { }
+                    else
+                        MessageBox.Show("Wrong Routing format!");
                 }
                 else if (type == "LoggingLevel" && keywords.Length >= 2)
                 {
                     if (keywords[1] == "full")
                         log = LoggingLevel.full;
+                    else if (keywords[1] == "light") { }
+                    else
+                        MessageBox.Show("Wrong Logging format!");
                 }
                 else if (type == "Ordering" && keywords.Length >= 2)
                 {
                     if (keywords[1] == "NO")
                         ord = OrderingPolicy.no;
-                    if (keywords[1] == "TOTAL")
+                    else if (keywords[1] == "TOTAL")
                         ord = OrderingPolicy.total;
+                    else if (keywords[1] == "FIFO") { }
+                    else
+                        MessageBox.Show("Wrong Ordering format!");
 
 
                 }
@@ -360,7 +369,7 @@ namespace PuppetMastersCoordinatorGUI
                         {
                             entry.Value.status();
                         }
-                        catch (Exception )
+                        catch (Exception)
                         {
                             textBox13.Text += entry.Key + " failed \r\n";
                         }
@@ -381,7 +390,7 @@ namespace PuppetMastersCoordinatorGUI
                     catch (System.IO.IOException)
                     {
                         //PROCESS KILLED SUCESSFULLY
-                        
+
                     }
 
 
@@ -510,6 +519,6 @@ namespace PuppetMastersCoordinatorGUI
                 .FirstOrDefault(ip => ip.AddressFamily == AddressFamily.InterNetwork);
         }
 
-        
+
     }
 }
