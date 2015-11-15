@@ -68,6 +68,7 @@ namespace DADInterfaces
     public interface Subscriber: Node
     {
         void setSiteBroker(Broker site_broker);
+        void setOrderingPolicy(OrderingPolicy p);
         void subscribe(string topic);
         void unsubscribe(string topic);
         void receive(PublishMessage p);

@@ -10,6 +10,21 @@ using System.Threading.Tasks;
 
 namespace SubscriberConsole
 {
+    class FIFOstruct
+    {
+        public string _publhisherURI;
+        public int _seq_num;
+        public List<PublishMessage> listOfmessages = new List<PublishMessage>();
+
+        public FIFOstruct(string publisher, int seq_num)
+        {
+            _publhisherURI = publisher;
+            _seq_num = seq_num;
+        }
+
+        public FIFOstruct() { }
+    }
+
     class SubscriberRemote : MarshalByRefObject, Subscriber
     {
         private PuppetMaster _pm;
@@ -26,12 +41,15 @@ namespace SubscriberConsole
         private List<PublishMessage> _freezedReceives = new List<PublishMessage>();
         private object _freezedLock = new object();
         private static string _processName;
+        private OrderingPolicy _orderingPolicy;
+        private List<FIFOstruct> _fifostructs = new List<FIFOstruct>();
 
         public SubscriberRemote(PuppetMaster pm, string name, string site, string coordinatorURI)
         {
             _serviceName = name;
             _pm = pm;
             _site = site;
+            _orderingPolicy = OrderingPolicy.fifo;
             c = (ICoordinator)Activator.GetObject(typeof(ICoordinator), coordinatorURI);
 
         }
@@ -179,9 +197,53 @@ namespace SubscriberConsole
 
         public void receive_job(PublishMessage m)
         {
-            //TEM DE FICAR AQUI O LOG
-            c.reportEvent(EventType.SubEvent, getURI(), m.publisherURI, m.topic, m.seqnum);
-            log(string.Format("Received. topic:'{0}' content:'{1}'", m.topic, m.content));
+            if (_orderingPolicy == OrderingPolicy.fifo)
+            {
+                //FIFO
+                lock (_fifostructs)
+                {
+
+                    int index = _fifostructs.FindIndex(item => item._publhisherURI == m.publisherURI);
+
+                    if (index < 0)
+                    {
+                        // element does not exists
+                        _fifostructs.Add(new FIFOstruct(m.publisherURI, 0));
+                        //getIndex Now
+                        index = _fifostructs.FindIndex(item => item._publhisherURI == m.publisherURI);
+                    }
+                    var fifo = _fifostructs[index];
+                    //TODO Verify duplicates
+                    fifo.listOfmessages.Add(m);
+                    fifo.listOfmessages.OrderBy(item => item.seqnum);
+
+                    foreach (PublishMessage _msg in fifo.listOfmessages.ToList())
+                    {
+
+                        if (_msg.seqnum == fifo._seq_num)
+                        {
+                            //Message needed received , can now print
+                            c.reportEvent(EventType.SubEvent, getURI(), _msg.publisherURI, _msg.topic, _msg.origin_seqnum);
+                            log(string.Format("Received. topic:'{0}' content:'{1}'", _msg.topic, _msg.content));
+
+                            //Message sent , increment seq_num and delete delivered message
+                            fifo._seq_num++;
+                            fifo.listOfmessages.Remove(_msg);
+                        }
+                        else
+                            break;
+                    }
+                }
+            }
+            else
+            {
+                //TEM DE FICAR AQUI O LOG
+                c.reportEvent(EventType.SubEvent, getURI(), m.publisherURI, m.topic, m.seqnum);
+                log(string.Format("Received. topic:'{0}' content:'{1}'", m.topic, m.content));
+            }
+
+
+           
         }
 
         public void imAlive()
@@ -203,6 +265,11 @@ namespace SubscriberConsole
         public string getProcessName()
         {
             return _processName;
+        }
+
+        public void setOrderingPolicy(OrderingPolicy ord)
+        {
+            _orderingPolicy = ord;
         }
 
         public void subscribe(string topic)

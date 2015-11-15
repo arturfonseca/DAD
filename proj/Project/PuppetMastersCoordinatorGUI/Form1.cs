@@ -263,7 +263,12 @@ namespace PuppetMastersCoordinatorGUI
                 entry.Value.setLoggingLevel(log);
             }
 
-            site_brokers[site_root].setIsRoot();
+            foreach (KeyValuePair<string, Subscriber> entry in all_subscribers)
+            {
+                entry.Value.setOrderingPolicy(ord);
+            }
+
+                site_brokers[site_root].setIsRoot();
 
             //Set publishers brokers
             foreach (KeyValuePair<string, List<Publisher>> entry in site_publishers)

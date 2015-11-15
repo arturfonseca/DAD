@@ -87,6 +87,7 @@ namespace DADInterfaces
         // used to avoid duplicates
 
         public int seqnum;
+        public int origin_seqnum;
         public string topic;
         public string content;
 
@@ -95,6 +96,7 @@ namespace DADInterfaces
             return string.Format("[PublishMessage] publisher_uri:'{0}' topic:'{1}' content :'{2}' total_seqnum :'{3}'",
                 publisherURI, topic, content, seqnum);
         }
+
     }
     [Serializable]
     public class PropagatedPublishMessage : PublishMessage
@@ -104,6 +106,7 @@ namespace DADInterfaces
         {
             publisherURI = msg.publisherURI;
             seqnum = msg.seqnum;
+            origin_seqnum = msg.origin_seqnum;
             topic = msg.topic;
             content = msg.content;
             origin_site = site;
