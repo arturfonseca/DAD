@@ -7,6 +7,7 @@ using System.Runtime.Remoting;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows.Forms;
 
 namespace PublisherConsole
 {
@@ -22,13 +23,16 @@ namespace PublisherConsole
         private ICoordinator c;
         private bool _freezed = false;
         private List<ThreadStart> _freezedThreads = new List<ThreadStart>();
-        private static string _processName;
+        private string _processName;
+        private Form1 _form;
 
-        public PublisherRemote(PuppetMaster pm, string name, string site, string addr)
+        public PublisherRemote(Form1 form,PuppetMaster pm, string name, string site, string addr, string processName)
         {
+            _form = form;
             _serviceName = name;
             _pm = pm;
             _site = site;
+            _processName = processName;
             c = (ICoordinator)Activator.GetObject(typeof(ICoordinator), addr);
         }
 
@@ -39,37 +43,12 @@ namespace PublisherConsole
 
         static void Main(string[] args)
         {
-            Console.WriteLine("Started Publisher, pid=\"{0}\"", Process.GetCurrentProcess().Id);
-            int nargs = 6;
-            if (args.Length != nargs)
-            {
-                Console.WriteLine("Expected {0} arguments, got {1}", nargs, args.Length);
-                Console.Read();
-                return;
-            }
-            string puppetMasterURI = args[0];
-            string name = args[1];
-            string site = args[2];
-            int port = int.Parse(args[3]);
-            string addr = args[4];
-            string processName = args[5];
-            _processName = processName;
-            string channelURI = Utility.setupChannel(port);
+            Application.EnableVisualStyles();
+            Application.SetCompatibleTextRenderingDefault(false);
+            //must be called in this order
+            Form1 form = new Form1(args);
+            Application.Run(form);
 
-            // get the puppetMaster that started this process
-            PuppetMaster pm = (PuppetMaster)Activator.GetObject(typeof(PuppetMaster), puppetMasterURI);
-            PublisherRemote publisher = new PublisherRemote(pm, name, site, addr);
-            //we need to register each remote object
-            ObjRef o = RemotingServices.Marshal(publisher, name, typeof(Publisher));
-            publisher.setURI(string.Format("{0}/{1}", channelURI, name));
-            Console.WriteLine("Created Publisher at site:\"{0}\" uri:\"{1}\"", site, publisher.getURI());
-
-            //now that broker is created and marshalled
-            //send remote to puppetMaster which is Monitor.waiting for the remote            
-            pm.registerPublisher(publisher);
-            Console.WriteLine("Just registered at puppetMaster");
-            Console.WriteLine("Press key to leave");
-            Console.Read();
         }
 
         public void setURI(string v)
@@ -105,24 +84,24 @@ namespace PublisherConsole
         public string status()
         {
             bool _alive;
-            Console.WriteLine("[STATUS] Trying to get broker status");
+            log("[STATUS] Trying to get broker status");
             try
             {
                 _broker.imAlive();
                 _alive = true;
             }
-            catch(Exception)
+            catch (Exception)
             {
                 _alive = false;
             }
-            Console.WriteLine("[STATUS] Broker is alive:" + _alive);
-            Console.WriteLine("[STATUS] Freeze: " + _freezed);
-         
+            log("[STATUS] Broker is alive:" + _alive);
+            log("[STATUS] Freeze: " + _freezed);
+
             return "OK";
         }
 
 
- public void imAlive()
+        public void imAlive()
         {
 
         }
@@ -135,9 +114,9 @@ namespace PublisherConsole
                 int total_seqnum = _total_seqnum;
                 _total_seqnum += 1;
                 string cc = "";
-                cc = string.Format("[Content]PublisherURI:'{0}' seqnum:{1} timestamp:{2}",getURI(), total_seqnum, DateTime.Now.ToString());
+                cc = string.Format("[Content]PublisherURI:'{0}' seqnum:{1} timestamp:{2}", getURI(), total_seqnum, DateTime.Now.ToString());
 
-                var msg = new PublishMessage() { publisherURI = getURI(), seqnum = total_seqnum,origin_seqnum = total_seqnum ,topic = topic, content = cc };
+                var msg = new PublishMessage() { publisherURI = getURI(), seqnum = total_seqnum, origin_seqnum = total_seqnum, topic = topic, content = cc };
                 log(string.Format("[publish] {0}", msg));
                 // TODO make all calls assyncs
 
@@ -206,8 +185,7 @@ namespace PublisherConsole
 
         void log(string e)
         {
-            _pm.reportEvent(getURI(), e);
-            Console.WriteLine(e);
+            _form.log(e);
         }
 
         public string getProcessName()

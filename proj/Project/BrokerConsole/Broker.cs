@@ -11,6 +11,7 @@ using System.Runtime.Remoting.Channels.Tcp;
 using System.Text;
 using System.Threading.Tasks;
 using System.Threading;
+using System.Windows.Forms;
 
 namespace BrokerConsole
 {
@@ -82,10 +83,12 @@ namespace BrokerConsole
         private object _freezedLock = new object();
         private List<PublishMessage> _freezedPublishMessages = new List<PublishMessage>();
         private List<PropagatedPublishMessage> _freezedPropagatedPublishMessages = new List<PropagatedPublishMessage>();
-        private static string _processName;
+        private string _processName;
+        private Form1 _form;
 
-        public BrokerRemote(PuppetMaster pm, string uri, string name, string site, string addr)
+        public BrokerRemote(Form1 form,PuppetMaster pm, string uri, string name, string site, string addr,string processName)
         {
+            _form = form;
             _uri = uri;
             _serviceName = name;
             _pm = pm;
@@ -94,8 +97,7 @@ namespace BrokerConsole
             _routingPolicy = RoutingPolicy.flooding;
             seq = 0;
             _coordinatorURI = addr;
-            // c = (ICoordinator)Activator.GetObject(typeof(ICoordinator), addr);
-
+            _processName = processName;
         }
 
         public override object InitializeLifetimeService()
@@ -104,39 +106,12 @@ namespace BrokerConsole
         }
 
         static void Main(string[] args)
-        {
-            Console.WriteLine("Started Broker process, pid=\"{0}\"", Process.GetCurrentProcess().Id);
-            int nargs = 6;
-            if (args.Length != nargs)
-            {
-                Console.WriteLine("Expected {0} arguments, got {1}", nargs, args.Length);
-                Console.Read();
-                return;
-            }
-            string puppetMasterURI = args[0];
-            string name = args[1];
-            string site = args[2];
-            int port = int.Parse(args[3]);
-            string coordinatorURI = args[4];
-            string processName = args[5];
-            _processName = processName;
-
-            string channelURI = Utility.setupChannel(port);
-
-            // get the puppetMaster that started this process
-            PuppetMaster pm = (PuppetMaster)Activator.GetObject(typeof(PuppetMaster), puppetMasterURI);
-            string uri = string.Format("{0}/{1}", channelURI, name);
-            BrokerRemote broker = new BrokerRemote(pm, uri, name, site, coordinatorURI);
-            //we need to register each remote object
-            ObjRef o = RemotingServices.Marshal(broker, name, typeof(Broker));
-            Console.WriteLine("Instanciated Broker name:'{0}' site:'{1}' uri:'{2}'", name, site, uri);
-
-            //now that broker is created and marshalled
-            //send remote to puppetMaster which is Monitor.waiting for the remote  
-            pm.registerBroker(broker);
-            Console.WriteLine("Just registered at puppetMaster");
-            Console.WriteLine("Press key to leave");
-            Console.Read();
+        {            
+            Application.EnableVisualStyles();
+            Application.SetCompatibleTextRenderingDefault(false);
+            //must be called in this order
+            Form1 form = new Form1(args);
+            Application.Run(form);
         }
 
         public void imAlive()
@@ -226,15 +201,15 @@ namespace BrokerConsole
 
         public string status()
         {
-            Console.WriteLine("[STATUS] MyURI: " + getURI());
-            Console.WriteLine("[STATUS] ProcessName: " + getProcessName());
-            Console.WriteLine("[STATUS] Site: " + getSite());
-            Console.WriteLine("[STATUS] MyURI: " + getURI());
+            log("[STATUS] MyURI: " + getURI());
+            log("[STATUS] ProcessName: " + getProcessName());
+            log("[STATUS] Site: " + getSite());
+            log("[STATUS] MyURI: " + getURI());
             pubStatus();
             subStatus();
             parentStatus();
             childsStatus();
-            Console.WriteLine("[STATUS] Freeze:" + _freezed);
+            log("[STATUS] Freeze:" + _freezed);
 
 
             return "OK";
@@ -243,7 +218,7 @@ namespace BrokerConsole
         private void pubStatus()
         {
             bool _alive;
-            Console.WriteLine("[STATUS] Trying to get  Publishers status");
+            log("[STATUS] Trying to get  Publishers status");
             foreach (KeyValuePair<string, Publisher> entry in _uriToPubs)
             {
                 String s = entry.Key;
@@ -252,13 +227,13 @@ namespace BrokerConsole
                 {
                     p.imAlive();
                     _alive = true;
-                    Console.WriteLine("         " + s + " is alive:" + _alive);
+                    log("         " + s + " is alive:" + _alive);
 
                 }
                 catch (Exception)
                 {
                     _alive = false;
-                    Console.WriteLine("         " + s + " is alive:" + _alive);
+                    log("         " + s + " is alive:" + _alive);
                 }
             }
         }
@@ -266,7 +241,7 @@ namespace BrokerConsole
         private void subStatus()
         {
             bool _alive;
-            Console.WriteLine("[STATUS] Trying to get  Subscribers status");
+            log("[STATUS] Trying to get  Subscribers status");
             foreach (KeyValuePair<string, Subscriber> entry in _uriToSubs)
             {
                 String s = entry.Key;
@@ -275,13 +250,13 @@ namespace BrokerConsole
                 {
                     p.imAlive();
                     _alive = true;
-                    Console.WriteLine("         " + s + " is alive:" + _alive);
+                    log("         " + s + " is alive:" + _alive);
 
                 }
                 catch (Exception)
                 {
                     _alive = false;
-                    Console.WriteLine("         " + s + " is alive:" + _alive);
+                    log("         " + s + " is alive:" + _alive);
                 }
             }
         }
@@ -290,31 +265,31 @@ namespace BrokerConsole
         {
             if (_isRoot)
             {
-                Console.WriteLine("[STATUS] I'm root");
+                log("[STATUS] I'm root");
                 return;
             }
 
 
-            Console.WriteLine("[STATUS] Trying to get  Parent status");
+            log("[STATUS] Trying to get  Parent status");
             bool _alive;
             try
             {
                 _parentSite.brokers[0].imAlive();
                 _alive = true;
-                Console.WriteLine("         " + _parentSite.brokers[0].getURI() + " is alive:" + _alive);
+                log("         " + _parentSite.brokers[0].getURI() + " is alive:" + _alive);
 
             }
             catch (Exception)
             {
                 _alive = false;
-                Console.WriteLine("         " + _parentSite.brokers[0].getURI() + " is alive:" + _alive);
+                log("         " + _parentSite.brokers[0].getURI() + " is alive:" + _alive);
             }
 
         }
         private void childsStatus()
         {
             bool _alive;
-            Console.WriteLine("[STATUS] Trying to get  Childs status");
+            log("[STATUS] Trying to get  Childs status");
             foreach (Site s in _childSites)
             {
                 Broker b = s.brokers[0];
@@ -322,12 +297,12 @@ namespace BrokerConsole
                 {
                     b.imAlive();
                     _alive = true;
-                    Console.WriteLine("         " + b.getURI() + " is alive:" + _alive);
+                    log("         " + b.getURI() + " is alive:" + _alive);
                 }
                 catch (Exception)
                 {
                     _alive = false;
-                    Console.WriteLine("         " + b.getURI() + " is alive:" + _alive);
+                    log("         " + b.getURI() + " is alive:" + _alive);
                 }
             }
         }
@@ -363,9 +338,7 @@ namespace BrokerConsole
 
         void log(string e)
         {
-            // TODO use assynchronous call
-            _pm.reportEvent(getURI(), e);
-            Console.WriteLine(e);
+            _form.log(e);
         }
 
         public void subscribe(SubscribeMessage msg)
@@ -854,7 +827,7 @@ namespace BrokerConsole
             pmsg.origin_site = _site;
 
             seq++;
-            Console.WriteLine(seq);
+            log(seq.ToString());
 
             if (_routingPolicy == RoutingPolicy.flooding)
             {

@@ -10,6 +10,10 @@ using System.Threading.Tasks;
 
 namespace DADInterfaces
 {
+    public delegate void stringIn(string s);
+    public delegate void StringInArgs(string s, params object[] args);
+
+
     public enum RoutingPolicy { flooding, filter};
     public enum OrderingPolicy { no, fifo, total};
     public enum LoggingLevel { full, light };
@@ -62,7 +66,6 @@ namespace DADInterfaces
     {
         void setSiteBroker(Broker site_broker);
         void publish(string topic, string msg, int quantity, int interval);
-        string getProcessName();
     }
     public delegate void ReceiveDelegate(PublishMessage p);
     public interface Subscriber: Node

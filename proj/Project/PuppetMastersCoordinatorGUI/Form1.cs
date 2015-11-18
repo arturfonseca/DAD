@@ -39,6 +39,7 @@ namespace PuppetMastersCoordinatorGUI
         OrderingPolicy ord;
         LoggingLevel log;
         string myaddr;
+        bool runningInstructions = false;
 
         public Form1()
         {
@@ -84,22 +85,26 @@ namespace PuppetMastersCoordinatorGUI
 
         }
 
-        public void log_(string type, string uri1, string uri2, string topic, int seqnum)
+        public void reportEvent(string type, string uri1, string uri2, string topic, int seqnum)
         {
             if (log == LoggingLevel.light && type == EventType.BroEvent)
                 return;
             string str = type + " " + uri_processname[uri1] + ", " + uri_processname[uri2] + ", " + topic + ", " + seqnum;
-            textBox13.Text += str + "\r\n";
+            logCommand(str);
+        }
+
+        delegate void stringIn(string s);
+        public void logCommand(string str)
+        {
+            textBox13.AppendText(str + "\r\n");
             StreamWriter writetext = new StreamWriter(ConfigurationManager.AppSettings["logs"], true);
             writetext.WriteLine(str);
             writetext.Close();
         }
-        public void logCommand(string str)
-        {
-            textBox13.Text += str + "\r\n";
-            StreamWriter writetext = new StreamWriter(ConfigurationManager.AppSettings["logs"], true);
-            writetext.WriteLine(str);
-            writetext.Close();
+
+        public void logCommandExternalThread(string str)
+        {          
+            BeginInvoke(new stringIn(logCommand), new object[] { str });
         }
 
 
@@ -327,7 +332,18 @@ namespace PuppetMastersCoordinatorGUI
             {
                 string input_file = ConfigurationManager.AppSettings["input"];
                 string[] lines = System.IO.File.ReadAllLines(input_file);
-                readInput(lines);
+                if(runningInstructions == true)
+                {
+                    MessageBox.Show("Still running instructions from last click");
+                }
+                else
+                {
+                    //assuming only one UI thread uses the function
+                    runningInstructions = true;
+                    new Thread(() => readInput(lines)).Start();
+                    runningInstructions = false;
+                }
+                
             }
             catch (FileNotFoundException fnf)
             {
@@ -337,13 +353,17 @@ namespace PuppetMastersCoordinatorGUI
         }
 
         //TODO: remove warnings
+        
         public void readInput(String[] lines)
         {
             foreach (String line in lines)
             {
-                logCommand(line);
+                //logCommand(line);
+               
+                logCommandExternalThread(line);
                 string[] keywords = line.Split(' ');
-                if (keywords[0] == "Status" && keywords.Length >= 1)
+                string instructionType = keywords[0];
+                if (instructionType == "Status" && keywords.Length >= 1)
                 {
                     foreach (KeyValuePair<string, Broker> entry in all_brokers)
                     {
@@ -353,7 +373,7 @@ namespace PuppetMastersCoordinatorGUI
                         }
                         catch (Exception)
                         {
-                            textBox13.Text += entry.Key + " failed \r\n";
+                            logCommandExternalThread(entry.Key + " failed \r\n");
                         }
                     }
 
@@ -365,7 +385,7 @@ namespace PuppetMastersCoordinatorGUI
                         }
                         catch (Exception)
                         {
-                            textBox13.Text += entry.Key + " failed \r\n";
+                            logCommandExternalThread(entry.Key + " failed \r\n");                            
                         }
                     }
                     foreach (KeyValuePair<string, Subscriber> entry in all_subscribers)
@@ -376,12 +396,12 @@ namespace PuppetMastersCoordinatorGUI
                         }
                         catch (Exception)
                         {
-                            textBox13.Text += entry.Key + " failed \r\n";
+                            logCommandExternalThread(entry.Key + " failed \r\n");
                         }
                     }
 
                 }
-                else if (keywords[0] == "Crash" && keywords.Length >= 2)
+                else if (instructionType == "Crash" && keywords.Length >= 2)
                 {
                     try
                     {
@@ -400,7 +420,7 @@ namespace PuppetMastersCoordinatorGUI
 
 
                 }
-                else if (keywords[0] == "Freeze" && keywords.Length >= 2)
+                else if (instructionType == "Freeze" && keywords.Length >= 2)
                 {
 
                     if (all_brokers.ContainsKey(keywords[1]))
@@ -411,7 +431,7 @@ namespace PuppetMastersCoordinatorGUI
                         all_subscribers[keywords[1]].freeze();
 
                 }
-                else if (keywords[0] == "Unfreeze" && keywords.Length >= 2)
+                else if (instructionType == "Unfreeze" && keywords.Length >= 2)
                 {
                     if (all_brokers.ContainsKey(keywords[1]))
                         all_brokers[keywords[1]].unfreeze();
@@ -421,7 +441,7 @@ namespace PuppetMastersCoordinatorGUI
                         all_subscribers[keywords[1]].unfreeze();
 
                 }
-                else if (keywords[0] == "Wait" && keywords.Length >= 2)
+                else if (instructionType == "Wait" && keywords.Length >= 2)
                 {
                     Thread.Sleep(Int32.Parse(keywords[1]));
                 }
@@ -524,6 +544,9 @@ namespace PuppetMastersCoordinatorGUI
                 .FirstOrDefault(ip => ip.AddressFamily == AddressFamily.InterNetwork);
         }
 
+        private void Form1_Load(object sender, EventArgs e)
+        {
 
+        }
     }
 }

@@ -12,6 +12,7 @@ using DADInterfaces;
 using System.Collections;
 using System.Threading;
 using System.Configuration;
+using System.Windows.Forms;
 
 namespace PuppetMasterConsole
 {
@@ -24,13 +25,17 @@ namespace PuppetMasterConsole
 
         private string _uri = "";
         private string _channel_uri;
+        private Form1 _form;
+
         public string URI { get { return _uri; } set { _uri = value; } }
         
 
-        public PuppetMasterRemote(string channelURI)
+        public PuppetMasterRemote(string channelURI,Form1 form)
         {
+            _form = form;
             _channel_uri = channelURI;
         }
+
         public override object InitializeLifetimeService()
         {
             return null;
@@ -38,29 +43,18 @@ namespace PuppetMasterConsole
 
         static void Main(string[] args)
         {
-            Console.WriteLine("Started PuppetMaster");
-            int port = int.Parse(ConfigurationManager.AppSettings["PuppetMasterPort"]);
-            string channelURI = Utility.setupChannel(port);
-            PuppetMasterRemote pm = new PuppetMasterRemote(channelURI);
-            //we need to register each remote object
-            string service = ConfigurationManager.AppSettings["PuppetMasterService"];
-            ObjRef o = RemotingServices.Marshal(pm, service, typeof(PuppetMaster));
-            pm.URI = string.Format("{0}/{1}", channelURI, service);
-            Console.WriteLine("Created PuppetMaster at \"{0}\"", pm.URI);
-            
-            Console.WriteLine("Press key to leave");
-            Console.Read();
-            // quick way to close all windows
-            foreach(Process p in pm.processes)
-            {
-                try {
-                    p.Kill();
-                }
-                catch (System.InvalidOperationException) { }
-            }
+            Application.EnableVisualStyles();
+            Application.SetCompatibleTextRenderingDefault(false);
+            //must be called in this order
+            Form1 form = new Form1();
+            Application.Run(form);           
+           
         }
 
-      
+        void log(string e)
+        {
+            _form.log(e);
+        }
 
         public Broker createBroker(string processName, string serviceName,string site,int port,string addr)
         {
@@ -69,7 +63,7 @@ namespace PuppetMasterConsole
             p.StartInfo.FileName = ConfigurationManager.AppSettings["BrokerPath"];
             var arg = string.Format("{0} {1} {2} {3} {4} {5}", URI, serviceName, site, port,addr, processName);                       
             p.StartInfo.Arguments = arg;
-            Console.WriteLine("launching Broker executable '{0}' ", p.StartInfo.FileName);
+            log(string.Format("launching Broker executable '{0}' ", p.StartInfo.FileName));
 
             p.Start();
             processes.Add(p);
@@ -92,7 +86,7 @@ namespace PuppetMasterConsole
             //start processes
             Process p = new Process();
             p.StartInfo.FileName = ConfigurationManager.AppSettings["PublisherPath"];
-            Console.WriteLine("launching Publisher at '{0}'", p.StartInfo.FileName);
+            log(string.Format("launching Publisher at '{0}'", p.StartInfo.FileName));
             p.StartInfo.Arguments = string.Format("{0} {1} {2} {3} {4} {5}",URI,serviceName,site,port,addr, processName);
 
             p.Start();
@@ -116,7 +110,7 @@ namespace PuppetMasterConsole
             //start processes
             Process p = new Process();
             p.StartInfo.FileName = ConfigurationManager.AppSettings["SubscriberPath"];
-            Console.WriteLine("launching Subscriber at '{0}'", p.StartInfo.FileName);
+            log(string.Format("launching Subscriber at '{0}'", p.StartInfo.FileName));
             p.StartInfo.Arguments = string.Format("{0} {1} {2} {3} {4} {5}",URI,serviceName,site,port,addr,processName);
 
             p.Start();
@@ -157,7 +151,7 @@ namespace PuppetMasterConsole
                 _brokers.Add(b);
                 Monitor.Pulse(_brokers);
             }            
-            Console.WriteLine("registered broker {0}",b.getURI());
+            log(string.Format("registered broker {0}",b.getURI()));
         }
 
         public void registerPublisher(Publisher p)
@@ -167,7 +161,7 @@ namespace PuppetMasterConsole
                 _publishers.Add(p);
                 Monitor.Pulse(_publishers);
             }
-            Console.WriteLine("registered publisher {0}",p.getURI());
+            log(string.Format("registered publisher {0}",p.getURI()));
         }
 
         public void registerSubscriber(Subscriber s)
@@ -177,12 +171,12 @@ namespace PuppetMasterConsole
                 _subscribers.Add(s);
                 Monitor.Pulse(_subscribers);
             }
-            Console.WriteLine("registered subscriber {0}",s.getURI());
+            log(string.Format("registered subscriber {0}", s.getURI()));
         }
 
         public void reportEvent(string origin_uri,string e)
         {
-            Console.WriteLine("[Event] from:\"{0}\" \"{1}\"",origin_uri,e);
+            log(string.Format("[Event] from:\"{0}\" \"{1}\"",origin_uri,e));
         }
 
         public String status()

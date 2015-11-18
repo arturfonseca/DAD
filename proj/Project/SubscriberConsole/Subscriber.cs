@@ -7,6 +7,7 @@ using System.Runtime.Remoting;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows.Forms;
 
 namespace SubscriberConsole
 {
@@ -40,16 +41,19 @@ namespace SubscriberConsole
         private bool _freezed = false;
         private List<PublishMessage> _freezedReceives = new List<PublishMessage>();
         private object _freezedLock = new object();
-        private static string _processName;
+        private string _processName;
         private OrderingPolicy _orderingPolicy;
         private List<FIFOstruct> _fifostructs = new List<FIFOstruct>();
+        private Form1 _form;
 
-        public SubscriberRemote(PuppetMaster pm, string name, string site, string coordinatorURI)
+        public SubscriberRemote(Form1 form,PuppetMaster pm, string name, string site, string coordinatorURI,string processName)
         {
+            _form = form;
             _serviceName = name;
             _pm = pm;
             _site = site;
             _orderingPolicy = OrderingPolicy.fifo;
+            _processName = processName;
             c = (ICoordinator)Activator.GetObject(typeof(ICoordinator), coordinatorURI);
 
         }
@@ -61,38 +65,11 @@ namespace SubscriberConsole
 
         static void Main(string[] args)
         {
-            Console.WriteLine("Started Subscriber, pid=\"{0}\"", Process.GetCurrentProcess().Id);
-            int nargs = 6;
-            if (args.Length != nargs)
-            {
-                Console.WriteLine("Expected {0} arguments, got {1}", nargs, args.Length);
-                Console.Read();
-                return;
-            }
-            string puppetMasterURI = args[0];
-            string name = args[1];
-            string site = args[2];
-            int port = int.Parse(args[3]);
-            string coordinatorURI = args[4];
-            string processName = args[5];
-            _processName = processName;
-
-            string channelURI = Utility.setupChannel(port);
-
-            // get the puppetMaster that started this process
-            PuppetMaster pm = (PuppetMaster)Activator.GetObject(typeof(PuppetMaster), puppetMasterURI);
-            SubscriberRemote subscriber = new SubscriberRemote(pm, name, site, coordinatorURI);
-            //we need to register each remote object
-            ObjRef o = RemotingServices.Marshal(subscriber, name, typeof(Subscriber));
-            subscriber.setURI(string.Format("{0}/{1}", channelURI, name));
-            Console.WriteLine("Created Subscriber at site:\"{0}\" uri:\"{1}\"", site, subscriber.getURI());
-
-            //now that broker is created and marshalled
-            //send remote to puppetMaster which is Monitor.waiting for the remote            
-            pm.registerSubscriber(subscriber);
-            Console.WriteLine("Just registered at puppetMaster");
-            Console.WriteLine("Press key to leave");
-            Console.Read();
+            Application.EnableVisualStyles();
+            Application.SetCompatibleTextRenderingDefault(false);
+            //must be called in this order
+            Form1 form = new Form1(args);
+            Application.Run(form);
         }
 
         public void setSiteBroker(Broker site_broker)
@@ -113,7 +90,7 @@ namespace SubscriberConsole
         public string status()
         {
             bool _alive;
-            Console.WriteLine("[STATUS] Trying to get broker status");
+            log("[STATUS] Trying to get broker status");
             try
             {
                 _broker.imAlive();
@@ -126,9 +103,9 @@ namespace SubscriberConsole
             string subscribedTopics = "";
             foreach (string t in _subscribedTopics)
                 subscribedTopics += "\""+t + "\" ";
-            Console.WriteLine("[STATUS] Broker is alive:" + _alive);
-            Console.WriteLine("[STATUS] Subscribing: " + subscribedTopics);
-            Console.WriteLine("[STATUS] Freeze:" + _freezed);
+            log("[STATUS] Broker is alive:" + _alive);
+            log("[STATUS] Subscribing: " + subscribedTopics);
+            log("[STATUS] Freeze:" + _freezed);
 
             return "OK";
         }
@@ -253,8 +230,7 @@ namespace SubscriberConsole
 
         void log(string e)
         {
-            // _pm.reportEvent(getURI(), e);
-            Console.WriteLine(e);
+            _form.log(e);
         }
 
         public string getServiceName()
