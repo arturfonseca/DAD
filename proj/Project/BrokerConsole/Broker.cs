@@ -393,7 +393,7 @@ namespace BrokerConsole
                         foreach (Broker b in _parentSite.brokers)
                         {
                             //TODO assyncronous
-                            log(string.Format("[subscribe] senting '{0}' to parent site '{1}'", pmsg, _parentSite.name));
+                            log(string.Format("[subscribe] sending '{0}' to parent site '{1}'", pmsg, _parentSite.name));
                             b.propagateSubscribe(pmsg);
                         }
                     }
@@ -411,7 +411,7 @@ namespace BrokerConsole
                             
                             foreach (var b in s.brokers)
                             {
-                                log(string.Format("[subscribe] senting '{0}' to child site '{1}'", pmsg, s.name));
+                                log(string.Format("[subscribe] sending '{0}' to child site '{1}'", pmsg, s.name));
                                 //TODO assync
                                 b.propagateSubscribe(pmsg);
                             }
@@ -484,7 +484,7 @@ namespace BrokerConsole
                         {
                             foreach (var b in _parentSite.brokers)
                             {
-                                log(string.Format("[propagateSubscribe] senting '{0}' to parent site '{1}'", msg, _parentSite.name));
+                                log(string.Format("[propagateSubscribe] sending '{0}' to parent site '{1}'", msg, _parentSite.name));
                                 //TODO assync
                                 b.propagateSubscribe(msg);
                             }
@@ -510,7 +510,7 @@ namespace BrokerConsole
                                 foreach (var b in s.brokers)
                                 {
                                    
-                                    log(string.Format("[propagateSubscribe] senting '{0}' to child site '{1}'", msg, s.name));
+                                    log(string.Format("[propagateSubscribe] sending '{0}' to child site '{1}'", msg, s.name));
                                     //TODO assync
                                     b.propagateSubscribe(msg);
                                 }
@@ -530,19 +530,30 @@ namespace BrokerConsole
             //We should only propagate the unsubscriveMessage if there is no more sites 
             //or subscribers that subscribe it
             bool isLastTopic = false;
+            bool remainingOneSubscrition = false;
             lock (_topicSubscribers)
             {
                 if (_topicSubscribers.ContainsKey(msg.topic))
                 {
-                    _topicSubscribers[msg.topic].Remove(msg.uri);
+                    if(_topicSubscribers[msg.topic].Contains(msg.uri))
+                        _topicSubscribers[msg.topic].Remove(msg.uri);
+
                     if (_topicSubscribers[msg.topic].Count == 0)
                     {
                         if (!_topicSites.ContainsKey(msg.topic))
                         {
                             isLastTopic = true;
                         }
+                        else
+                        {
+                            if(_topicSites[msg.topic].Count == 1)
+                            {
+                                //propagateUnsubcribe to only this broker
+                                remainingOneSubscrition = true;
+                            }
+                        }
 
-                            _topicSubscribers.Remove(msg.topic);
+                        _topicSubscribers.Remove(msg.topic);
                     }
                 }
                 else
@@ -561,7 +572,7 @@ namespace BrokerConsole
                     {
                         foreach (Broker b in _parentSite.brokers)
                         {
-                            log(string.Format("[Unsubscribe] senting '{0}' to parent site '{1}'", pmsg, _parentSite.name));
+                            log(string.Format("[Unsubscribe] sending '{0}' to parent site '{1}'", pmsg, _parentSite.name));
                             // TODO assyncronous
                             b.propagateUnsubscribe(pmsg);
                         }
@@ -575,28 +586,55 @@ namespace BrokerConsole
                         {
                             foreach (var b in s.brokers)
                             {
-                                log(string.Format("[propagateSubscribe] senting '{0}' to parent site '{1}'", pmsg, s.name));
+                                log(string.Format("[Unsubscribe] sending '{0}' to child site '{1}'", pmsg, s.name));
                                 //TODO assync
-                                b.propagateSubscribe(pmsg);
+                                b.propagateUnsubscribe(pmsg);
+                            }
+                        }
+                    }
+                }
+            }
+            else
+            {
+                if (remainingOneSubscrition)
+                {
+                    PropagatedUnsubscribeMessage pmsg = new PropagatedUnsubscribeMessage(msg, _site);
+                    var site_names = _topicSites[msg.topic];
+                    //only exists 1 occurence
+                    if (site_names.Count == 1) {
+                        foreach (var s_name in site_names)
+                        {
+                            var site = _nameToSite[s_name];
+                            lock (site)
+                            {
+                                foreach(var b in site.brokers)
+                                {
+                                    log(string.Format("[Unsubscribe] sending '{0}' to site '{1}'", pmsg, s_name));
+                                    //TODO assync
+                                    b.propagateUnsubscribe(pmsg);
+                                }
                             }
                         }
                     }
                 }
             }
         }
-
+       
         public void propagateUnsubscribe(PropagatedUnsubscribeMessage msg)
         {
             log(string.Format("[propagateUnsubscribe] Received event '{0}'", msg));
             //We should only propagate the unsubscriveMessage if there is no more sites 
             //or subscribers that subscribe it
             bool isLastTopic = false;
+            bool remainingOneSubscrition = false;
             string origin_site = msg.interested_site;
             lock (_topicSites)
             {
                 if (_topicSites.ContainsKey(msg.topic))
                 {
-                    _topicSites[msg.topic].Remove(msg.interested_site);
+                    if (_topicSites[msg.topic].Contains(msg.interested_site))
+                        _topicSites[msg.topic].Remove(msg.interested_site);
+
                     if (_topicSites[msg.topic].Count == 0)
                     {
                         if (!_topicSubscribers.ContainsKey(msg.topic))
@@ -604,6 +642,16 @@ namespace BrokerConsole
                             isLastTopic = true;
                         }
                         _topicSites.Remove(msg.topic);
+                    }
+                    else
+                    {
+                        if (_topicSites[msg.topic].Count == 1)
+                        {
+                            if (!_topicSubscribers.ContainsKey(msg.topic))
+                            {
+                                remainingOneSubscrition = true;
+                            }
+                        }
                     }
                 }
                 else
@@ -624,7 +672,7 @@ namespace BrokerConsole
                         {
                             foreach (var b in _parentSite.brokers)
                             {
-                                log(string.Format("[subscribe] senting '{0}' to parent site '{1}'", msg, _parentSite.name));
+                                log(string.Format("[propagateUnsubscribe] sending '{0}' to parent site '{1}'", msg, _parentSite.name));
                                 //TODO assync
                                 b.propagateUnsubscribe(msg);
                             }
@@ -641,11 +689,36 @@ namespace BrokerConsole
                             {
                                 foreach (var b in s.brokers)
                                 {
-                                    log(string.Format("[propagateSubscribe] senting '{0}' to parent site '{1}'", msg, s.name));
+                                    log(string.Format("[propagateUnsubscribe] sending '{0}' to child site '{1}'", msg, s.name));
                                     //TODO assync
-                                    b.propagateSubscribe(msg);
+                                    b.propagateUnsubscribe(msg);
                                 }
 
+                            }
+                        }
+                    }
+                }
+            }
+            else
+            {
+                if (remainingOneSubscrition)
+                {
+                    msg.interested_site = _site;
+                    var site_names = _topicSites[msg.topic];
+                    //only exists 1 occurence
+                    if (site_names.Count == 1)
+                    {
+                        foreach (var s_name in site_names)
+                        {
+                            var site = _nameToSite[s_name];
+                            lock (site)
+                            {
+                                foreach (var b in site.brokers)
+                                {
+                                    log(string.Format("[propagateUnsubscribe] sending '{0}' to site '{1}'", msg, s_name));
+                                    //TODO assync
+                                    b.propagateUnsubscribe(msg);
+                                }
                             }
                         }
                     }
