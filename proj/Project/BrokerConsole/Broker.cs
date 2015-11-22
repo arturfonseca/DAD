@@ -60,7 +60,7 @@ namespace BrokerConsole
         private Dictionary<string, Site> _nameToSite = new Dictionary<string, Site>();
         // key = topic, value = list of interested sites
         Dictionary<string, List<string>> _topicSites = new Dictionary<string, List<string>>();
-
+        Dictionary<string, List<string>> _topicChildSites = new Dictionary<string, List<string>>();
         // can be null
         private Object _parentSiteLock = new object();
         private Site _parentSite;
@@ -158,6 +158,7 @@ namespace BrokerConsole
         public void setParent(Site parent_site)
         {
             _parentSite = parent_site;
+            _nameToSite.Add(_parentSite.name, _parentSite);
         }
 
 
@@ -346,26 +347,45 @@ namespace BrokerConsole
             log(string.Format("[Subscribe] Received event '{0}'", msg));
             // To solve duplicate propagatedSubscribedMessages
             bool isNewTopic = false;
+            bool canPropagateToParent = false;
 
             lock (_topicSubscribers)
             {
                 if (!_topicSubscribers.ContainsKey(msg.topic))
                 {
                     //This broker didn't send a propagatedSubscribedMessage with this topic till now
-                    if (!_topicSites.ContainsKey(msg.topic)){
+                    if (!_topicSites.ContainsKey(msg.topic))
+                    {
                         isNewTopic = true;
                     }
-
                     _topicSubscribers.Add(msg.topic, new List<string>());
                     
                 }
                 _topicSubscribers[msg.topic].Add(msg.uri);
             }
+
+            lock (_topicChildSites)
+            {
+                
+                    if (!_topicChildSites.ContainsKey(msg.topic))
+                    {
+                        //This broker didn't send a propagatedSubscribedMessage with this topic till now
+                        if (!_topicChildSites.ContainsKey(msg.topic))
+                        {
+                            canPropagateToParent = true;
+                        }
+
+                      _topicChildSites.Add(msg.topic, new List<string>());
+
+                    }
+                    _topicChildSites[msg.topic].Add(msg.uri);
+                
+            }
             //Only send a propagatedSubscribedMessage per Topic
-            if (isNewTopic)
+            if (canPropagateToParent)
             {
                 PropagatedSubcribeMessage pmsg = new PropagatedSubcribeMessage(msg, _site);
-                // propagate subscribe only to parent, taking advantage of tree strucure
+                // propagate subscribe to parent, taking advantage of tree strucure
                 lock (_parentSiteLock)
                 {
                     if (_parentSite != null)
@@ -379,14 +399,39 @@ namespace BrokerConsole
                     }
                 }
             }
+            if (isNewTopic)
+            {
+                PropagatedSubcribeMessage pmsg = new PropagatedSubcribeMessage(msg, _site);
+                lock (_childSites)
+                {
+                    foreach (var s in _childSites)
+                    {
+                        lock (s)
+                        {
+                            
+                            foreach (var b in s.brokers)
+                            {
+                                log(string.Format("[subscribe] senting '{0}' to child site '{1}'", pmsg, s.name));
+                                //TODO assync
+                                b.propagateSubscribe(pmsg);
+                            }
+
+                        }
+                    }
+                }
+            }
 
         }
 
         public void propagateSubscribe(PropagatedSubcribeMessage msg)
         {
+            string origin_site = msg.interested_site;
             log(string.Format("[propagateSubscribe] Received event '{0}'", msg));
+
+
             // To solve duplicate propagatedSubscribedMessages
             bool isNewTopic = false;
+            bool canPropagateToParent = false;
 
             lock (_topicSites)
             {
@@ -397,25 +442,80 @@ namespace BrokerConsole
                     {
                         isNewTopic = true;
                     }
-
                     _topicSites.Add(msg.topic, new List<string>());
                    
                 }
                 _topicSites[msg.topic].Add(msg.interested_site);
             }
+
+            lock (_topicChildSites)
+            {
+               
+                if (_parentSite != null)
+                {
+                    if (_parentSite.name != origin_site)
+                    {
+
+                        if (!_topicChildSites.ContainsKey(msg.topic))
+                        {
+                            //This broker didn't send a propagatedSubscribedMessage with this topic till now
+                            if (!_topicSubscribers.ContainsKey(msg.topic))
+                            {
+                                canPropagateToParent = true;
+                            }
+
+                            _topicChildSites.Add(msg.topic, new List<string>());
+
+                        }
+                        _topicChildSites[msg.topic].Add(msg.interested_site);
+                    }
+                }
+            }
+
             //Only send a propagatedSubscribedMessage per Topic
-            if (isNewTopic)
+            if (canPropagateToParent)
             {
                 msg.interested_site = _site;
                 lock (_parentSiteLock)
                 {
                     if (_parentSite != null)
                     {
-                        foreach (var b in _parentSite.brokers)
+                        if (_parentSite.name != origin_site)
                         {
-                            log(string.Format("[propagateSubscribe] senting '{0}' to parent site '{1}'", msg, _parentSite.name));
-                            //TODO assync
-                            b.propagateSubscribe(msg);
+                            foreach (var b in _parentSite.brokers)
+                            {
+                                log(string.Format("[propagateSubscribe] senting '{0}' to parent site '{1}'", msg, _parentSite.name));
+                                //TODO assync
+                                b.propagateSubscribe(msg);
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (isNewTopic)
+            {
+                msg.interested_site = _site;
+                lock (_childSites)
+                {
+                   
+                    foreach (var s in _childSites)
+                    {
+                        lock (s)
+                        {
+                           
+                            if (s.name != origin_site)
+                            {
+                                
+                                foreach (var b in s.brokers)
+                                {
+                                   
+                                    log(string.Format("[propagateSubscribe] senting '{0}' to child site '{1}'", msg, s.name));
+                                    //TODO assync
+                                    b.propagateSubscribe(msg);
+                                }
+
+                            }
                         }
                     }
                 }
@@ -467,6 +567,21 @@ namespace BrokerConsole
                         }
                     }
                 }
+                lock (_childSites)
+                {
+                    foreach (var s in _childSites)
+                    {
+                        lock (s)
+                        {
+                            foreach (var b in s.brokers)
+                            {
+                                log(string.Format("[propagateSubscribe] senting '{0}' to parent site '{1}'", pmsg, s.name));
+                                //TODO assync
+                                b.propagateSubscribe(pmsg);
+                            }
+                        }
+                    }
+                }
             }
         }
 
@@ -476,6 +591,7 @@ namespace BrokerConsole
             //We should only propagate the unsubscriveMessage if there is no more sites 
             //or subscribers that subscribe it
             bool isLastTopic = false;
+            string origin_site = msg.interested_site;
             lock (_topicSites)
             {
                 if (_topicSites.ContainsKey(msg.topic))
@@ -504,11 +620,33 @@ namespace BrokerConsole
                 {
                     if (_parentSite != null)
                     {
-                        foreach (var b in _parentSite.brokers)
+                        if (_parentSite.name != origin_site)
                         {
-                            log(string.Format("[subscribe] senting '{0}' to parent site '{1}'", msg, _parentSite.name));
-                            //TODO assync
-                            b.propagateUnsubscribe(msg);
+                            foreach (var b in _parentSite.brokers)
+                            {
+                                log(string.Format("[subscribe] senting '{0}' to parent site '{1}'", msg, _parentSite.name));
+                                //TODO assync
+                                b.propagateUnsubscribe(msg);
+                            }
+                        }
+                    }
+                }
+                lock (_childSites)
+                {
+                    foreach (var s in _childSites)
+                    {
+                        lock (s)
+                        {
+                            if (s.name != origin_site)
+                            {
+                                foreach (var b in s.brokers)
+                                {
+                                    log(string.Format("[propagateSubscribe] senting '{0}' to parent site '{1}'", msg, s.name));
+                                    //TODO assync
+                                    b.propagateSubscribe(msg);
+                                }
+
+                            }
                         }
                     }
                 }
@@ -626,7 +764,6 @@ namespace BrokerConsole
         }
 
 
-
         public void freeze()
         {
             lock (_freezedLock)
@@ -657,8 +794,7 @@ namespace BrokerConsole
                 _freezed = false;
             }
         }
-
-
+  
         public void propagatePublish(PropagatedPublishMessage msg)
         {
             bool freezed = false;
@@ -704,7 +840,7 @@ namespace BrokerConsole
             // TODO make all calls assyncs
 
             log(string.Format("[Publish] Received event '{0}'", msg));
-
+           
 
             if (_orderingPolicy == OrderingPolicy.fifo)
             {
@@ -725,12 +861,12 @@ namespace BrokerConsole
                     //TODO Verify duplicates
                     fifo.listOfmessages.Add(msg);
                     fifo.listOfmessages.OrderBy(item => item.seqnum);
-
+                   
                     //DEBUG ListOfMessages
-                  /*  foreach (PublishMessage _msg in fifo.listOfmessages)
-                    {
-                        log(string.Format("[ListOfMessage] Publisher: '{0}' msg '{1}'", _msg.publisherURI, _msg));
-                    }*/
+                    /*  foreach (PublishMessage _msg in fifo.listOfmessages)
+                      {
+                          log(string.Format("[ListOfMessage] Publisher: '{0}' msg '{1}'", _msg.publisherURI, _msg));
+                      }*/
 
                     foreach (PublishMessage _msg in fifo.listOfmessages.ToList())
                     {
@@ -738,9 +874,10 @@ namespace BrokerConsole
                         if (_msg.seqnum == fifo._seq_num)
                         {
                             //Prepare to send the msg to interested sites
+                          
                             deliver(_msg);
                             routing(_msg);
-
+                           
                             //Message sent , increment seq_num and delete delivered message
                             fifo._seq_num++;
                             fifo.listOfmessages.Remove(_msg);
@@ -853,6 +990,25 @@ namespace BrokerConsole
                     }
                 }
 
+                lock (_parentSiteLock)
+                {
+                    if (_parentSite != null)
+                    {
+                        foreach (Broker broker in _parentSite.brokers)
+                        {
+                            // TODO broker.getURI() is slow, we should use a cache                        
+                            PropagatePublishDelegate d = new PropagatePublishDelegate(broker.propagatePublish);
+                            log(string.Format("[Routing] sent event '{0}' to parent broker '{1}'", pmsg, broker.getURI()));
+                            d.BeginInvoke(pmsg, null, null);
+
+                            if (_loggingLevel == LoggingLevel.full)
+                                c.reportEvent(EventType.BroEvent, getURI(), pmsg.publisherURI, pmsg.topic, msg.seqnum);
+
+
+                        }
+                    }
+                }
+
             }
             else // routing policy is filtering
             {
@@ -860,22 +1016,26 @@ namespace BrokerConsole
 
                 lock (_topicSites)
                 {
+                   
                     foreach (var subscribedTopic in _topicSites.Keys)
                     {
                         if (!equivalentTopic(msg.topic, subscribedTopic))
                             continue;
                         foreach (var site_name in _topicSites[subscribedTopic])
                         {
-
+                            
                             if (sentSites.Contains(site_name))
                                 continue;
+                           
                             var site = _nameToSite[site_name];
                             //translate seq_num of the message to send to child_sites
+                       
 
                             if (_orderingPolicy == OrderingPolicy.fifo)
                             {
                                 lock (_siteToFifoStruct)
                                 {
+                                   
 
                                     if (!_siteToFifoStruct.ContainsKey(site_name))
                                     {
@@ -906,7 +1066,7 @@ namespace BrokerConsole
                                     //But you could have to do that way with an assync approach
                                 }
                             }
-
+                           
                             lock (site)
                             {
                                 foreach (var broker in site.brokers)
@@ -947,27 +1107,6 @@ namespace BrokerConsole
                     }
                 }
 
-            }
-
-            // send to parent site brokers
-            // always send publish to parent, doesnt matter if interested in topic
-            lock (_parentSiteLock)
-            {
-                if (_parentSite != null)
-                {
-                    foreach (Broker broker in _parentSite.brokers)
-                    {
-                        // TODO broker.getURI() is slow, we should use a cache                        
-                        PropagatePublishDelegate d = new PropagatePublishDelegate(broker.propagatePublish);
-                        log(string.Format("[Routing] sent event '{0}' to parent broker '{1}'", pmsg, broker.getURI()));
-                        d.BeginInvoke(pmsg, null, null);
-
-                        if (_loggingLevel == LoggingLevel.full)
-                            c.reportEvent(EventType.BroEvent, getURI(), pmsg.publisherURI, pmsg.topic, msg.seqnum);
-
-
-                    }
-                }
             }
 
         }
@@ -1018,6 +1157,23 @@ namespace BrokerConsole
 
                                 }
                             }
+                        }
+                    }
+                }
+                //Send po parent
+
+                lock (_parentSiteLock)
+                {
+                    if (_parentSite != null && _parentSite.name != origin_site)
+                    {
+                        log(string.Format("[Sending to parent site] msg: '{0}' to parent site '{1}' origin_site '{2}'", msg, _parentSite.name, origin_site));
+                        foreach (Broker broker in _parentSite.brokers)
+                        {
+                            // TODO broker.getURI() is slow, we should use a cache
+                            log(string.Format("Sent '{0}' to parent broker '{1}'", msg, broker.getURI()));
+                            PropagatePublishDelegate d = new PropagatePublishDelegate(broker.propagatePublish);
+                            d.BeginInvoke(msg, null, null);
+                            c.reportEvent(EventType.BroEvent, getURI(), msg.publisherURI, msg.topic, msg.seqnum);
                         }
                     }
                 }
@@ -1112,24 +1268,6 @@ namespace BrokerConsole
                 }
 
 
-            }
-
-            // send to parent site brokers
-            // always send publish to parent, doesnt matter if interested in topic
-            lock (_parentSiteLock)
-            {
-                if (_parentSite != null && _parentSite.name != origin_site)
-                {
-                    log(string.Format("[Sending to parent site] msg: '{0}' to parent site '{1}' origin_site '{2}'", msg, _parentSite.name, origin_site));
-                    foreach (Broker broker in _parentSite.brokers)
-                    {
-                        // TODO broker.getURI() is slow, we should use a cache
-                        log(string.Format("Sent '{0}' to parent broker '{1}'", msg, broker.getURI()));
-                        PropagatePublishDelegate d = new PropagatePublishDelegate(broker.propagatePublish);
-                        d.BeginInvoke(msg, null, null);
-                        c.reportEvent(EventType.BroEvent, getURI(), msg.publisherURI, msg.topic, msg.seqnum);
-                    }
-                }
             }
 
         }
