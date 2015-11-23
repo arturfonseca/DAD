@@ -177,6 +177,7 @@ namespace SubscriberConsole
             if (_orderingPolicy == OrderingPolicy.fifo)
             {
                 //FIFO
+                //this lock
                 lock (_fifostructs)
                 {
 
@@ -215,8 +216,12 @@ namespace SubscriberConsole
             else
             {
                 //TEM DE FICAR AQUI O LOG
-                c.reportEvent(EventType.SubEvent, getURI(), m.publisherURI, m.topic, m.seqnum);
-                log(string.Format("Received. topic:'{0}' content:'{1}'", m.topic, m.content));
+                lock (c)
+                {
+                    c.reportEvent(EventType.SubEvent, getURI(), m.publisherURI, m.topic, m.seqnum);
+                    log(string.Format("Received. topic:'{0}' content:'{1}'", m.topic, m.content));
+                }
+                
             }
 
 
@@ -262,8 +267,8 @@ namespace SubscriberConsole
                 // TODO make all calls assyncs
                 SubscribeMessage msg = new SubscribeMessage() { sub = this, seqnum = _seqnum, topic = topic, uri = getURI() };
                 log(string.Format("Subscribe. '{0}'", msg));
-
-                _broker.subscribe(msg);
+                SubscribeDelegate pd = new SubscribeDelegate(_broker.subscribe);
+                pd.BeginInvoke(msg,null,null);
                 _seqnum += 1;
             }
         }
@@ -283,7 +288,8 @@ namespace SubscriberConsole
                 // TODO make all calls assyncs
                 UnsubscribeMessage msg = new UnsubscribeMessage() { sub = this, seqnum = _seqnum, topic = topic, uri = getURI() };
                 log(string.Format("Unsubscribe. '{0}'", msg));
-                _broker.unsubscribe(msg);
+                UnsubscribeDelegate pd = new UnsubscribeDelegate(_broker.unsubscribe);
+                pd.BeginInvoke(msg, null, null);
                 _seqnum += 1;
             }
         }

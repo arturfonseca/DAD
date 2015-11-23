@@ -1,0 +1,2 @@
+Subscriber subscriber1 Subscribe /p00-0
+Publisher publisher00 Publish 1000 Ontopic /p00-0 Interval 10
