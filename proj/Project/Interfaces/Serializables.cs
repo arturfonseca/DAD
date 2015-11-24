@@ -109,7 +109,7 @@ namespace DADInterfaces
             return String.Format(
 
                 "[PublishMessage] publisher_uri:'{0}', source_site:'{1}', topic:'{2}' content:'{3}', seqnum:'{4}', origin_seqnum:'{5}'",
-                publisherURI, origin_site,topic,content,seqnum,origin_seqnum );
+                publisherURI, origin_site,topic,"",seqnum,origin_seqnum );
         }
     }
 }

@@ -1,12 +1,6 @@
+Subscriber subscriber0 Subscribe /p00-0
 Subscriber subscriber1 Subscribe /p00-0
-Subscriber subscriber3 Subscribe /p00-0
-Subscriber subscriber3 Subscribe /p00-1
-Subscriber subscriber0 Subscribe /p00-2
-Wait 500
+Wait 3000
 Status
-Wait 500
-Publisher publisher00 Publish 10 Ontopic /p00-0 Interval 100
-Publisher publisher00 Publish 10 Ontopic /p00-1 Interval 100
-Publisher publisher00 Publish 20 Ontopic /p00-2 Interval 100
-Wait 500
-Status
+Wait 1000
+Publisher publisher00 Publish 10 Ontopic /p00-0 Interval 50

@@ -307,6 +307,17 @@ namespace BrokerConsole
                     log("         " + b.getURI() + " is alive:" + _alive);
                 }
             }
+            log("[STATUS] Printing topics and interested child sites");
+            
+            foreach(var kv in _topicSites)
+            {
+                string buf = "";
+                string topic = kv.Key;
+                List<string> childs = kv.Value;
+                buf += string.Format("         Topic:'{0}' Sites({1}):",topic,childs.Count);
+                buf += string.Join(",", childs);
+                log(buf);
+            }
         }
 
         // *end* Puppet Master functions
@@ -738,20 +749,27 @@ namespace BrokerConsole
         public void publish(PublishMessage msg)
         {
             bool freezed = false;
-
-            lock (_freezedLock)
+            try
             {
-                if (_freezed)
+                lock (_freezedLock)
                 {
-                    freezed = true;
-                    log(string.Format("[Publish] freezed"));
-                    _freezedPublishMessages.Add(msg);
+                    if (_freezed)
+                    {
+                        freezed = true;
+                        log(string.Format("[Publish] freezed"));
+                        _freezedPublishMessages.Add(msg);
+                    }
+                }
+                if (!freezed)
+                {
+                    publishWork(msg);
                 }
             }
-            if (!freezed)
+            catch(Exception e)
             {
-                publishWork(msg);
+                log(e.ToString());
             }
+            
 
         }
 
@@ -760,14 +778,17 @@ namespace BrokerConsole
             // FLOODING implementation
             // TODO discart if duplicate message
             // TODO make all calls assyncs
-            log(string.Format("[Publish] Received event '{0}'", msg));
-            if(_orderingPolicy == OrderingPolicy.total)
+            string buf = "";            
+            if (_orderingPolicy == OrderingPolicy.total)
             {
+                log(string.Format("[Publish TOTAL] Received event '{0}'", msg));
                 throw new Exception("Not implemented");
-            }else if (_orderingPolicy == OrderingPolicy.fifo)
+            }
+            else if (_orderingPolicy == OrderingPolicy.fifo)
             {
                 //FIFO
-                lock (_fifostructs)                {
+                lock (_fifostructs)
+                {
 
                     int index = _fifostructs.FindIndex(item => item._publhisherURI == msg.publisherURI);
                     if (index < 0)
@@ -779,19 +800,22 @@ namespace BrokerConsole
                     }
                     var fifo = _fifostructs[index];
                     /// Discard duplicates
+                    /*
                     if(msg.seqnum < fifo._seq_num)
                     {
                         log(string.Format("[Publish] Received duplicate message pub:{0} seqnum:{1}", msg.publisherURI, msg.seqnum));
                         return;
                     }
+                    */
                     fifo.listOfmessages.Add(msg);
                     fifo.listOfmessages.OrderBy(item => item.seqnum);
+                    log(string.Format("[Publish FIFO]{4}\r\n  Pub:{0} Remaining:{1} next seqnum:{2}. lowest seqnum:{3} ", fifo._publhisherURI, fifo.listOfmessages.Count(), fifo._seq_num, fifo.listOfmessages[0].seqnum, msg));
                     foreach (PublishMessage _msg in fifo.listOfmessages.ToList())
                     {
                         if (_msg.seqnum == fifo._seq_num)
                         {
                             //Prepare to send the msg to interested sites
-
+                            log(string.Format("Sending {0}",_msg.seqnum));
                             deliver(_msg);
                             routing(_msg);
 
@@ -806,19 +830,17 @@ namespace BrokerConsole
             }
             else
             {
+                log(string.Format("[Publish] Received event '{0}'", msg));
                 //TODO DISCARD DUPLICATES
                 deliver(msg);
                 routing(msg);
             }
-
-
-
         }
 
         private void deliver(PublishMessage msg)
         {
             // to avoid sending two times, we use a list
-            List<string> sentUris = new List<string>();
+            List<string> sentURIs = new List<string>();
 
             // Dictionary of delegates per subcribers
             Dictionary<string, ReceiveDelegate> remoteDelegate = new Dictionary<string, ReceiveDelegate>();
@@ -832,29 +854,30 @@ namespace BrokerConsole
                         continue;
                     foreach (var uri in _topicSubscribers[subscribedTopic])
                     {
-                        if (sentUris.Contains(uri))
+                        if (sentURIs.Contains(uri))
                             continue;
+                        sentURIs.Add(uri);
                         Subscriber s = _uriToSubs[uri];
                         // TODO assync
                         ReceiveDelegate rd = new ReceiveDelegate(s.receive);
                         remoteDelegate.Add(uri, rd);
                         //MUDAR ISTO...
                         // c.reportEvent(EventType.SubEvent, uri, msg.publisherURI, msg.topic, msg.total_seqnum);
-                        log(string.Format("[Deliver] sent event '{0}' to '{1}'", msg, uri));
-
+                        
                         //Begin FIFO
-                        if (_orderingPolicy == OrderingPolicy.fifo)
+                        if(_orderingPolicy == OrderingPolicy.total)
+                        {
+                            throw new Exception("not implemented");
+                        }
+                        else if (_orderingPolicy == OrderingPolicy.fifo)
                         {
                             lock (_subToFifoStruct)
                             {
-
                                 if (!_subToFifoStruct.ContainsKey(uri))
                                 {
                                     _subToFifoStruct.Add(uri, new List<FIFOstruct>());
                                 }
-
                                 int index = _subToFifoStruct[uri].FindIndex(item => item._publhisherURI == msg.publisherURI);
-
                                 if (index < 0)
                                 {
                                     // element does not exists
@@ -863,190 +886,152 @@ namespace BrokerConsole
                                     index = _subToFifoStruct[uri].FindIndex(item => item._publhisherURI == msg.publisherURI);
                                 }
                                 var fifo = _subToFifoStruct[uri][index];
-
-                                //create a new message for each site interested sites with possibly a different seqnum
-                                PublishMessage local_msg = new PublishMessage();
-
-                                //Creates a copy
-                                local_msg.publisherURI = msg.publisherURI;
-                                local_msg.seqnum = msg.seqnum;
-                                local_msg.origin_seqnum = msg.origin_seqnum;
-                                local_msg.topic = msg.topic;
-                                local_msg.content = msg.content;
-
-
-                                local_msg.seqnum = fifo._seq_num;
-                                fifo.listOfmessages.Add(local_msg);
-
-                                fifo._seq_num++;
-
-                                //It's not necessary to register the message in the listOfmessages because the message is imediately sent
-                                //But you could have to do that way with an assync approach
+                                //create a new message for each site interested sites with possibly a different seqnum                       
+                                msg.seqnum = fifo._seq_num;
+                                fifo._seq_num++;                                
                             }
-
+                             
                         }
-                        //end FIFO
-
+                        else
+                        { // No ordering
+                            ;
+                        }
+                        rd.BeginInvoke(msg, null, null);
+                        log(string.Format("[Deliver] sent event '{0}' to '{1}'", msg, uri));
+                        
                     }
                 }
-            }
-
-
-            List<IAsyncResult> results = new List<IAsyncResult>();
-
-            foreach (KeyValuePair<string, ReceiveDelegate> entry in remoteDelegate)
-            {
-                if (_orderingPolicy == OrderingPolicy.fifo)
-                {
-                    lock (_subToFifoStruct)
-                    {
-                        int index = _subToFifoStruct[entry.Key].FindIndex(item => item._publhisherURI == msg.publisherURI);
-                        if (index >= 0)
-                        {
-                            foreach (PublishMessage _msg in _subToFifoStruct[entry.Key][index].listOfmessages.ToList())
-                            {
-
-                                IAsyncResult result = entry.Value.BeginInvoke(_msg, null, null);
-                                results.Add(result);
-
-                                _subToFifoStruct[entry.Key][index].listOfmessages.Remove(_msg);
-                            }
-                        }
-                    }
-                }
-                else
-                {
-
-                    IAsyncResult result = entry.Value.BeginInvoke(msg, null, null);
-                    results.Add(result);
-                }
-            }
-            List<WaitHandle> handlesLst = new List<WaitHandle>();
-            //TODO ASK PROFESSOR IF WE NEED TO RESEND LOST MESSAGES
+            }     
         }
 
+        private void flooding(PublishMessage receivedMessage,PublishMessage sendingMessage)
+        {
+            lock (_childSites)
+            {
+                foreach (var site in _childSites)
+                {
+                    lock (site)
+                    {
+                        if (site.name != receivedMessage.origin_site)
+                        {
+                            foreach (var broker in site.brokers)
+                            {
+                                // TODO broker.getURI() is slow, we should use a cache                                    
+                                PublishDelegate d = new PublishDelegate(broker.publish);
+                                d.BeginInvoke(sendingMessage, null, null);
+                                log(string.Format("[Flooding Routing] sent event '{0}' to '{1}'", receivedMessage, broker.getURI()));
+                                if (_loggingLevel == LoggingLevel.full)
+                                    c.reportEvent(EventType.BroEvent, getURI(), receivedMessage.publisherURI, receivedMessage.topic, receivedMessage.seqnum);
+                            }
+                        }
+                    }
+                }
+            }
+
+            lock (_parentSiteLock)
+            {
+                if (_parentSite != null && _parentSite.name != receivedMessage.origin_site)
+                {
+                    foreach (Broker broker in _parentSite.brokers)
+                    {
+                        // TODO broker.getURI() is slow, we should use a cache                        
+                        PublishDelegate d = new PublishDelegate(broker.publish);
+                        log(string.Format("[Routing] sent event '{0}' to parent broker '{1}'", sendingMessage, broker.getURI()));
+                        d.BeginInvoke(sendingMessage, null, null);
+
+                        if (_loggingLevel == LoggingLevel.full)
+                            c.reportEvent(EventType.BroEvent, getURI(), sendingMessage.publisherURI, sendingMessage.topic, receivedMessage.seqnum);
+
+
+                    }
+                }
+            }
+
+        }
+
+        private void filter(PublishMessage receivedMessage, PublishMessage sendingMessage)
+        {
+            log(string.Format("[filter]\r\n   receivedMsg:{0}\r\n   sendingMsg:{1}",receivedMessage,sendingMessage));
+            lock (_topicSites)
+            {
+                foreach (var subscribedTopic in _topicSites.Keys)
+                {
+                    if (!equivalentTopic(receivedMessage.topic, subscribedTopic))
+                        continue;
+                    foreach (var site_name in _topicSites[subscribedTopic])
+                    {
+                        if (site_name == receivedMessage.origin_site)
+                            continue;
+                        var site = _nameToSite[site_name];
+                        if (_orderingPolicy == OrderingPolicy.total)
+                        {
+                            throw new Exception("not implemented");
+                        }
+                        else if (_orderingPolicy == OrderingPolicy.fifo)
+                        {
+                            //translate seq_num of the message to send to child_sites
+                            lock (_siteToFifoStruct)
+                            {
+                                if (!_siteToFifoStruct.ContainsKey(site_name))
+                                {
+                                    _siteToFifoStruct.Add(site_name, new List<FIFOstruct>());
+                                }
+                                int index = _siteToFifoStruct[site_name].FindIndex(item => item._publhisherURI == sendingMessage.publisherURI);
+                                if (index < 0)
+                                {
+                                    // element does not exists
+                                    _siteToFifoStruct[site_name].Add(new FIFOstruct(receivedMessage.publisherURI, 0));
+                                    //getIndex Now
+                                    index = _siteToFifoStruct[site_name].FindIndex(item => item._publhisherURI == sendingMessage.publisherURI);
+                                }
+                                var fifo = _siteToFifoStruct[site_name][index];
+                                //create a new message for each site interested sites with possibly a different seqnum
+                                sendingMessage.seqnum = fifo._seq_num;
+                                //fifo.listOfmessages.Add(pmsg);
+                                fifo._seq_num++;
+                            }
+                        }
+
+                        lock (site)
+                        {
+                            foreach (var broker in site.brokers)
+                            {
+                                PublishDelegate d = new PublishDelegate(broker.publish);
+                                // using broker.getURI() increases network traffic
+                                if(_orderingPolicy == OrderingPolicy.total)
+                                {
+                                    throw new Exception("not impl");
+                                }else if (_orderingPolicy == OrderingPolicy.fifo)
+                                {
+                                    d.BeginInvoke(sendingMessage, null, null);
+                                    log(string.Format("[filtering routing -FIFO] sent event '{0}' to '{1}'", sendingMessage, broker.getURI()));
+                                }
+                                else
+                                {
+                                    d.BeginInvoke(sendingMessage, null, null);
+                                    log(string.Format("[filtering routing] sent event '{0}' to '{1}'", sendingMessage, broker.getURI()));                                    
+                                }
+                                if (_loggingLevel == LoggingLevel.full)
+                                    c.reportEvent(EventType.BroEvent, getURI(), sendingMessage.publisherURI, sendingMessage.topic, receivedMessage.seqnum);
+                            }
+                        }
+
+                    }
+                }
+            }
+        }
         private void routing(PublishMessage receivedMessage)
         {
             PublishMessage sendingMessage = new PublishMessage(receivedMessage, _site);
-            seq++;
-            log(seq.ToString());
 
             if (_routingPolicy == RoutingPolicy.flooding)
             {
-                lock (_childSites)
-                {
-                    foreach (var site in _childSites)
-                    {                        
-                        lock (site)
-                        {
-                            if(site.name != receivedMessage.origin_site)
-                            {
-                                foreach (var broker in site.brokers)
-                                {
-                                    // TODO broker.getURI() is slow, we should use a cache
-                                    log(string.Format("[Flooding Routing] sent event '{0}' to '{1}'", receivedMessage, broker.getURI()));
-                                    PropagatePublishDelegate d = new PropagatePublishDelegate(broker.publish);
-                                    d.BeginInvoke(sendingMessage, null, null);
-                                    if (_loggingLevel == LoggingLevel.full)
-                                        c.reportEvent(EventType.BroEvent, getURI(), receivedMessage.publisherURI, receivedMessage.topic, receivedMessage.seqnum);
-                                }
-                            }                            
-                        }
-                    }
-                }
-
-                lock (_parentSiteLock)
-                {
-                    if (_parentSite != null && _parentSite.name != receivedMessage.origin_site)
-                    {
-                        foreach (Broker broker in _parentSite.brokers)
-                        {
-                            // TODO broker.getURI() is slow, we should use a cache                        
-                            PropagatePublishDelegate d = new PropagatePublishDelegate(broker.publish);
-                            log(string.Format("[Routing] sent event '{0}' to parent broker '{1}'", sendingMessage, broker.getURI()));
-                            d.BeginInvoke(sendingMessage, null, null);
-
-                            if (_loggingLevel == LoggingLevel.full)
-                                c.reportEvent(EventType.BroEvent, getURI(), sendingMessage.publisherURI, sendingMessage.topic, receivedMessage.seqnum);
-
-
-                        }
-                    }
-                }
-
+                flooding(receivedMessage, sendingMessage);
             }
             else // routing policy is filtering
             {
-                lock (_topicSites)
-                {
-                    foreach (var subscribedTopic in _topicSites.Keys)
-                    {
-                        if (!equivalentTopic(receivedMessage.topic, subscribedTopic))
-                            continue;
-                        foreach (var site_name in _topicSites[subscribedTopic])
-                        {
-                            if (site_name == receivedMessage.origin_site)
-                                continue;
-                            var site = _nameToSite[site_name];
-                            if (_orderingPolicy == OrderingPolicy.total)
-                            {
-                                throw new Exception("not implemented");
-                            }
-                            else if (_orderingPolicy == OrderingPolicy.fifo)
-                            {
-                                //translate seq_num of the message to send to child_sites
-                                lock (_siteToFifoStruct)
-                                {
-                                    if (!_siteToFifoStruct.ContainsKey(site_name))
-                                    {
-                                        _siteToFifoStruct.Add(site_name, new List<FIFOstruct>());
-                                    }
-                                    int index = _siteToFifoStruct[site_name].FindIndex(item => item._publhisherURI == sendingMessage.publisherURI);
-                                    if (index < 0)
-                                    {
-                                        // element does not exists
-                                        _siteToFifoStruct[site_name].Add(new FIFOstruct(receivedMessage.publisherURI, 0));
-                                        //getIndex Now
-                                        index = _siteToFifoStruct[site_name].FindIndex(item => item._publhisherURI == sendingMessage.publisherURI);
-                                    }
-                                    var fifo = _siteToFifoStruct[site_name][index];
-                                    //create a new message for each site interested sites with possibly a different seqnum
-                                    sendingMessage.seqnum = fifo._seq_num;
-                                    //fifo.listOfmessages.Add(pmsg);
-                                    fifo._seq_num++;
-
-                                    //It's not necessary to register the message in the listOfmessages because the message is imediately sent
-                                    //But you could have to do that way with an assync approach
-                                }
-                            }
-                            
-                            lock (site)
-                            {
-                                foreach (var broker in site.brokers)
-                                {
-                                    PropagatePublishDelegate d = new PropagatePublishDelegate(broker.publish);
-                                    // using broker.getURI() increases network traffic
-                                    if (_orderingPolicy == OrderingPolicy.fifo)
-                                    {
-                                        d.BeginInvoke(sendingMessage, null, null);
-                                        log(string.Format("[filtering routing -FIFO] sent event '{0}' to '{1}'", sendingMessage, broker.getURI()));                                        
-                                    }
-                                    else
-                                    {
-                                        log(string.Format("[filtering routing] sent event '{0}' to '{1}'", sendingMessage, broker.getURI()));
-                                        d.BeginInvoke(sendingMessage, null, null);
-                                    }
-                                    if (_loggingLevel == LoggingLevel.full)
-                                        c.reportEvent(EventType.BroEvent, getURI(), sendingMessage.publisherURI, sendingMessage.topic, receivedMessage.seqnum);
-                                }
-                            }
-
-                        }
-                    }
-                }
-
+                filter(receivedMessage, sendingMessage);
             }
-
         }
 
         private void flooding(PublishMessage msg) { }

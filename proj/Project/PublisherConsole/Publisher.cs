@@ -121,8 +121,8 @@ namespace PublisherConsole
                 // TODO make all calls assyncs
                 log(string.Format("[publish] {0}", msg));
                 c.reportEvent(EventType.PubEvent, getURI(), getURI(), topic, total_seqnum);
-
-                _broker.publish(msg);
+                PublishDelegate d = new PublishDelegate(_broker.publish);
+                d.BeginInvoke(msg,null,null);
             }
 
         }
