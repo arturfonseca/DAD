@@ -808,8 +808,14 @@ namespace BrokerConsole
                     }
                     */
                     fifo.listOfmessages.Add(msg);
-                    fifo.listOfmessages.OrderBy(item => item.seqnum);
-                    log(string.Format("[Publish FIFO]{4}\r\n  Pub:{0} Remaining:{1} next seqnum:{2}. lowest seqnum:{3} ", fifo._publhisherURI, fifo.listOfmessages.Count(), fifo._seq_num, fifo.listOfmessages[0].seqnum, msg));
+                    fifo.listOfmessages = fifo.listOfmessages.OrderBy(item => item.seqnum).ToList();
+                    //log(string.Format("[Publish FIFO]{4}\r\n  Pub:{0} Remaining:{1} next seqnum:{2}. lowest seqnum:{3} ", fifo._publhisherURI, fifo.listOfmessages.Count(), fifo._seq_num, fifo.listOfmessages[0].seqnum, msg));
+                    log(string.Format("[Publish FIFO]{0}", msg));
+                    log(string.Format("fifo.seqnum:{0} Waitng list:", fifo._seq_num));
+                    foreach (var s in fifo.listOfmessages)
+                    {
+                        log(string.Format(" seqnum:{0}", s.seqnum));
+                    }
                     foreach (PublishMessage _msg in fifo.listOfmessages.ToList())
                     {
                         if (_msg.seqnum == fifo._seq_num)

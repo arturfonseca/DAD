@@ -3,4 +3,4 @@ Subscriber subscriber1 Subscribe /p00-0
 Wait 3000
 Status
 Wait 1000
-Publisher publisher00 Publish 10 Ontopic /p00-0 Interval 50
+Publisher publisher00 Publish 10 Ontopic /p00-0 Interval 1
