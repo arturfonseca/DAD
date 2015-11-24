@@ -78,5 +78,10 @@ namespace SubscriberConsole
         {
             Text = t;
         }
+
+        private void logTextBox_TextChanged(object sender, EventArgs e)
+        {
+
+        }
     }
 }
