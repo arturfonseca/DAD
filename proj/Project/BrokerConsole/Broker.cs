@@ -933,7 +933,7 @@ namespace BrokerConsole
                     var fifo = _fifostructs[index];
                     //TODO Verify duplicates
                     fifo.listOfmessages.Add(msg);
-                    fifo.listOfmessages.OrderBy(item => item.seqnum);
+                    fifo.listOfmessages.Sort((x, y) => x.seqnum - y.seqnum);
                    
                     //DEBUG ListOfMessages
                     /*  foreach (PublishMessage _msg in fifo.listOfmessages)
