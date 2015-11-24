@@ -40,6 +40,7 @@ namespace DADInterfaces
     public delegate void PropagatePublishDelegate(PropagatedPublishMessage msg);
     public delegate void SubscribeDelegate(SubscribeMessage msg);
     public delegate void UnsubscribeDelegate(UnsubscribeMessage msg);
+    public delegate void PublishDelegate(PublishMessage msg);
     public interface Broker: Node
     {
         void setIsRoot();
