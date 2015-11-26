@@ -467,6 +467,7 @@ namespace PuppetMastersCoordinatorGUI
                 }
 
             }
+            logCommandExternalThread("FINISHED...\r\n");
         }
 
         private void button3_Click(object sender, EventArgs e)
@@ -547,6 +548,16 @@ namespace PuppetMastersCoordinatorGUI
         private void Form1_Load(object sender, EventArgs e)
         {
 
+        }
+
+        private void button11_Click(object sender, EventArgs e)
+        {
+            OpenFileDialog ofd = new OpenFileDialog();
+            ofd.ShowDialog();
+            Stream stream = ofd.OpenFile();
+            StreamReader reader = new StreamReader(stream);
+            String s = reader.ReadToEnd();
+            logCommand(s);
         }
     }
 }

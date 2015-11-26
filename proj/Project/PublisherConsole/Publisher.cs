@@ -116,14 +116,13 @@ namespace PublisherConsole
                 string cc = "";
                 cc = string.Format("[Content]PublisherURI:'{0}' seqnum:{1} timestamp:{2}", getURI(), total_seqnum, DateTime.Now.ToString());
 
-                var msg = new PublishMessage() { publisherURI = getURI(), seqnum = total_seqnum, origin_seqnum = total_seqnum, topic = topic, content = cc };
+                var msg = new PublishMessage() { publisherURI = getURI(), seqnum = total_seqnum, origin_seqnum = total_seqnum, topic = topic, content = cc, origin_site = null};
 
                 // TODO make all calls assyncs
                 log(string.Format("[publish] {0}", msg));
                 c.reportEvent(EventType.PubEvent, getURI(), getURI(), topic, total_seqnum);
                 PublishDelegate d = new PublishDelegate(_broker.publish);
                 d.BeginInvoke(msg,null,null);
-                //_broker.publish(msg);
             }
 
         }

@@ -83,26 +83,15 @@ namespace DADInterfaces
     public class PublishMessage
     {
         //sender URI
-        public string publisherURI;
-        // used to avoid duplicates
-
-        public int seqnum;
         public int origin_seqnum;
+        public string publisherURI;
+        public int seqnum;
         public string topic;
         public string content;
-
-        public override string ToString()
-        {
-            return string.Format("[PublishMessage] publisher_uri:'{0}' topic:'{1}' content :'{2}' total_seqnum :'{3}'",
-                publisherURI, topic, content, seqnum);
-        }
-
-    }
-    [Serializable]
-    public class PropagatedPublishMessage : PublishMessage
-    {
         public string origin_site;
-        public PropagatedPublishMessage(PublishMessage msg, string site)
+
+        public PublishMessage() { }
+        public PublishMessage(PublishMessage msg, string site)
         {
             publisherURI = msg.publisherURI;
             seqnum = msg.seqnum;
@@ -111,11 +100,16 @@ namespace DADInterfaces
             content = msg.content;
             origin_site = site;
         }
+
         public override string ToString()
         {
+            string origin_site = "none";
+            if (this.origin_site != null)
+                origin_site = this.origin_site;
             return String.Format(
-                "[PropagatedPublishMessage] publisher_uri:'{0}', total_seqnum:'{1}', topic:'{2}' content:'{3}', source_site:'{4}'",
-                publisherURI, seqnum, topic, content, origin_site);
+
+                "[PublishMessage] publisher_uri:'{0}', source_site:'{1}', topic:'{2}' content:'{3}', seqnum:'{4}', origin_seqnum:'{5}'",
+                publisherURI, origin_site,topic,"",seqnum,origin_seqnum );
         }
     }
 }

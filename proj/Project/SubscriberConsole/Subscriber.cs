@@ -202,7 +202,7 @@ namespace SubscriberConsole
                         {
                             //Message needed received , can now print
                             c.reportEvent(EventType.SubEvent, getURI(), _msg.publisherURI, _msg.topic, _msg.origin_seqnum);
-                            log(string.Format("Received. topic:'{0}' content:'{1}'", _msg.topic, _msg.content));
+                            log(string.Format("[Received]{0}", _msg));
 
                             //Message sent , increment seq_num and delete delivered message
                             fifo._seq_num++;
@@ -219,7 +219,8 @@ namespace SubscriberConsole
                 lock (c)
                 {
                     c.reportEvent(EventType.SubEvent, getURI(), m.publisherURI, m.topic, m.seqnum);
-                    log(string.Format("Received. topic:'{0}' content:'{1}'", m.topic, m.content));
+                    log(string.Format("[Received]{0}", m));
+
                 }
                 
             }

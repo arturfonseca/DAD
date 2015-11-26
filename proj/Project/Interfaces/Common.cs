@@ -37,10 +37,10 @@ namespace DADInterfaces
 
     public delegate void PropagateSubscribeDelegate(PropagatedSubcribeMessage msg);
     public delegate void PropagateUnsubscribeDelegate(PropagatedUnsubscribeMessage msg);
-    public delegate void PropagatePublishDelegate(PropagatedPublishMessage msg);
+    public delegate void PublishDelegate(PublishMessage msg);
     public delegate void SubscribeDelegate(SubscribeMessage msg);
     public delegate void UnsubscribeDelegate(UnsubscribeMessage msg);
-    public delegate void PublishDelegate(PublishMessage msg);
+ 
     public interface Broker: Node
     {
         void setIsRoot();
@@ -59,10 +59,10 @@ namespace DADInterfaces
         void unsubscribe(UnsubscribeMessage msg);
         // method called by Publisher
         void publish(PublishMessage msg);
+        int getTotalOrderSequenceNumber();
         // methods called by other Brokers
         void propagateSubscribe(PropagatedSubcribeMessage msg);
         void propagateUnsubscribe(PropagatedUnsubscribeMessage msg);
-        void propagatePublish(PropagatedPublishMessage msg);
             
     }
     public interface Publisher: Node
