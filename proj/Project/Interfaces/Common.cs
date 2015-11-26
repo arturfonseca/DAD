@@ -58,7 +58,7 @@ namespace DADInterfaces
         void unsubscribe(UnsubscribeMessage msg);
         // method called by Publisher
         void publish(PublishMessage msg);
-        int getTotalOrderSequenceNumber();
+        TOSeqnumRequest getTotalOrderSequenceNumber();
         // methods called by other Brokers
         void propagateSubscribe(PropagatedSubcribeMessage msg);
         void propagateUnsubscribe(PropagatedUnsubscribeMessage msg);
@@ -68,6 +68,7 @@ namespace DADInterfaces
     {
         void setSiteBroker(Broker site_broker);
         void publish(string topic, string msg, int quantity, int interval);
+        void setOrderingPolicy(OrderingPolicy p);
     }
     public delegate void ReceiveDelegate(PublishMessage p);
     public interface Subscriber: Node

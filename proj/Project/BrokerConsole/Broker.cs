@@ -67,10 +67,10 @@ namespace BrokerConsole
         private Object _parentSiteLock = new object();
         private Site _parentSite;
         private ICoordinator c;
-        private int seq;
-        private string _coordinatorURI;     
+        private string _coordinatorURI;
 
-
+        // Used for logging, to identify to which event a log belongs to
+        private int _eventnum = 0;
         ///////////FIFO/////////
         private Dictionary<string, List<FIFOstruct>> _siteToFifoStruct = new Dictionary<string, List<FIFOstruct>>();
         private Dictionary<string, List<FIFOstruct>> _subToFifoStruct = new Dictionary<string, List<FIFOstruct>>();
@@ -83,7 +83,14 @@ namespace BrokerConsole
         private object _freezedLock = new object();
         private List<PublishMessage> _freezedPublishMessages = new List<PublishMessage>();
         private List<PublishMessage> _freezedPropagatedPublishMessages = new List<PublishMessage>();
-        
+
+        // TOTAL ORDER = TO
+        private object _TOSeqnumLock = new object();
+        private int _TOSeqnum = 0;
+        private Dictionary<string, int> _siteTOSeqnum = new Dictionary<string, int>();
+        private Dictionary<string, int> _subTOSeqnum = new Dictionary<string, int>();
+
+
 
         public BrokerRemote(Form1 form, PuppetMaster pm, string uri, string name, string site, string addr, string processName)
         {
@@ -94,15 +101,11 @@ namespace BrokerConsole
             _site = site;
             _orderingPolicy = OrderingPolicy.fifo;
             _routingPolicy = RoutingPolicy.flooding;
-            seq = 0;
             _coordinatorURI = addr;
             _processName = processName;
         }
 
-        private bool isSequencer()
-        {
-            return _parentSite == null;
-        }
+       
 
         public override object InitializeLifetimeService()
         {
@@ -157,12 +160,23 @@ namespace BrokerConsole
             {
                 _nameToSite.Add(s.name, s);
             }
+            if (_orderingPolicy == OrderingPolicy.total)
+            {
+                foreach(Site s in child_sites)
+                {
+                    _siteTOSeqnum.Add(s.name, 0);
+                }
+            }
         }
 
         public void setParent(Site parent_site)
         {
             _parentSite = parent_site;
             _nameToSite.Add(_parentSite.name, _parentSite);
+            if(_orderingPolicy == OrderingPolicy.total)
+            {
+                _siteTOSeqnum.Add(_parentSite.name, 0);
+            }
         }
 
         public void setPublishers(List<Publisher> site_publishers)
@@ -183,6 +197,14 @@ namespace BrokerConsole
                 _uriToSubs.Add(s.getURI(), s);
 
             }
+            if (_orderingPolicy == OrderingPolicy.total)
+            {
+                foreach (Subscriber s in site_subscribers)
+                {
+                    _subTOSeqnum.Add(s.getURI(), 0);
+                }
+            }
+               
         }
 
         public void setIsRoot()
@@ -194,6 +216,11 @@ namespace BrokerConsole
         {
             return _isRoot;
         }
+
+        public void addChild(Site s) { }
+        public void removeChild(Site s) { }
+        public void addSubscriber(Subscriber s) { }
+        public void removeSubscriber(Subscriber s) { }
 
         // Puppet Master functions
         public void crash()
@@ -326,10 +353,36 @@ namespace BrokerConsole
         {
             _form.log(e);
         }
-
-        public int getTotalOrderSequenceNumber()
+        void log(int s, object e)
         {
-            return 0;
+            _form.log(string.Format("[job {0}]{1}", s, e));
+        }
+
+        private bool isSequencer()
+        {
+            lock (_parentSiteLock)
+            {
+                return _parentSite == null;
+            }
+        }
+
+        public TOSeqnumRequest getTotalOrderSequenceNumber()
+        {
+            TOSeqnumRequest req = null;
+            if (isSequencer())
+            {
+                lock (_TOSeqnumLock)
+                {
+                    req = new TOSeqnumRequest() { sequencerURI = _processName, seqnum = _TOSeqnum };
+                    _TOSeqnum++;
+                }                
+            }
+            else
+            {
+                req = _parentSite.brokers[0].getTotalOrderSequenceNumber();
+            }
+            return req;
+            
         }
 
         public void subscribe(SubscribeMessage msg)
@@ -777,8 +830,7 @@ namespace BrokerConsole
         {
             // FLOODING implementation
             // TODO discart if duplicate message
-            // TODO make all calls assyncs
-            string buf = "";            
+            // TODO make all calls assyncs        
             if (_orderingPolicy == OrderingPolicy.total)
             {
                 log(string.Format("[Publish TOTAL] Received event '{0}'", msg));

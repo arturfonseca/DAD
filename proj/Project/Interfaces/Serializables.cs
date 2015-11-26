@@ -20,6 +20,16 @@ namespace DADInterfaces
         public List<Broker> brokers;
     }
 
+    [Serializable]
+    public class TOSeqnumRequest
+    {
+        public string sequencerURI;
+        public int seqnum;
+        public override string ToString()
+        {
+            return string.Format("[TOSeqnumRequest] sequencer='{0}' seqnum='{1}' topic='{2}'", sequencerURI,seqnum);
+        }
+    }
 
     /* Messages */
     [Serializable]
