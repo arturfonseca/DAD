@@ -35,14 +35,15 @@ namespace DADInterfaces
     [Serializable]
     public class SubscribeMessage
     {
-        public string uri;
-        public Subscriber sub;
+        public string uri = null;
+        public Subscriber sub = null;
         // used to avoid duplicates
-        public int seqnum;
-        public string topic;
+        public int seqnum = 0;
+        public string topic = null;
+        public string interested_site=null;
         public override string ToString()
         {
-            return string.Format("[SubscribeMessage] uri:'{0}' seqnum:'{1}' topic:'{2}'", uri, seqnum, topic);
+            return string.Format("[SubscribeMessage] uri:'{0}' topic='{1}' interested_site='{2}' seqnum='{3}'", uri, topic, interested_site, seqnum);
         }
     }
     [Serializable]
@@ -55,34 +56,9 @@ namespace DADInterfaces
     }
 
     [Serializable]
-    // This message is sent from a Broker to a parent broker
-    public class PropagatedSubcribeMessage
+    public class PropagatedUnsubscribeMessage : SubscribeMessage
     {
-        // used to avoid duplicates
-        public int seqnum;
-        public string topic;
-        public string uri;
-        // name of the interested child site
-        public string interested_site;
-        public PropagatedSubcribeMessage(SubscribeMessage msg, string site)
-        {
-            seqnum = msg.seqnum;
-            topic = msg.topic;
-            uri = msg.uri;
-            interested_site = site;
-        }
-        public override string ToString()
-        {
-            return string.Format("[PropagatedSubcribeMessage] subscriber_uri:'{0}' topic:'{1}' interested_site:'{2}' seqnum:'{3}'", uri, topic, interested_site, seqnum);
-        }
-    }
-    [Serializable]
-    public class PropagatedUnsubscribeMessage : PropagatedSubcribeMessage
-    {
-        public PropagatedUnsubscribeMessage(UnsubscribeMessage msg, string site) : base(msg, site)
-        {
-        }
-
+       
         public override string ToString()
         {
             return string.Format("[PropagatedUnsubscribeMessage] seqnum:'{0}' topic:'{1}' interested_site:'{2}'", seqnum, topic, interested_site);
@@ -99,7 +75,7 @@ namespace DADInterfaces
         public int seqnum;
         public string topic;
         public string content;
-        public string origin_site;
+        public string originSite = null;
         public int eventnum;
 
         public PublishMessage() { }
@@ -110,14 +86,14 @@ namespace DADInterfaces
             originalSeqnum = msg.originalSeqnum;
             topic = msg.topic;
             content = msg.content;
-            origin_site = site;
+            originSite = site;
         }
 
         public override string ToString()
         {
             string origin_site = "none";
-            if (this.origin_site != null)
-                origin_site = this.origin_site;
+            if (this.originSite != null)
+                origin_site = this.originSite;
             return String.Format(
 
                 "[PublishMessage] publisher:{0} source_site:{1} topic:{2} content:{3} seqnum:{4} originalSeqnum:{5}",

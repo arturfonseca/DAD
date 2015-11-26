@@ -273,14 +273,11 @@ namespace SubscriberConsole
         {
             lock (thisLock)
             {
-                // TODO LOG
                 if (_subscribedTopics.Contains(topic))
                 {
-                    // do nothing, should we? keep-alive in the future? who knows...
                     return;
                 }
                 _subscribedTopics.Add(topic);
-                // TODO make all calls assyncs
                 SubscribeMessage msg = new SubscribeMessage() { sub = this, seqnum = _seqnum, topic = topic, uri = getURI() };
                 log(msg.ToString());
                 SubscribeDelegate pd = new SubscribeDelegate(_broker.subscribe);

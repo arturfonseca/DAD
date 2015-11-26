@@ -129,7 +129,7 @@ namespace PublisherConsole
             int eventnum = getEventnum();
             var cc = string.Format("publisher name {0}. seqnum {1}", _processName, eventnum);
             var msg = new PublishMessage() { publisherURI = getURI(), seqnum = eventnum,
-                originalSeqnum = eventnum, topic = topic, content = cc, origin_site = null,
+                originalSeqnum = eventnum, topic = topic, content = cc, originSite = null,
                 publisherName = _processName
             };
 
