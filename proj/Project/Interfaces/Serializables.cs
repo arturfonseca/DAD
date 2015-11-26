@@ -30,9 +30,10 @@ namespace DADInterfaces
         // used to avoid duplicates
         public int seqnum;
         public string topic;
+        public string interested_site;
         public override string ToString()
         {
-            return string.Format("[SubscribeMessage] uri='{0}' seqnum='{1}' topic='{2}'", uri, seqnum, topic);
+            return string.Format("[SubscribeMessage] subscriber_uri:'{0}' topic='{1}' interested_site='{2}' seqnum='{3}'", uri, topic, interested_site, seqnum);
         }
     }
     [Serializable]
@@ -45,34 +46,9 @@ namespace DADInterfaces
     }
 
     [Serializable]
-    // This message is sent from a Broker to a parent broker
-    public class PropagatedSubcribeMessage
+    public class PropagatedUnsubscribeMessage : SubscribeMessage
     {
-        // used to avoid duplicates
-        public int seqnum;
-        public string topic;
-        public string uri;
-        // name of the interested child site
-        public string interested_site;
-        public PropagatedSubcribeMessage(SubscribeMessage msg, string site)
-        {
-            seqnum = msg.seqnum;
-            topic = msg.topic;
-            uri = msg.uri;
-            interested_site = site;
-        }
-        public override string ToString()
-        {
-            return string.Format("[PropagatedSubcribeMessage] subscriber_uri:'{0}' topic='{1}' interested_site='{2}' seqnum='{3}'", uri, topic, interested_site, seqnum);
-        }
-    }
-    [Serializable]
-    public class PropagatedUnsubscribeMessage : PropagatedSubcribeMessage
-    {
-        public PropagatedUnsubscribeMessage(UnsubscribeMessage msg, string site) : base(msg, site)
-        {
-        }
-
+       
         public override string ToString()
         {
             return string.Format("[PropagatedUnsubscribeMessage] seqnum='{0}' topic='{1}' interested_site='{2}'", seqnum, topic, interested_site);

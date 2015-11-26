@@ -58,11 +58,15 @@ namespace BrokerConsole
 
         // Child sites
         private List<Site> _childSites = new List<Site>();
+       
         // site_name to Site
         private Dictionary<string, Site> _nameToSite = new Dictionary<string, Site>();
         // key = topic, value = list of interested sites
         Dictionary<string, List<string>> _topicSites = new Dictionary<string, List<string>>();
         Dictionary<string, List<string>> _topicChildSites = new Dictionary<string, List<string>>();
+
+        //Used in subscritions  <site.name, ListofTopicsPropagated>
+        Dictionary<string, List<string>> _siteToPropagatedSub = new Dictionary<string, List<string>>();
         // can be null
         private Object _parentSiteLock = new object();
         private Site _parentSite;
@@ -334,183 +338,107 @@ namespace BrokerConsole
 
         public void subscribe(SubscribeMessage msg)
         {
-            log(string.Format("[Subscribe] Received event '{0}'", msg));
-            // To solve duplicate propagatedSubscribedMessages
-            bool isNewTopic = false;
-            bool canPropagateToParent = false;
-
-            lock (_topicSubscribers)
-            {
-                if (!_topicSubscribers.ContainsKey(msg.topic))
-                {
-                    //This broker didn't send a propagatedSubscribedMessage with this topic till now
-                    if (!_topicSites.ContainsKey(msg.topic))
-                    {
-                        isNewTopic = true;
-                    }
-                    _topicSubscribers.Add(msg.topic, new List<string>());
-                    
-                }
-                _topicSubscribers[msg.topic].Add(msg.uri);
-            }
-
-            lock (_topicChildSites)
-            {
-                
-                    if (!_topicChildSites.ContainsKey(msg.topic))
-                    {
-                        //This broker didn't send a propagatedSubscribedMessage with this topic till now
-                        if (!_topicChildSites.ContainsKey(msg.topic))
-                        {
-                            canPropagateToParent = true;
-                        }
-
-                      _topicChildSites.Add(msg.topic, new List<string>());
-
-                    }
-                    _topicChildSites[msg.topic].Add(msg.uri);
-                
-            }
-            //Only send a propagatedSubscribedMessage per Topic
-            if (canPropagateToParent)
-            {
-                PropagatedSubcribeMessage pmsg = new PropagatedSubcribeMessage(msg, _site);
-                // propagate subscribe to parent, taking advantage of tree strucure
-                lock (_parentSiteLock)
-                {
-                    if (_parentSite != null)
-                    {
-                        foreach (Broker b in _parentSite.brokers)
-                        {
-                            //TODO assyncronous
-                            log(string.Format("[subscribe] sending '{0}' to parent site '{1}'", pmsg, _parentSite.name));
-                            b.propagateSubscribe(pmsg);
-                        }
-                    }
-                }
-            }
-            if (isNewTopic)
-            {
-                PropagatedSubcribeMessage pmsg = new PropagatedSubcribeMessage(msg, _site);
-                lock (_childSites)
-                {
-                    foreach (var s in _childSites)
-                    {
-                        lock (s)
-                        {
-                            
-                            foreach (var b in s.brokers)
-                            {
-                                log(string.Format("[subscribe] sending '{0}' to child site '{1}'", pmsg, s.name));
-                                //TODO assync
-                                b.propagateSubscribe(pmsg);
-                            }
-
-                        }
-                    }
-                }
-            }
-
-        }
-
-        public void propagateSubscribe(PropagatedSubcribeMessage msg)
-        {
             string origin_site = msg.interested_site;
-            log(string.Format("[propagateSubscribe] Received event '{0}'", msg));
 
-
-            // To solve duplicate propagatedSubscribedMessages
-            bool isNewTopic = false;
-            bool canPropagateToParent = false;
-
-            lock (_topicSites)
+            if (origin_site == null)
             {
-                if (!_topicSites.ContainsKey(msg.topic))
+                log(string.Format("[Subscribe] Received event '{0}'", msg));
+                lock (_topicSubscribers)
                 {
-                    //This broker didn't send a propagatedSubscribedMessage with this topic till now
                     if (!_topicSubscribers.ContainsKey(msg.topic))
                     {
-                        isNewTopic = true;
+                        _topicSubscribers.Add(msg.topic, new List<string>());
+
                     }
-                    _topicSites.Add(msg.topic, new List<string>());
-                   
+                    _topicSubscribers[msg.topic].Add(msg.uri);
                 }
-                _topicSites[msg.topic].Add(msg.interested_site);
+            }
+            else
+            {
+                log(string.Format("[propagateSubscribe] Received event '{0}'", msg));
+                lock (_topicSites)
+                {
+                    if (!_topicSites.ContainsKey(msg.topic))
+                    {
+                        _topicSites.Add(msg.topic, new List<string>());
+                    }
+                    _topicSites[msg.topic].Add(msg.interested_site);
+                }
             }
 
-            lock (_topicChildSites)
+            msg.interested_site = _site;
+            // propagate subscribe to parent, taking advantage of tree strucure
+            lock (_parentSiteLock)
             {
-               
                 if (_parentSite != null)
                 {
-                    if (_parentSite.name != origin_site)
-                    {
 
-                        if (!_topicChildSites.ContainsKey(msg.topic))
+                    if (origin_site == null || _parentSite.name != origin_site)
+                    {
+                        lock (_siteToPropagatedSub)
                         {
-                            //This broker didn't send a propagatedSubscribedMessage with this topic till now
-                            if (!_topicSubscribers.ContainsKey(msg.topic))
+                            if (!_siteToPropagatedSub.ContainsKey(_parentSite.name))
                             {
-                                canPropagateToParent = true;
+                                _siteToPropagatedSub.Add(_parentSite.name, new List<string>());
                             }
 
-                            _topicChildSites.Add(msg.topic, new List<string>());
-
-                        }
-                        _topicChildSites[msg.topic].Add(msg.interested_site);
-                    }
-                }
-            }
-
-            //Only send a propagatedSubscribedMessage per Topic
-            if (canPropagateToParent)
-            {
-                msg.interested_site = _site;
-                lock (_parentSiteLock)
-                {
-                    if (_parentSite != null)
-                    {
-                        if (_parentSite.name != origin_site)
-                        {
-                            foreach (var b in _parentSite.brokers)
+                            if (!_siteToPropagatedSub[_parentSite.name].Contains(msg.topic))
                             {
-                                log(string.Format("[propagateSubscribe] sending '{0}' to parent site '{1}'", msg, _parentSite.name));
-                                //TODO assync
-                                b.propagateSubscribe(msg);
-                            }
-                        }
-                    }
-                }
-            }
-
-            if (isNewTopic)
-            {
-                msg.interested_site = _site;
-                lock (_childSites)
-                {
-                   
-                    foreach (var s in _childSites)
-                    {
-                        lock (s)
-                        {
-                           
-                            if (s.name != origin_site)
-                            {
-                                
-                                foreach (var b in s.brokers)
+                                _siteToPropagatedSub[_parentSite.name].Add(msg.topic);
+                                foreach (var b in _parentSite.brokers)
                                 {
-                                   
-                                    log(string.Format("[propagateSubscribe] sending '{0}' to child site '{1}'", msg, s.name));
-                                    //TODO assync
-                                    b.propagateSubscribe(msg);
+                                    //TODO assyncronous
+                                    if (origin_site == null) { 
+                                        log(string.Format("[subscribe] sending '{0}' to parent site '{1}'", msg, _parentSite.name));
+                                    }else{
+                                        log(string.Format("[propagateSubscribe] sending '{0}' to parent site '{1}'", msg, _parentSite.name));
+                                    }
+                                    b.subscribe(msg);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+                          
+            lock (_childSites)
+            {
+                foreach (var s in _childSites)
+                {
+                    lock (s)
+                    {
+                        if (origin_site==null || s.name != origin_site)
+                        {
+                            lock (_siteToPropagatedSub)
+                            {
+                                if (!_siteToPropagatedSub.ContainsKey(s.name))
+                                {
+                                    _siteToPropagatedSub.Add(s.name, new List<string>());
                                 }
 
+                                if (!_siteToPropagatedSub[s.name].Contains(msg.topic))
+                                {
+                                    _siteToPropagatedSub[s.name].Add(msg.topic);
+                                    foreach (var b in s.brokers)
+                                    {
+                                        if (origin_site == null)
+                                        {
+                                            log(string.Format("[subscribe] sending '{0}' to child site '{1}'", msg, s.name));
+                                        }else {
+                                            log(string.Format("[propagateSubscribe] sending '{0}' to child site '{1}'", msg, s.name));
+                                        }
+                                            
+                                        //TODO assync
+                                        b.subscribe(msg);
+                                    }
+                                }
                             }
                         }
+
                     }
                 }
-
             }
+            
 
         }
 
@@ -554,7 +482,7 @@ namespace BrokerConsole
             }
             if (isLastTopic)
             {
-                PropagatedUnsubscribeMessage pmsg = new PropagatedUnsubscribeMessage(msg, _site);
+                msg.interested_site = _site;
                 // propagate unsubscribe only to parent, taking advantage of tree strucure
                 lock (_parentSiteLock)
                 {
@@ -562,9 +490,9 @@ namespace BrokerConsole
                     {
                         foreach (Broker b in _parentSite.brokers)
                         {
-                            log(string.Format("[Unsubscribe] sending '{0}' to parent site '{1}'", pmsg, _parentSite.name));
+                            log(string.Format("[Unsubscribe] sending '{0}' to parent site '{1}'", msg, _parentSite.name));
                             // TODO assyncronous
-                            b.propagateUnsubscribe(pmsg);
+                            b.unsubscribe(msg);
                         }
                     }
                 }
@@ -576,9 +504,9 @@ namespace BrokerConsole
                         {
                             foreach (var b in s.brokers)
                             {
-                                log(string.Format("[Unsubscribe] sending '{0}' to child site '{1}'", pmsg, s.name));
+                                log(string.Format("[Unsubscribe] sending '{0}' to child site '{1}'", msg, s.name));
                                 //TODO assync
-                                b.propagateUnsubscribe(pmsg);
+                                b.unsubscribe(msg);
                             }
                         }
                     }
@@ -588,7 +516,7 @@ namespace BrokerConsole
             {
                 if (remainingOneSubscrition)
                 {
-                    PropagatedUnsubscribeMessage pmsg = new PropagatedUnsubscribeMessage(msg, _site);
+                    msg.interested_site = _site;
                     var site_names = _topicSites[msg.topic];
                     //only exists 1 occurence
                     if (site_names.Count == 1)
@@ -600,9 +528,9 @@ namespace BrokerConsole
                             {
                                 foreach (var b in site.brokers)
                                 {
-                                    log(string.Format("[Unsubscribe] sending '{0}' to site '{1}'", pmsg, s_name));
+                                    log(string.Format("[Unsubscribe] sending '{0}' to site '{1}'", msg, s_name));
                                     //TODO assync
-                                    b.propagateUnsubscribe(pmsg);
+                                    b.unsubscribe(msg);
                                 }
                             }
                         }
@@ -610,8 +538,8 @@ namespace BrokerConsole
                 }
             }
         }
-       
-        public void propagateUnsubscribe(PropagatedUnsubscribeMessage msg)
+/*   
+        public void propagateUnsubscribe(UnsubscribeMessage msg)
         {
             log(string.Format("[propagateUnsubscribe] Received event '{0}'", msg));
             //We should only propagate the unsubscriveMessage if there is no more sites 
@@ -716,7 +644,7 @@ namespace BrokerConsole
                 }
             }
         }
-
+*/
 
 
 

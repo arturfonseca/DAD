@@ -266,7 +266,7 @@ namespace SubscriberConsole
                 }
                 _subscribedTopics.Add(topic);
                 // TODO make all calls assyncs
-                SubscribeMessage msg = new SubscribeMessage() { sub = this, seqnum = _seqnum, topic = topic, uri = getURI() };
+                SubscribeMessage msg = new SubscribeMessage() { sub = this, seqnum = _seqnum, topic = topic, uri = getURI(), interested_site=null };
                 log(string.Format("Subscribe. '{0}'", msg));
                 SubscribeDelegate pd = new SubscribeDelegate(_broker.subscribe);
                 pd.BeginInvoke(msg,null,null);

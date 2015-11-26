@@ -35,7 +35,6 @@ namespace DADInterfaces
        
     }
 
-    public delegate void PropagateSubscribeDelegate(PropagatedSubcribeMessage msg);
     public delegate void PropagateUnsubscribeDelegate(PropagatedUnsubscribeMessage msg);
     public delegate void PublishDelegate(PublishMessage msg);
     public delegate void SubscribeDelegate(SubscribeMessage msg);
@@ -60,9 +59,7 @@ namespace DADInterfaces
         // method called by Publisher
         void publish(PublishMessage msg);
         int getTotalOrderSequenceNumber();
-        // methods called by other Brokers
-        void propagateSubscribe(PropagatedSubcribeMessage msg);
-        void propagateUnsubscribe(PropagatedUnsubscribeMessage msg);
+        
             
     }
     public interface Publisher: Node
