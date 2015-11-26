@@ -18,7 +18,7 @@ namespace PublisherConsole
         public Form1(string[] args)
         {
             InitializeComponent();
-            logFormat("Started Publisher, pid=\"{0}\"", Process.GetCurrentProcess().Id);
+            logFormat("Started Process, pid=\"{0}\"", Process.GetCurrentProcess().Id);
             Text = "Publisher ";
             int nargs = 6;
             if (args.Length != nargs)
@@ -33,7 +33,7 @@ namespace PublisherConsole
             string addr = args[4];
             string processName = args[5];
             string channelURI = Utility.setupChannel(port);
-            Text += name;
+            Text = string.Format("{0} {1}", processName, site);
 
             // get the puppetMaster that started this process
             PuppetMaster pm = (PuppetMaster)Activator.GetObject(typeof(PuppetMaster), puppetMasterURI);
@@ -41,8 +41,7 @@ namespace PublisherConsole
             //we need to register each remote object
             ObjRef o = RemotingServices.Marshal(publisher, name, typeof(Publisher));
             publisher.setURI(string.Format("{0}/{1}", channelURI, name));
-            logFormat("Created Publisher at site:\"{0}\" uri:\"{1}\"", site, publisher.getURI());
-
+            log(publisher.ToString());
             //now that broker is created and marshalled
             //send remote to puppetMaster which is Monitor.waiting for the remote            
             pm.registerPublisher(publisher);

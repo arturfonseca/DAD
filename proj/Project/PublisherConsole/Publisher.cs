@@ -18,13 +18,14 @@ namespace PublisherConsole
         private string _site;
         private string _uri;
         private Broker _broker;
-        private int _total_seqnum;
-        private Object thisLock = new Object();
+        private int _eventnum = 0;
+        private Object _eventnumLock = new Object();
         private ICoordinator c;
         private bool _freezed = false;
         private List<ThreadStart> _freezedThreads = new List<ThreadStart>();
         private string _processName;
         private Form1 _form;
+        private OrderingPolicy _orderingPolicy;
 
         public PublisherRemote(Form1 form,PuppetMaster pm, string name, string site, string addr, string processName)
         {
@@ -35,6 +36,15 @@ namespace PublisherConsole
             _processName = processName;
             c = (ICoordinator)Activator.GetObject(typeof(ICoordinator), addr);
         }
+
+
+        public override string ToString()
+        {
+            return string.Format("[Publisher] name:{0} uri:{1} site:{2}", _processName, _uri, _site);
+        }
+
+
+
 
         public override object InitializeLifetimeService()
         {
@@ -105,26 +115,35 @@ namespace PublisherConsole
         {
 
         }
-        delegate void publish_delegate(string topic, string content, int quantity, int interval);
 
+        private int getEventnum()
+        {
+            lock (_eventnumLock){
+                int ret = _eventnum;
+                _eventnum++;
+                return ret;
+            }
+        }
         private void publish_work(string topic, string content)
         {
-            lock (thisLock)
+            int eventnum = getEventnum();
+            var cc = string.Format("publisher name {0}. seqnum {1}", _processName, eventnum);
+            var msg = new PublishMessage() { publisherURI = getURI(), seqnum = eventnum,
+                originalSeqnum = eventnum, topic = topic, content = cc, origin_site = null,
+                publisherName = _processName
+            };
+
+            if (_orderingPolicy == OrderingPolicy.total)
             {
-                int total_seqnum = _total_seqnum;
-                _total_seqnum += 1;
-                string cc = "";
-                cc = string.Format("[Content]PublisherURI:'{0}' seqnum:{1} timestamp:{2}", getURI(), total_seqnum, DateTime.Now.ToString());
-
-                var msg = new PublishMessage() { publisherURI = getURI(), seqnum = total_seqnum, origin_seqnum = total_seqnum, topic = topic, content = cc, origin_site = null};
-
-                // TODO make all calls assyncs
-                log(string.Format("[publish] {0}", msg));
-                c.reportEvent(EventType.PubEvent, getURI(), getURI(), topic, total_seqnum);
-                PublishDelegate d = new PublishDelegate(_broker.publish);
-                d.BeginInvoke(msg,null,null);
-            }
-
+                TOSeqnumRequest req = _broker.getTotalOrderSequenceNumber();
+                log(eventnum,req.ToString());
+                msg.seqnum = req.seqnum;
+            }            
+            // TODO make all calls assyncs
+            log(eventnum,msg);
+            c.reportEvent(EventType.PubEvent, _uri, _uri, topic, msg.seqnum);
+            PublishDelegate d = new PublishDelegate(_broker.publish);
+            d.BeginInvoke(msg,null,null);
         }
 
         private void publish_job(string topic, string content, int quantity, int interval)
@@ -183,7 +202,10 @@ namespace PublisherConsole
         }
 
 
-
+        void log(int s, object e)
+        {
+            _form.log(string.Format("[job:{0}]{1}",s,e));
+        }
         void log(string e)
         {
             _form.log(e);
@@ -197,6 +219,11 @@ namespace PublisherConsole
         public string getServiceName()
         {
             return _serviceName;
+        }
+
+        public void setOrderingPolicy(OrderingPolicy p)
+        {
+            _orderingPolicy = p;
         }
     }
 }

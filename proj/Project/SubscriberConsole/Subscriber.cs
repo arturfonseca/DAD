@@ -45,6 +45,8 @@ namespace SubscriberConsole
         private OrderingPolicy _orderingPolicy;
         private List<FIFOstruct> _fifostructs = new List<FIFOstruct>();
         private Form1 _form;
+        private object _eventnumLock = new object();
+        private int _eventnum = 0;
 
         public SubscriberRemote(Form1 form,PuppetMaster pm, string name, string site, string coordinatorURI,string processName)
         {
@@ -57,6 +59,14 @@ namespace SubscriberConsole
             c = (ICoordinator)Activator.GetObject(typeof(ICoordinator), coordinatorURI);
 
         }
+
+
+        public override string ToString()
+        {
+            return string.Format("[Subscriber] name:{0} uri:{1} site:{2}", _processName, _uri, _site);
+        }
+
+
 
         public override object InitializeLifetimeService()
         {
@@ -153,6 +163,11 @@ namespace SubscriberConsole
         public void receive(PublishMessage p)
         {
             bool freezed =false;
+            lock (_eventnumLock)
+            {
+                p.eventnum = _eventnum;
+                _eventnum++;
+            }
             lock (_freezedLock)
             {
                 if (_freezed)
@@ -201,8 +216,8 @@ namespace SubscriberConsole
                         if (_msg.seqnum == fifo._seq_num)
                         {
                             //Message needed received , can now print
-                            c.reportEvent(EventType.SubEvent, getURI(), _msg.publisherURI, _msg.topic, _msg.origin_seqnum);
-                            log(string.Format("[Received]{0}", _msg));
+                            c.reportEvent(EventType.SubEvent, getURI(), _msg.publisherURI, _msg.topic, _msg.originalSeqnum);
+                            log(string.Format("{0}", _msg));
 
                             //Message sent , increment seq_num and delete delivered message
                             fifo._seq_num++;
@@ -219,7 +234,7 @@ namespace SubscriberConsole
                 lock (c)
                 {
                     c.reportEvent(EventType.SubEvent, getURI(), m.publisherURI, m.topic, m.seqnum);
-                    log(string.Format("[Received]{0}", m));
+                    log(string.Format("{0}", m));
 
                 }
                 
@@ -267,7 +282,7 @@ namespace SubscriberConsole
                 _subscribedTopics.Add(topic);
                 // TODO make all calls assyncs
                 SubscribeMessage msg = new SubscribeMessage() { sub = this, seqnum = _seqnum, topic = topic, uri = getURI() };
-                log(string.Format("Subscribe. '{0}'", msg));
+                log(msg.ToString());
                 SubscribeDelegate pd = new SubscribeDelegate(_broker.subscribe);
                 pd.BeginInvoke(msg,null,null);
                 _seqnum += 1;
@@ -288,7 +303,7 @@ namespace SubscriberConsole
                 // TODO LOG
                 // TODO make all calls assyncs
                 UnsubscribeMessage msg = new UnsubscribeMessage() { sub = this, seqnum = _seqnum, topic = topic, uri = getURI() };
-                log(string.Format("Unsubscribe. '{0}'", msg));
+                log(msg.ToString());
                 UnsubscribeDelegate pd = new UnsubscribeDelegate(_broker.unsubscribe);
                 pd.BeginInvoke(msg, null, null);
                 _seqnum += 1;

@@ -20,6 +20,16 @@ namespace DADInterfaces
         public List<Broker> brokers;
     }
 
+    [Serializable]
+    public class TOSeqnumRequest
+    {
+        public string sequencerURI;
+        public int seqnum;
+        public override string ToString()
+        {
+            return string.Format("[TOSeqnumRequest] sequencer:'{0}' seqnum:'{1}' topic:'{2}'", sequencerURI,seqnum);
+        }
+    }
 
     /* Messages */
     [Serializable]
@@ -32,7 +42,7 @@ namespace DADInterfaces
         public string topic;
         public override string ToString()
         {
-            return string.Format("[SubscribeMessage] uri='{0}' seqnum='{1}' topic='{2}'", uri, seqnum, topic);
+            return string.Format("[SubscribeMessage] uri:'{0}' seqnum:'{1}' topic:'{2}'", uri, seqnum, topic);
         }
     }
     [Serializable]
@@ -40,7 +50,7 @@ namespace DADInterfaces
     {
         public override string ToString()
         {
-            return string.Format("[SubscribeMessage] uri='{0}' seqnum='{1}' topic='{2}'", uri, seqnum, topic);
+            return string.Format("[SubscribeMessage] uri:'{0}' seqnum:'{1}' topic:'{2}'", uri, seqnum, topic);
         }
     }
 
@@ -63,7 +73,7 @@ namespace DADInterfaces
         }
         public override string ToString()
         {
-            return string.Format("[PropagatedSubcribeMessage] subscriber_uri:'{0}' topic='{1}' interested_site='{2}' seqnum='{3}'", uri, topic, interested_site, seqnum);
+            return string.Format("[PropagatedSubcribeMessage] subscriber_uri:'{0}' topic:'{1}' interested_site:'{2}' seqnum:'{3}'", uri, topic, interested_site, seqnum);
         }
     }
     [Serializable]
@@ -75,27 +85,29 @@ namespace DADInterfaces
 
         public override string ToString()
         {
-            return string.Format("[PropagatedUnsubscribeMessage] seqnum='{0}' topic='{1}' interested_site='{2}'", seqnum, topic, interested_site);
+            return string.Format("[PropagatedUnsubscribeMessage] seqnum:'{0}' topic:'{1}' interested_site:'{2}'", seqnum, topic, interested_site);
         }
     }
 
     [Serializable]
     public class PublishMessage
     {
+        public string publisherName = "";
+        public int originalSeqnum;
         //sender URI
-        public int origin_seqnum;
         public string publisherURI;
         public int seqnum;
         public string topic;
         public string content;
         public string origin_site;
+        public int eventnum;
 
         public PublishMessage() { }
         public PublishMessage(PublishMessage msg, string site)
         {
             publisherURI = msg.publisherURI;
             seqnum = msg.seqnum;
-            origin_seqnum = msg.origin_seqnum;
+            originalSeqnum = msg.originalSeqnum;
             topic = msg.topic;
             content = msg.content;
             origin_site = site;
@@ -108,8 +120,8 @@ namespace DADInterfaces
                 origin_site = this.origin_site;
             return String.Format(
 
-                "[PublishMessage] publisher_uri:'{0}', source_site:'{1}', topic:'{2}' content:'{3}', seqnum:'{4}', origin_seqnum:'{5}'",
-                publisherURI, origin_site,topic,"",seqnum,origin_seqnum );
+                "[PublishMessage] publisher:{0} source_site:{1} topic:{2} content:{3} seqnum:{4} originalSeqnum:{5}",
+                publisherName, origin_site,topic,"",seqnum,originalSeqnum );
         }
     }
 }

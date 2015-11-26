@@ -20,7 +20,7 @@ namespace BrokerConsole
         public Form1(string[] args)
         {
             InitializeComponent();
-            logFormat("Started Broker process, pid=\"{0}\"", Process.GetCurrentProcess().Id);
+            logFormat("Started Process, pid=\"{0}\"", Process.GetCurrentProcess().Id);
             Text = "Broker ";
             int nargs = 6;
             if (args.Length != nargs)
@@ -34,7 +34,7 @@ namespace BrokerConsole
             int port = int.Parse(args[3]);
             string coordinatorURI = args[4];
             string processName = args[5];
-            Text += name;
+            Text = string.Format("{0} {1}",processName,site);
                         
             string channelURI = Utility.setupChannel(port);
 
@@ -44,12 +44,11 @@ namespace BrokerConsole
             BrokerRemote broker = new BrokerRemote(this, pm, uri, name, site, coordinatorURI, processName);
             //we need to register each remote object
             ObjRef o = RemotingServices.Marshal(broker, name, typeof(Broker));
-            logFormat("Instanciated Broker name:'{0}' site:'{1}' uri:'{2}'", name, site, uri);
-
+            log(broker.ToString());
             //now that broker is created and marshalled
             //send remote to puppetMaster which is Monitor.waiting for the remote  
             pm.registerBroker(broker);
-            logFormat("Just registered at puppetMaster");    
+            logFormat("registered at puppetMaster");    
             
         }
 

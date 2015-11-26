@@ -18,7 +18,7 @@ namespace SubscriberConsole
         public Form1(string[] args)
         {
             InitializeComponent();
-            logFormat("Started Subscriber, pid=\"{0}\"", Process.GetCurrentProcess().Id);
+            logFormat("Started Process, pid=\"{0}\"", Process.GetCurrentProcess().Id);
             Text = "Subscriber ";
             int nargs = 6;
             if (args.Length != nargs)
@@ -33,15 +33,15 @@ namespace SubscriberConsole
             string coordinatorURI = args[4];
             string processName = args[5];
             string channelURI = Utility.setupChannel(port);
-            Text += name;
+            Text = string.Format("{0} {1}", processName, site);
+
             // get the puppetMaster that started this process
             PuppetMaster pm = (PuppetMaster)Activator.GetObject(typeof(PuppetMaster), puppetMasterURI);
             SubscriberRemote subscriber = new SubscriberRemote(this,pm, name, site, coordinatorURI,processName);
             //we need to register each remote object
             ObjRef o = RemotingServices.Marshal(subscriber, name, typeof(Subscriber));
             subscriber.setURI(string.Format("{0}/{1}", channelURI, name));
-            logFormat("Created Subscriber at site:\"{0}\" uri:\"{1}\"", site, subscriber.getURI());
-
+            log(subscriber.ToString());
             //now that broker is created and marshalled
             //send remote to puppetMaster which is Monitor.waiting for the remote            
             pm.registerSubscriber(subscriber);

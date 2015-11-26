@@ -273,7 +273,12 @@ namespace PuppetMastersCoordinatorGUI
                 entry.Value.setOrderingPolicy(ord);
             }
 
-                site_brokers[site_root].setIsRoot();
+            foreach(var entry in all_publishers)
+            {
+                entry.Value.setOrderingPolicy(ord);
+            }
+
+            site_brokers[site_root].setIsRoot();
 
             //Set publishers brokers
             foreach (KeyValuePair<string, List<Publisher>> entry in site_publishers)
