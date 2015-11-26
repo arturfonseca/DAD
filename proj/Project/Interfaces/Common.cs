@@ -58,7 +58,7 @@ namespace DADInterfaces
         void unsubscribe(UnsubscribeMessage msg);
         // method called by Publisher
         void publish(PublishMessage msg);
-        TOSeqnumRequest getTotalOrderSequenceNumber();
+        TOSeqnumRequest generateTOSeqnum();
     }
     public interface Publisher: Node
     {

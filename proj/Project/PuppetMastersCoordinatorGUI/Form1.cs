@@ -152,6 +152,7 @@ namespace PuppetMastersCoordinatorGUI
 
             foreach (string line in lines)
             {
+                if (line.StartsWith("//")) continue;
                 string[] keywords = line.Split(' ');
                 var type = keywords[0];
                 if (type == "RoutingPolicy" && keywords.Length >= 2)
@@ -259,7 +260,7 @@ namespace PuppetMastersCoordinatorGUI
 
                 }
                 else
-                    MessageBox.Show("Error parsing config.file!");
+                    MessageBox.Show("Error parsing config.file! at line:\n"+string.Format("'{0}'",line));
             }
             foreach (KeyValuePair<string, Broker> entry in all_brokers)
             {
@@ -364,7 +365,7 @@ namespace PuppetMastersCoordinatorGUI
             foreach (String line in lines)
             {
                 //logCommand(line);
-               
+                
                 logCommandExternalThread(line);
                 string[] keywords = line.Split(' ');
                 string instructionType = keywords[0];
@@ -472,7 +473,6 @@ namespace PuppetMastersCoordinatorGUI
                 }
 
             }
-            logCommandExternalThread("FINISHED...\r\n");
         }
 
         private void button3_Click(object sender, EventArgs e)

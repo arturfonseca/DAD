@@ -13,9 +13,9 @@ using System.Windows.Forms;
 
 namespace PublisherConsole
 {
-    public partial class Form1 : Form
+    public partial class PublisherForm : Form
     {
-        public Form1(string[] args)
+        public PublisherForm(string[] args)
         {
             InitializeComponent();
             logFormat("Started Process, pid=\"{0}\"", Process.GetCurrentProcess().Id);

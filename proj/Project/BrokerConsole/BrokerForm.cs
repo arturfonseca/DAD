@@ -11,15 +11,17 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
-namespace SubscriberConsole
+namespace BrokerConsole
 {
-    public partial class Form1 : Form
+    
+
+    public partial class BrokerForm : Form
     {
-        public Form1(string[] args)
+        public BrokerForm(string[] args)
         {
             InitializeComponent();
             logFormat("Started Process, pid=\"{0}\"", Process.GetCurrentProcess().Id);
-            Text = "Subscriber ";
+            Text = "Broker ";
             int nargs = 6;
             if (args.Length != nargs)
             {
@@ -32,20 +34,27 @@ namespace SubscriberConsole
             int port = int.Parse(args[3]);
             string coordinatorURI = args[4];
             string processName = args[5];
+            Text = string.Format("{0} {1}",processName,site);
+                        
             string channelURI = Utility.setupChannel(port);
-            Text = string.Format("{0} {1}", processName, site);
 
             // get the puppetMaster that started this process
             PuppetMaster pm = (PuppetMaster)Activator.GetObject(typeof(PuppetMaster), puppetMasterURI);
-            SubscriberRemote subscriber = new SubscriberRemote(this,pm, name, site, coordinatorURI,processName);
+            string uri = string.Format("{0}/{1}", channelURI, name);
+            BrokerRemote broker = new BrokerRemote(this, pm, uri, name, site, coordinatorURI, processName);
             //we need to register each remote object
-            ObjRef o = RemotingServices.Marshal(subscriber, name, typeof(Subscriber));
-            subscriber.setURI(string.Format("{0}/{1}", channelURI, name));
-            log(subscriber.ToString());
+            ObjRef o = RemotingServices.Marshal(broker, name, typeof(Broker));
+            log(broker.ToString());
             //now that broker is created and marshalled
-            //send remote to puppetMaster which is Monitor.waiting for the remote            
-            pm.registerSubscriber(subscriber);
-            logFormat("Just registered at puppetMaster");
+            //send remote to puppetMaster which is Monitor.waiting for the remote  
+            pm.registerBroker(broker);
+            logFormat("registered at puppetMaster");    
+            
+        }
+
+        private void Form1_Load(object sender, EventArgs e)
+        {
+
         }
 
         public void log(string str)
@@ -62,16 +71,16 @@ namespace SubscriberConsole
                 }
                 logTextBox.AppendText(str + "\r\n");
             }
-
+            
         }
+      
 
-
-        public void logFormat(string f, params object[] args)
+        public void logFormat(string f,params object[] args)
         {
             if (args != null && args.Length > 0)
                 log(string.Format(f, args));
             else
-                log(f);
+                log(f);           
         }
 
         public void setTitle(string t)

@@ -1,6 +1,8 @@
-﻿namespace SubscriberConsole
+﻿using System;
+
+namespace BrokerConsole
 {
-    partial class Form1
+    partial class BrokerForm
     {
         /// <summary>
         /// Required designer variable.
@@ -35,7 +37,7 @@
             // 
             this.logTextBox.BackColor = System.Drawing.SystemColors.MenuText;
             this.logTextBox.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.logTextBox.ForeColor = System.Drawing.SystemColors.Window;
+            this.logTextBox.ForeColor = System.Drawing.SystemColors.Menu;
             this.logTextBox.Location = new System.Drawing.Point(0, 0);
             this.logTextBox.Multiline = true;
             this.logTextBox.Name = "logTextBox";
@@ -53,6 +55,7 @@
             this.Controls.Add(this.logTextBox);
             this.Name = "Form1";
             this.Text = "Form1";
+            this.Load += new System.EventHandler(this.Form1_Load);
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -61,5 +64,6 @@
         #endregion
 
         private System.Windows.Forms.TextBox logTextBox;
+
     }
 }

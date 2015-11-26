@@ -35,64 +35,75 @@ namespace BrokerConsole
         private OrderingPolicy _orderingPolicy;
         private RoutingPolicy _routingPolicy;
         private LoggingLevel _loggingLevel;
-
         private PuppetMaster _pm;
+        private ICoordinator c;
+        private string _coordinatorURI;
+
+
         // personal information
         private string _serviceName;
         private string _site;
         private string _uri;
         private bool _isRoot;
         private string _processName;
-        private Form1 _form;
+        private BrokerForm _form;
         // site information
+        /// <summary>
+        /// site configuration
+        /// </summary>
+        private Object _parentSiteLock = new object();
+        private Site _parentSite;
         private List<Publisher> _publishers = new List<Publisher>();
-
-        // Subscribers
         private List<Subscriber> _subscribers = new List<Subscriber>();
+        private List<Site> _childSites = new List<Site>();
+
+        // translation from siteName to string
+        private Dictionary<string, Site> _nameToSite = new Dictionary<string, Site>();
+
         // uri to subscriber
         private Dictionary<string, Subscriber> _uriToSubs = new Dictionary<string, Subscriber>();
         // uri to Publisher
         private Dictionary<string, Publisher> _uriToPubs = new Dictionary<string, Publisher>();
-        // key = topic value= "List of subscribers that subscribed to that topic"
+
+        /// <summary>
+        /// Deliver Variables
+        /// 
+        /// key is the topic
+        /// value is list of URIs of the site subscribers
+        /// </summary>       
         Dictionary<string, List<string>> _topicSubscribers = new Dictionary<string, List<string>>();
 
-        // Child sites
-        private List<Site> _childSites = new List<Site>();
-       
-        // site_name to Site
-        private Dictionary<string, Site> _nameToSite = new Dictionary<string, Site>();
+        /// <summary>
+        /// FILTERING
+        /// </summary>        
         // key = topic, value = list of interested sites
         Dictionary<string, List<string>> _topicSites = new Dictionary<string, List<string>>();
         Dictionary<string, List<string>> _topicChildSites = new Dictionary<string, List<string>>();
-
         //Used in subscritions  <site.name, ListofTopicsPropagated>
         Dictionary<string, List<string>> _siteToPropagatedSub = new Dictionary<string, List<string>>();
-        // can be null
-        private Object _parentSiteLock = new object();
-        private Site _parentSite;
-        private ICoordinator c;
-        private string _coordinatorURI;
-        // Used for logging, to identify to which event a log belongs to
-        ///////////FIFO/////////
+
+        //FIFO
+        // for each site list seqnum for each publisher
         private Dictionary<string, List<FIFOstruct>> _siteToFifoStruct = new Dictionary<string, List<FIFOstruct>>();
+        // for each sub list seqnum for each publisher
         private Dictionary<string, List<FIFOstruct>> _subToFifoStruct = new Dictionary<string, List<FIFOstruct>>();
+        // list seqnum for each publisher
         private List<FIFOstruct> _fifostructs = new List<FIFOstruct>();
 
-        /// <summary>
-        /// Freezed variables
-        /// </summary>
+        // FREEZED variables        
         private bool _freezed = false;
         private object _freezedLock = new object();
         private List<PublishMessage> _freezedPublishMessages = new List<PublishMessage>();
         private List<PublishMessage> _freezedPropagatedPublishMessages = new List<PublishMessage>();
-
 
         // TOTAL ORDER = TO
         private object _TOSeqnumLock = new object();
         private int _TOSeqnum = 0;
         private Dictionary<string, int> _siteTOSeqnum = new Dictionary<string, int>();
         private Dictionary<string, int> _subTOSeqnum = new Dictionary<string, int>();
+        private List<PublishMessage> _totalOrderQueue = new List<PublishMessage>();
 
+        // Event counter is used to identify a thread of execution in the log of concurrent(intervaled) prints
         private int _eventnum = 0;
         private Object _eventnumLock = new Object();
 
@@ -106,7 +117,7 @@ namespace BrokerConsole
             }
         }
 
-        public BrokerRemote(Form1 form, PuppetMaster pm, string uri, string name, string site, string addr, string processName)
+        public BrokerRemote(BrokerForm form, PuppetMaster pm, string uri, string name, string site, string addr, string processName)
         {
             _form = form;
             _uri = uri;
@@ -135,7 +146,7 @@ namespace BrokerConsole
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
             //must be called in this order
-            Form1 form = new Form1(args);
+            BrokerForm form = new BrokerForm(args);
             Application.Run(form);
         }
 
@@ -403,7 +414,16 @@ namespace BrokerConsole
             }
         }
 
-        public TOSeqnumRequest getTotalOrderSequenceNumber()
+        public int getTOSeqnum()
+        {
+            int ret = 0;
+            lock (_TOSeqnumLock)
+            {
+                ret = _TOSeqnum;
+            }
+            return ret;
+        }
+        public TOSeqnumRequest generateTOSeqnum()
         {
             TOSeqnumRequest req = null;
             if (isSequencer())
@@ -416,7 +436,7 @@ namespace BrokerConsole
             }
             else
             {
-                req = _parentSite.brokers[0].getTotalOrderSequenceNumber();
+                req = _parentSite.brokers[0].generateTOSeqnum();
             }
             return req;
 
@@ -457,7 +477,6 @@ namespace BrokerConsole
             {
                 if (_parentSite != null)
                 {
-
                     if (origin_site == null || _parentSite.name != origin_site)
                     {
                         lock (_siteToPropagatedSub)
@@ -473,9 +492,12 @@ namespace BrokerConsole
                                 foreach (var b in _parentSite.brokers)
                                 {
                                     //TODO assyncronous
-                                    if (origin_site == null) { 
+                                    if (origin_site == null)
+                                    {
                                         log(string.Format("[subscribe] sending '{0}' to parent site '{1}'", msg, _parentSite.name));
-                                    }else{
+                                    }
+                                    else
+                                    {
                                         log(string.Format("[propagateSubscribe] sending '{0}' to parent site '{1}'", msg, _parentSite.name));
                                     }
                                     b.subscribe(msg);
@@ -485,14 +507,14 @@ namespace BrokerConsole
                     }
                 }
             }
-                          
+
             lock (_childSites)
             {
                 foreach (var s in _childSites)
                 {
                     lock (s)
                     {
-                        if (origin_site==null || s.name != origin_site)
+                        if (origin_site == null || s.name != origin_site)
                         {
                             lock (_siteToPropagatedSub)
                             {
@@ -509,10 +531,12 @@ namespace BrokerConsole
                                         if (origin_site == null)
                                         {
                                             log(string.Format("[subscribe] sending '{0}' to child site '{1}'", msg, s.name));
-                                        }else {
+                                        }
+                                        else
+                                        {
                                             log(string.Format("[propagateSubscribe] sending '{0}' to child site '{1}'", msg, s.name));
                                         }
-                                            
+
                                         //TODO assync
                                         b.subscribe(msg);
                                     }
@@ -523,7 +547,7 @@ namespace BrokerConsole
                     }
                 }
             }
-            
+
 
         }
 
@@ -624,114 +648,114 @@ namespace BrokerConsole
             }
         }
 
-/*   
-        public void propagateUnsubscribe(UnsubscribeMessage msg)
+        /*   
+                public void propagateUnsubscribe(UnsubscribeMessage msg)
 
-        {
-            log(string.Format("[propagateUnsubscribe] Received event '{0}'", msg));
-            //We should only propagate the unsubscriveMessage if there is no more sites 
-            //or subscribers that subscribe it
-            bool isLastTopic = false;
-            bool remainingOneSubscrition = false;
-            string origin_site = msg.interested_site;
-            lock (_topicSites)
-            {
-                if (_topicSites.ContainsKey(msg.topic))
                 {
-                    if (_topicSites[msg.topic].Contains(msg.interested_site))
-                        _topicSites[msg.topic].Remove(msg.interested_site);
-
-                    if (_topicSites[msg.topic].Count == 0)
+                    log(string.Format("[propagateUnsubscribe] Received event '{0}'", msg));
+                    //We should only propagate the unsubscriveMessage if there is no more sites 
+                    //or subscribers that subscribe it
+                    bool isLastTopic = false;
+                    bool remainingOneSubscrition = false;
+                    string origin_site = msg.interested_site;
+                    lock (_topicSites)
                     {
-                        if (!_topicSubscribers.ContainsKey(msg.topic))
+                        if (_topicSites.ContainsKey(msg.topic))
                         {
-                            isLastTopic = true;
+                            if (_topicSites[msg.topic].Contains(msg.interested_site))
+                                _topicSites[msg.topic].Remove(msg.interested_site);
+
+                            if (_topicSites[msg.topic].Count == 0)
+                            {
+                                if (!_topicSubscribers.ContainsKey(msg.topic))
+                                {
+                                    isLastTopic = true;
+                                }
+                                _topicSites.Remove(msg.topic);
+                            }
+                            else
+                            {
+                                if (_topicSites[msg.topic].Count == 1)
+                                {
+                                    if (!_topicSubscribers.ContainsKey(msg.topic))
+                                    {
+                                        remainingOneSubscrition = true;
+                                    }
+                                }
+                            }
                         }
-                        _topicSites.Remove(msg.topic);
+                        else
+                        {
+                            //If you unsubscribe something you are not subscribed does not make sense propagate the message
+                            return;
+                        }
+                    }
+
+                    if (isLastTopic)
+                    {
+                        msg.interested_site = _site;
+                        lock (_parentSiteLock)
+                        {
+                            if (_parentSite != null)
+                            {
+                                if (_parentSite.name != origin_site)
+                                {
+                                    foreach (var b in _parentSite.brokers)
+                                    {
+                                        log(string.Format("[propagateUnsubscribe] sending '{0}' to parent site '{1}'", msg, _parentSite.name));
+                                        //TODO assync
+                                        b.propagateUnsubscribe(msg);
+                                    }
+                                }
+                            }
+                        }
+                        lock (_childSites)
+                        {
+                            foreach (var s in _childSites)
+                            {
+                                lock (s)
+                                {
+                                    if (s.name != origin_site)
+                                    {
+                                        foreach (var b in s.brokers)
+                                        {
+                                            log(string.Format("[propagateUnsubscribe] sending '{0}' to child site '{1}'", msg, s.name));
+                                            //TODO assync
+                                            b.propagateUnsubscribe(msg);
+                                        }
+
+                                    }
+                                }
+                            }
+                        }
                     }
                     else
                     {
-                        if (_topicSites[msg.topic].Count == 1)
+                        if (remainingOneSubscrition)
                         {
-                            if (!_topicSubscribers.ContainsKey(msg.topic))
+                            msg.interested_site = _site;
+                            var site_names = _topicSites[msg.topic];
+                            //only exists 1 occurence
+                            if (site_names.Count == 1)
                             {
-                                remainingOneSubscrition = true;
-                            }
-                        }
-                    }
-                }
-                else
-                {
-                    //If you unsubscribe something you are not subscribed does not make sense propagate the message
-                    return;
-                }
-            }
-
-            if (isLastTopic)
-            {
-                msg.interested_site = _site;
-                lock (_parentSiteLock)
-                {
-                    if (_parentSite != null)
-                    {
-                        if (_parentSite.name != origin_site)
-                        {
-                            foreach (var b in _parentSite.brokers)
-                            {
-                                log(string.Format("[propagateUnsubscribe] sending '{0}' to parent site '{1}'", msg, _parentSite.name));
-                                //TODO assync
-                                b.propagateUnsubscribe(msg);
-                            }
-                        }
-                    }
-                }
-                lock (_childSites)
-                {
-                    foreach (var s in _childSites)
-                    {
-                        lock (s)
-                        {
-                            if (s.name != origin_site)
-                            {
-                                foreach (var b in s.brokers)
+                                foreach (var s_name in site_names)
                                 {
-                                    log(string.Format("[propagateUnsubscribe] sending '{0}' to child site '{1}'", msg, s.name));
-                                    //TODO assync
-                                    b.propagateUnsubscribe(msg);
-                                }
-
-                            }
-                        }
-                    }
-                }
-            }
-            else
-            {
-                if (remainingOneSubscrition)
-                {
-                    msg.interested_site = _site;
-                    var site_names = _topicSites[msg.topic];
-                    //only exists 1 occurence
-                    if (site_names.Count == 1)
-                    {
-                        foreach (var s_name in site_names)
-                        {
-                            var site = _nameToSite[s_name];
-                            lock (site)
-                            {
-                                foreach (var b in site.brokers)
-                                {
-                                    log(string.Format("[propagateUnsubscribe] sending '{0}' to site '{1}'", msg, s_name));
-                                    //TODO assync
-                                    b.propagateUnsubscribe(msg);
+                                    var site = _nameToSite[s_name];
+                                    lock (site)
+                                    {
+                                        foreach (var b in site.brokers)
+                                        {
+                                            log(string.Format("[propagateUnsubscribe] sending '{0}' to site '{1}'", msg, s_name));
+                                            //TODO assync
+                                            b.propagateUnsubscribe(msg);
+                                        }
+                                    }
                                 }
                             }
                         }
                     }
                 }
-            }
-        }
-*/
+        */
 
 
 
@@ -798,7 +822,32 @@ namespace BrokerConsole
             log(en, "Processing " + msg);
             if (_orderingPolicy == OrderingPolicy.total)
             {
-                log(en, string.Format("[Publish TOTAL] Received event '{0}'", msg));
+                lock (_totalOrderQueue)
+                lock (_TOSeqnumLock)
+                {
+                    // TODO discard old messages
+                    _totalOrderQueue.Add(msg);
+                    _totalOrderQueue = _totalOrderQueue.OrderBy(m => m.seqnum).ToList();
+                    log(en, string.Format("TOTAL seqnum:{0} queue:{1}", _TOSeqnum, _totalOrderQueue));
+                    var tmp = new List<PublishMessage>();
+                    foreach (var mi in _totalOrderQueue.ToList())
+                    {
+
+                        if (mi.seqnum == _TOSeqnum)
+                        {
+                            _totalOrderQueue.Remove(mi);
+                            _TOSeqnum++;
+                            tmp.Add(mi);
+                        }
+                        else { break; }
+
+                    }
+                    foreach (var mi in tmp)
+                    {
+                        deliver(en, mi);
+                        routing(en, mi);
+                    }
+                }
                 throw new Exception("Not implemented");
             }
             else if (_orderingPolicy == OrderingPolicy.fifo)
@@ -846,7 +895,6 @@ namespace BrokerConsole
             }
             else
             {
-                log(en, string.Format("[Publish] Received event '{0}'", msg));
                 //TODO DISCARD DUPLICATES
                 deliver(en, msg);
                 routing(en, msg);
@@ -868,7 +916,7 @@ namespace BrokerConsole
                 {
                     if (!equivalentTopic(msg.topic, subscribedTopic))
                         continue;
-                    foreach (var uri in _topicSubscribers[subscribedTopic])
+                    foreach (var uri in _topicSubscribers[subscribedTopic]) // subscriber uri
                     {
                         if (sentURIs.Contains(uri))
                             continue;
@@ -877,13 +925,19 @@ namespace BrokerConsole
                         // TODO assync
                         ReceiveDelegate rd = new ReceiveDelegate(s.receive);
                         remoteDelegate.Add(uri, rd);
-                        //MUDAR ISTO...
-                        // c.reportEvent(EventType.SubEvent, uri, msg.publisherURI, msg.topic, msg.total_seqnum);
-
-                        //Begin FIFO
+                        ///
+                        /// Here we are going to map the current message's seqnum to
+                        /// the seqnum that each site is expecting
+                        ///
                         if (_orderingPolicy == OrderingPolicy.total)
                         {
-                            throw new Exception("not implemented");
+                            lock (_subTOSeqnum)
+                            {
+                                var x = _subTOSeqnum[uri];
+                                msg.seqnum = x;
+                                _subTOSeqnum[uri]++;
+                                log(en, string.Format("TOTAL Deliver.For subscriber {2} mapping seqnum from {0} to {1}", x, msg.seqnum, uri));
+                            }
                         }
                         else if (_orderingPolicy == OrderingPolicy.fifo)
                         {
@@ -905,16 +959,16 @@ namespace BrokerConsole
                                 //create a new message for each site interested sites with possibly a different seqnum   
                                 var x = msg.seqnum;
                                 msg.seqnum = fifo._seq_num;
-                                log(en, string.Format("FIFO Deliver.For subscriber {2} mapping seqnum from {0} to {1}", x, msg.seqnum, uri));
                                 fifo._seq_num++;
+                                log(en, string.Format("FIFO Deliver.For subscriber {2} mapping seqnum from {0} to {1}", x, msg.seqnum, uri));
                             }
                         }
                         else
                         { // No ordering
-                            log(en, "NO ordering");
+                            log(en, "NO ordering. no seqnum mapping");
                         }
                         rd.BeginInvoke(msg, null, null);
-                        log(en, string.Format("FIFO Delivered message to {0}", uri));
+                        log(en, string.Format("Delivered message to {0}", uri));
 
                     }
                 }
@@ -949,7 +1003,7 @@ namespace BrokerConsole
                 if (_parentSite != null && _parentSite.name != receivedMessage.originSite)
                 {
                     foreach (Broker broker in _parentSite.brokers)
-                    {                    
+                    {
                         PublishDelegate d = new PublishDelegate(broker.publish);
                         log(en, string.Format("Flooding to parent site {0}", _parentSite.name));
                         d.BeginInvoke(sendingMessage, null, null);
@@ -976,7 +1030,14 @@ namespace BrokerConsole
                         var site = _nameToSite[site_name];
                         if (_orderingPolicy == OrderingPolicy.total)
                         {
-                            throw new Exception("not implemented");
+                            lock (_siteTOSeqnum)
+                            {
+                                var x = _siteTOSeqnum[site_name];
+                                _siteTOSeqnum[site_name]++;
+                                sendingMessage.seqnum = x;
+                                log(en, string.Format("TOTAL routing.For site {2}, mapping seqnum from {0} to {1}",
+                                    receivedMessage.seqnum, sendingMessage.seqnum, site_name));
+                            }
                         }
                         else if (_orderingPolicy == OrderingPolicy.fifo)
                         {
@@ -996,11 +1057,9 @@ namespace BrokerConsole
                                     index = _siteToFifoStruct[site_name].FindIndex(item => item._publhisherURI == sendingMessage.publisherURI);
                                 }
                                 var fifo = _siteToFifoStruct[site_name][index];
-                                //create a new message for each site interested sites with possibly a different seqnum
                                 sendingMessage.seqnum = fifo._seq_num;
                                 log(en, string.Format("FIFO routing.For site {2}, mapping seqnum from {0} to {1}",
                                     receivedMessage.seqnum, sendingMessage.seqnum, site_name));
-                                //fifo.listOfmessages.Add(pmsg);
                                 fifo._seq_num++;
                             }
                         }
@@ -1012,7 +1071,8 @@ namespace BrokerConsole
                                 PublishDelegate d = new PublishDelegate(broker.publish);
                                 if (_orderingPolicy == OrderingPolicy.total)
                                 {
-                                    throw new Exception("not impl");
+                                    d.BeginInvoke(sendingMessage, null, null);
+                                    log(en, string.Format("TOTAL routed to site {0}", site.name));
                                 }
                                 else if (_orderingPolicy == OrderingPolicy.fifo)
                                 {
@@ -1022,7 +1082,7 @@ namespace BrokerConsole
                                 else
                                 {
                                     d.BeginInvoke(sendingMessage, null, null);
-                                    log(en, string.Format("No order, routed to{0}", site.name));
+                                    log(en, string.Format("NO order, routed to {0}", site.name));
                                 }
                                 if (_loggingLevel == LoggingLevel.full)
                                     c.reportEvent(EventType.BroEvent, getURI(), sendingMessage.publisherURI, sendingMessage.topic, receivedMessage.seqnum);

@@ -1,6 +1,6 @@
-﻿namespace PublisherConsole
+﻿namespace SubscriberConsole
 {
-    partial class Form1
+    partial class SubscriberForm
     {
         /// <summary>
         /// Required designer variable.
@@ -43,6 +43,7 @@
             this.logTextBox.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
             this.logTextBox.Size = new System.Drawing.Size(600, 262);
             this.logTextBox.TabIndex = 0;
+            this.logTextBox.TextChanged += new System.EventHandler(this.logTextBox_TextChanged);
             // 
             // Form1
             // 
@@ -52,7 +53,6 @@
             this.Controls.Add(this.logTextBox);
             this.Name = "Form1";
             this.Text = "Form1";
-            this.Load += new System.EventHandler(this.Form1_Load);
             this.ResumeLayout(false);
             this.PerformLayout();
 

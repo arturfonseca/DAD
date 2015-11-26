@@ -24,10 +24,10 @@ namespace PublisherConsole
         private bool _freezed = false;
         private List<ThreadStart> _freezedThreads = new List<ThreadStart>();
         private string _processName;
-        private Form1 _form;
+        private PublisherForm _form;
         private OrderingPolicy _orderingPolicy;
 
-        public PublisherRemote(Form1 form,PuppetMaster pm, string name, string site, string addr, string processName)
+        public PublisherRemote(PublisherForm form,PuppetMaster pm, string name, string site, string addr, string processName)
         {
             _form = form;
             _serviceName = name;
@@ -56,7 +56,7 @@ namespace PublisherConsole
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
             //must be called in this order
-            Form1 form = new Form1(args);
+            PublisherForm form = new PublisherForm(args);
             Application.Run(form);
 
         }
@@ -135,7 +135,7 @@ namespace PublisherConsole
 
             if (_orderingPolicy == OrderingPolicy.total)
             {
-                TOSeqnumRequest req = _broker.getTotalOrderSequenceNumber();
+                TOSeqnumRequest req = _broker.generateTOSeqnum();
                 log(eventnum,req.ToString());
                 msg.seqnum = req.seqnum;
             }            

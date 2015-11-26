@@ -1,8 +1,6 @@
-﻿using System;
-
-namespace BrokerConsole
+﻿namespace PublisherConsole
 {
-    partial class Form1
+    partial class PublisherForm
     {
         /// <summary>
         /// Required designer variable.
@@ -37,7 +35,7 @@ namespace BrokerConsole
             // 
             this.logTextBox.BackColor = System.Drawing.SystemColors.MenuText;
             this.logTextBox.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.logTextBox.ForeColor = System.Drawing.SystemColors.Menu;
+            this.logTextBox.ForeColor = System.Drawing.SystemColors.Window;
             this.logTextBox.Location = new System.Drawing.Point(0, 0);
             this.logTextBox.Multiline = true;
             this.logTextBox.Name = "logTextBox";
@@ -45,7 +43,6 @@ namespace BrokerConsole
             this.logTextBox.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
             this.logTextBox.Size = new System.Drawing.Size(600, 262);
             this.logTextBox.TabIndex = 0;
-            this.logTextBox.TextChanged += new System.EventHandler(this.logTextBox_TextChanged);
             // 
             // Form1
             // 
@@ -64,6 +61,5 @@ namespace BrokerConsole
         #endregion
 
         private System.Windows.Forms.TextBox logTextBox;
-
     }
 }

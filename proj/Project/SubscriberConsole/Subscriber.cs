@@ -44,11 +44,11 @@ namespace SubscriberConsole
         private string _processName;
         private OrderingPolicy _orderingPolicy;
         private List<FIFOstruct> _fifostructs = new List<FIFOstruct>();
-        private Form1 _form;
+        private SubscriberForm _form;
         private object _eventnumLock = new object();
         private int _eventnum = 0;
 
-        public SubscriberRemote(Form1 form,PuppetMaster pm, string name, string site, string coordinatorURI,string processName)
+        public SubscriberRemote(SubscriberForm form,PuppetMaster pm, string name, string site, string coordinatorURI,string processName)
         {
             _form = form;
             _serviceName = name;
@@ -78,7 +78,7 @@ namespace SubscriberConsole
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
             //must be called in this order
-            Form1 form = new Form1(args);
+            SubscriberForm form = new SubscriberForm(args);
             Application.Run(form);
         }
 

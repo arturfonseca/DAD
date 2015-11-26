@@ -1,6 +1,6 @@
-Subscriber subscriber1 Subscribe /p00-0
-Publisher publisher2 Publish 1 Ontopic /p00-0 Interval 1
+Subscriber sub1 Subscribe a
+Subscriber sub0 Subscribe a
 Wait 2000
-Subscriber subscriber5 Subscribe /p00-0
-Wait 2000
-Publisher publisher2 Publish 1 Ontopic /p00-0 Interval 1
+Publisher pub1 Publish 2 Ontopic a Interval 50
+Publisher pub0 Publish 2 Ontopic a Interval 50
+Status
