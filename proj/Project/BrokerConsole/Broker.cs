@@ -470,6 +470,7 @@ namespace BrokerConsole
                     _topicSites[msg.topic].Add(msg.interested_site);
                 }
             }
+           
 
             msg.interested_site = _site;
             // propagate subscribe to parent, taking advantage of tree strucure
@@ -500,18 +501,20 @@ namespace BrokerConsole
                                     {
                                         log(string.Format("[propagateSubscribe] sending '{0}' to parent site '{1}'", msg, _parentSite.name));
                                     }
-                                    b.subscribe(msg);
+                                    SubscribeDelegate sd = new SubscribeDelegate(b.subscribe);
+                                    sd.BeginInvoke(msg, null, null);
                                 }
                             }
                         }
                     }
                 }
             }
-
+           
             lock (_childSites)
-            {
+            {         
                 foreach (var s in _childSites)
                 {
+                  
                     lock (s)
                     {
                         if (origin_site == null || s.name != origin_site)
@@ -537,8 +540,8 @@ namespace BrokerConsole
                                             log(string.Format("[propagateSubscribe] sending '{0}' to child site '{1}'", msg, s.name));
                                         }
 
-                                        //TODO assync
-                                        b.subscribe(msg);
+                                        SubscribeDelegate sd = new SubscribeDelegate(b.subscribe);
+                                        sd.BeginInvoke(msg, null, null);
                                     }
                                 }
                             }
@@ -548,7 +551,7 @@ namespace BrokerConsole
                 }
             }
 
-
+            
         }
 
         public void unsubscribe(UnsubscribeMessage msg)
@@ -600,8 +603,8 @@ namespace BrokerConsole
                         foreach (Broker b in _parentSite.brokers)
                         {
                             log(string.Format("[Unsubscribe] sending '{0}' to parent site '{1}'", msg, _parentSite.name));
-                            // TODO assyncronous
-                            b.unsubscribe(msg);
+                            UnsubscribeDelegate usd = new UnsubscribeDelegate(b.unsubscribe);
+                            usd.BeginInvoke(msg, null, null);
                         }
                     }
                 }
@@ -614,8 +617,8 @@ namespace BrokerConsole
                             foreach (var b in s.brokers)
                             {
                                 log(string.Format("[Unsubscribe] sending '{0}' to child site '{1}'", msg, s.name));
-                                //TODO assync
-                                b.unsubscribe(msg);
+                                UnsubscribeDelegate usd = new UnsubscribeDelegate(b.unsubscribe);
+                                usd.BeginInvoke(msg, null, null);
                             }
                         }
                     }
@@ -638,8 +641,8 @@ namespace BrokerConsole
                                 foreach (var b in site.brokers)
                                 {
                                     log(string.Format("[Unsubscribe] sending '{0}' to site '{1}'", msg, s_name));
-                                    //TODO assync
-                                    b.unsubscribe(msg);
+                                    UnsubscribeDelegate usd = new UnsubscribeDelegate(b.unsubscribe);
+                                    usd.BeginInvoke(msg, null, null);
                                 }
                             }
                         }
@@ -981,6 +984,7 @@ namespace BrokerConsole
             {
                 foreach (var site in _childSites)
                 {
+                 
                     lock (site)
                     {
                         if (site.name != receivedMessage.originSite)
@@ -1017,6 +1021,7 @@ namespace BrokerConsole
 
         private void filter(int en, PublishMessage receivedMessage, PublishMessage sendingMessage)
         {
+            
             lock (_topicSites)
             {
                 foreach (var subscribedTopic in _topicSites.Keys)
