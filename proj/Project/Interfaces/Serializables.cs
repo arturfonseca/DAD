@@ -1,11 +1,23 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace DADInterfaces
 {
+    [Serializable]
+    public class TOUpdate
+    {
+        public string originSite;
+        public string topic;
+        public int seqnum;
+        public override string ToString()
+        {
+            return string.Format("[TOUpdate] originsite:{0} topic:{1} seqnum:{2}",originSite,topic,seqnum);
+        }
+    }
     public static class EventType
     {
         public static string PubEvent = "PubEvent";
@@ -18,6 +30,10 @@ namespace DADInterfaces
     {
         public string name;
         public List<Broker> brokers;
+        public override string ToString()
+        {
+            return string.Format("[Site] name:{0} #brokers:{1}",name,brokers.Count);
+        }
     }
 
     [Serializable]
@@ -27,7 +43,7 @@ namespace DADInterfaces
         public int seqnum;
         public override string ToString()
         {
-            return string.Format("[TOSeqnumRequest] sequencer:'{0}' seqnum:'{1}' topic:'{2}'", sequencerURI,seqnum);
+            return string.Format("[TOSeqnumRequest] sequencer:{0} seqnum:{1}", sequencerURI,seqnum);
         }
     }
 
@@ -69,24 +85,27 @@ namespace DADInterfaces
     public class PublishMessage
     {
         public string publisherName = "";
+        public int eventnum;
         public int originalSeqnum;
-        //sender URI
-        public string publisherURI;
         public int seqnum;
         public string topic;
         public string content;
         public string originSite = null;
-        public int eventnum;
+        //sender URI
+        public string publisherURI;     
+        
 
         public PublishMessage() { }
         public PublishMessage(PublishMessage msg, string site)
         {
-            publisherURI = msg.publisherURI;
-            seqnum = msg.seqnum;
+            publisherName = msg.publisherName;
             originalSeqnum = msg.originalSeqnum;
+            publisherURI = msg.publisherURI;          
+            seqnum = msg.seqnum;            
             topic = msg.topic;
             content = msg.content;
             originSite = site;
+            eventnum = msg.eventnum;
         }
 
         public override string ToString()
@@ -94,10 +113,8 @@ namespace DADInterfaces
             string origin_site = "none";
             if (this.originSite != null)
                 origin_site = this.originSite;
-            return String.Format(
-
-                "[PublishMessage] publisher:{0} source_site:{1} topic:{2} content:{3} seqnum:{4} originalSeqnum:{5}",
-                publisherName, origin_site,topic,"",seqnum,originalSeqnum );
+            var fmtstr = "[PublishMessage] publisher:{0} eventnum:{1} originalSeqnum:{2} seqnum:{3} topic:{4} content:{5} originSite:{6}";
+            return String.Format(fmtstr,publisherName,eventnum,originalSeqnum,seqnum,topic,"<content>",originSite);
         }
     }
 }

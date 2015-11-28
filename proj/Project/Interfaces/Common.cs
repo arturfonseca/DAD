@@ -39,7 +39,7 @@ namespace DADInterfaces
     public delegate void PublishDelegate(PublishMessage msg);
     public delegate void SubscribeDelegate(SubscribeMessage msg);
     public delegate void UnsubscribeDelegate(UnsubscribeMessage msg);
- 
+    public delegate void updateTODelegate(TOUpdate m);
     public interface Broker: Node
     {
         void setIsRoot();
@@ -53,12 +53,14 @@ namespace DADInterfaces
         void setPublishers(List<Publisher> site_publishers);
         void setSubscribers(List<Subscriber> site_subscribers);
 
+        // called by Parent, starting from root
+        void updateTO(TOUpdate msg);
         // methods called by Subscriber
         void subscribe(SubscribeMessage msg);
         void unsubscribe(UnsubscribeMessage msg);
         // method called by Publisher
         void publish(PublishMessage msg);
-        TOSeqnumRequest generateTOSeqnum();
+        TOSeqnumRequest generateTOSeqnum(String topic);
     }
     public interface Publisher: Node
     {

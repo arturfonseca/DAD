@@ -1,6 +1,7 @@
-Subscriber sub1 Subscribe a
-Subscriber sub0 Subscribe a
-Wait 2000
-Publisher pub1 Publish 2 Ontopic a Interval 50
-Publisher pub0 Publish 2 Ontopic a Interval 50
+Subscriber subscriber0 Subscribe a
+Subscriber subscriber1 Subscribe b
+Subscriber subscriber2 Subscribe *
+Wait 500
 Status
+Publisher publisher0 Publish 20 Ontopic b Interval 100
+Publisher publisher1 Publish 20 Ontopic a Interval 100

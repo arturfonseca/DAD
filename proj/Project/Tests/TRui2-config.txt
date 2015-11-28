@@ -1,6 +1,18 @@
-Subscriber subscriber1 Subscribe /p00-0
-Publisher publisher2 Publish 1 Ontopic /p00-0 Interval 1
-Wait 2000
-Subscriber subscriber5 Subscribe /p00-0
-Wait 2000
-Publisher publisher2 Publish 1 Ontopic /p00-0 Interval 1
+RoutingPolicy filter
+Ordering FIFO
+LoggingLevel full
+Site site0 Parent none
+Site site1 Parent site0
+Site site2 Parent site0
+Site site3 Parent site2
+Site site4 Parent site3
+Site site5 Parent site3
+Process broker0 is broker On site0 URL tcp://localhost:3330/broker
+Process broker1 is broker On site1 URL tcp://localhost:3331/broker
+Process broker2 is broker On site2 URL tcp://localhost:3332/broker
+Process broker3 is broker On site3 URL tcp://localhost:3333/broker
+Process broker4 is broker On site4 URL tcp://localhost:3334/broker
+Process broker5 is broker On site5 URL tcp://localhost:3335/broker
+Process subscriber3 is subscriber On site3 URL tcp://localhost:1110/sub
+Process subscriber5 is subscriber On site5 URL tcp://localhost:1113/sub
+Process publisher5 is publisher On site5 URL tcp://localhost:2220/pub
