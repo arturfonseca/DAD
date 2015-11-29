@@ -26,6 +26,7 @@ namespace PublisherConsole
         private string _processName;
         private PublisherForm _form;
         private OrderingPolicy _orderingPolicy;
+        private Site site;
 
         public PublisherRemote(PublisherForm form,PuppetMaster pm, string name, string site, string addr, string processName)
         {
@@ -33,6 +34,8 @@ namespace PublisherConsole
             _serviceName = name;
             _pm = pm;
             _site = site;
+            
+
             _processName = processName;
             c = (ICoordinator)Activator.GetObject(typeof(ICoordinator), addr);
         }
@@ -90,6 +93,11 @@ namespace PublisherConsole
         {
             _broker = site_broker;
         }
+        public void setSite(Site s)
+        {
+            site = s;
+            
+        }
 
         public string status()
         {
@@ -141,6 +149,7 @@ namespace PublisherConsole
 
             if (_orderingPolicy == OrderingPolicy.total)
             {
+                //FIXME: replication
                 TOSeqnumRequest req = _broker.generateTOSeqnum(topic);
                 log(eventnum,req.ToString());
                 msg.seqnum = req.seqnum;
@@ -149,8 +158,13 @@ namespace PublisherConsole
             // TODO make all calls assyncs
             log(eventnum,msg);
             c.reportEvent(EventType.PubEvent, _uri, _uri, topic, msg.seqnum);
-            PublishDelegate d = new PublishDelegate(_broker.publish);
-            d.BeginInvoke(msg,null,null);
+            foreach(Broker b in site.getBrokers())
+            {
+                PublishDelegate d = new PublishDelegate(b.publish);
+                d.BeginInvoke(msg, null, null);
+            }
+
+            
         }
 
         private void publish_job(string topic, string content, int quantity, int interval)

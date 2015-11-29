@@ -27,6 +27,8 @@ namespace PuppetMastersCoordinatorGUI
         Dictionary<String, String> site_parents;
         Dictionary<String, List<String>> site_childs;
         Dictionary<String, Broker> site_brokers;
+        Dictionary<String, Broker> site_brokers1;
+        Dictionary<String, Broker> site_brokers2;
         Dictionary<String, List<Publisher>> site_publishers;
         Dictionary<String, List<Subscriber>> site_subscribers;
         Dictionary<String, Broker> all_brokers;
@@ -40,6 +42,9 @@ namespace PuppetMastersCoordinatorGUI
         LoggingLevel log;
         string myaddr;
         bool runningInstructions = false;
+
+        //
+        bool faultTolerance = false;
 
         public Form1()
         {
@@ -74,7 +79,7 @@ namespace PuppetMastersCoordinatorGUI
             string[] lines = null;
             // WARNING no file detection done
             lines = System.IO.File.ReadAllLines(puppetMasterConfigFile);
-            
+
             foreach (string line in lines)
             {
                 PuppetMaster obj = (PuppetMaster)Activator.GetObject(typeof(PuppetMaster), line);
@@ -103,7 +108,7 @@ namespace PuppetMastersCoordinatorGUI
         }
 
         public void logCommandExternalThread(string str)
-        {          
+        {
             BeginInvoke(new stringIn(logCommand), new object[] { str });
         }
 
@@ -125,6 +130,8 @@ namespace PuppetMastersCoordinatorGUI
             site_parents = new Dictionary<string, string>();
             site_childs = new Dictionary<string, List<string>>();
             site_brokers = new Dictionary<String, Broker>();
+            site_brokers1 = new Dictionary<String, Broker>();
+            site_brokers2 = new Dictionary<String, Broker>();
             site_publishers = new Dictionary<String, List<Publisher>>();
             site_subscribers = new Dictionary<String, List<Subscriber>>();
             all_brokers = new Dictionary<String, Broker>();
@@ -234,10 +241,21 @@ namespace PuppetMastersCoordinatorGUI
                             uri_processname.Add(uri, processName);
                             break;
                         case "broker":
+
                             Broker b = pms[ip].createBroker(processName, serviceName, site, Int32.Parse(port), myaddr);
+                            List<Broker> temp = new List<Broker>() { b };
+                            if (faultTolerance)
+                            {
+                                Broker b1 = pms[ip].createBroker(processName + "_1", serviceName, site, Int32.Parse(port) + 500, myaddr);
+                                site_brokers1.Add(site, b1);
+                                temp.Add(b1);
+                                Broker b2 = pms[ip].createBroker(processName + "_2", serviceName, site, Int32.Parse(port) + 600, myaddr);
+                                site_brokers2.Add(site, b2);
+                                temp.Add(b2);
+                            }
                             all_brokers.Add(processName, b);
                             site_brokers.Add(site, b);
-                            site_site.Add(site, new Site() { name = site, brokers = new List<Broker>() { b } });
+                            site_site.Add(site, new Site() { name = site, brokers = temp });
                             if (ip == "localhost")
                                 uri = uri.Replace("localhost", LocalIPAddress().ToString());
                             uri_processname.Add(uri, processName);
@@ -260,7 +278,7 @@ namespace PuppetMastersCoordinatorGUI
 
                 }
                 else
-                    MessageBox.Show("Error parsing config.file! at line:\n"+string.Format("'{0}'",line));
+                    MessageBox.Show("Error parsing config.file! at line:\n" + string.Format("'{0}'", line));
             }
             foreach (KeyValuePair<string, Broker> entry in all_brokers)
             {
@@ -274,7 +292,7 @@ namespace PuppetMastersCoordinatorGUI
                 entry.Value.setOrderingPolicy(ord);
             }
 
-            foreach(var entry in all_publishers)
+            foreach (var entry in all_publishers)
             {
                 entry.Value.setOrderingPolicy(ord);
             }
@@ -288,6 +306,7 @@ namespace PuppetMastersCoordinatorGUI
                 foreach (Publisher p in entry.Value)
                 {
                     p.setSiteBroker(site_brokers[entry.Key]);
+                    p.setSite(site_site[entry.Key]);
                 }
             }
             // Set subscriber brokers
@@ -327,6 +346,56 @@ namespace PuppetMastersCoordinatorGUI
                     entry.Value.setParent(parentSite);
                 }
             }
+            /*
+            if (faultTolerance)
+            {
+                //set configs
+                foreach (KeyValuePair<string, Broker> entry in site_brokers1)
+                {
+                    entry.Value.setRoutingPolicy(rout);
+                    entry.Value.setOrderingPolicy(ord);
+                    entry.Value.setLoggingLevel(log);
+                }
+                foreach (KeyValuePair<string, Broker> entry in site_brokers2)
+                {
+                    entry.Value.setRoutingPolicy(rout);
+                    entry.Value.setOrderingPolicy(ord);
+                    entry.Value.setLoggingLevel(log);
+                }
+
+                //Set parents and childs
+                foreach (KeyValuePair<string, Broker> entry in site_brokers1)
+                {
+                    string site = entry.Key;
+                    Broker broker = entry.Value;
+
+                    if (site_childs.ContainsKey(site))
+                    {
+                        List<Site> childs = new List<Site>();
+                        foreach (string str in site_childs[site])
+                        {
+                            if (site_site.ContainsKey(str)) // empty sites
+                                childs.Add(site_site[str]);
+
+                        }
+                        broker.setChildren(childs);
+
+                    }
+
+                    //assume we first read root site
+                    if (site != site_root)
+                    {
+                        string ps = site_parents[site];
+                        Site parentSite = site_site[ps];
+                        entry.Value.setParent(parentSite);
+                    }
+                }
+               
+
+
+            }
+
+     */
 
 
         }
@@ -338,7 +407,7 @@ namespace PuppetMastersCoordinatorGUI
             {
                 string input_file = ConfigurationManager.AppSettings["input"];
                 string[] lines = System.IO.File.ReadAllLines(input_file);
-                if(runningInstructions == true)
+                if (runningInstructions == true)
                 {
                     MessageBox.Show("Still running instructions from last click");
                 }
@@ -349,7 +418,7 @@ namespace PuppetMastersCoordinatorGUI
                     new Thread(() => readInput(lines)).Start();
                     runningInstructions = false;
                 }
-                
+
             }
             catch (FileNotFoundException fnf)
             {
@@ -359,13 +428,13 @@ namespace PuppetMastersCoordinatorGUI
         }
 
         //TODO: remove warnings
-        
+
         public void readInput(String[] lines)
         {
             foreach (String line in lines)
             {
                 //logCommand(line);
-                
+
                 logCommandExternalThread(line);
                 string[] keywords = line.Split(' ');
                 string instructionType = keywords[0];
@@ -391,7 +460,7 @@ namespace PuppetMastersCoordinatorGUI
                         }
                         catch (Exception)
                         {
-                            logCommandExternalThread(entry.Key + " failed \r\n");                            
+                            logCommandExternalThread(entry.Key + " failed \r\n");
                         }
                     }
                     foreach (KeyValuePair<string, Subscriber> entry in all_subscribers)
@@ -563,6 +632,11 @@ namespace PuppetMastersCoordinatorGUI
             StreamReader reader = new StreamReader(stream);
             String s = reader.ReadToEnd();
             logCommand(s);
+        }
+
+        private void button12_Click(object sender, EventArgs e)
+        {
+
         }
     }
 }
