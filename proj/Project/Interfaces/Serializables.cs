@@ -34,6 +34,11 @@ namespace DADInterfaces
         {
             return string.Format("[Site] name:{0} #brokers:{1}",name,brokers.Count);
         }
+        public List<Broker> getBrokers()
+        {
+            return brokers;
+        }
+       
     }
 
     [Serializable]
