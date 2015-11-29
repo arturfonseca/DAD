@@ -12,5 +12,7 @@ Process broker11 is broker On site11 URL tcp://localhost:3341/broker
 Process subscriber0 is subscriber On site9 URL tcp://localhost:1110/sub
 Process subscriber1 is subscriber On site10 URL tcp://localhost:1111/sub
 Process subscriber2 is subscriber On site11 URL tcp://localhost:1112/sub
-Process publisher0 is publisher On site9 URL tcp://localhost:2220/pub
-Process publisher1 is publisher On site10 URL tcp://localhost:2221/pub
+Process publisher00 is publisher On site9 URL tcp://localhost:2200/pub
+Process publisher01 is publisher On site9 URL tcp://localhost:2201/pub
+Process publisher10 is publisher On site10 URL tcp://localhost:2210/pub
+Process publisher11 is publisher On site10 URL tcp://localhost:2211/pub

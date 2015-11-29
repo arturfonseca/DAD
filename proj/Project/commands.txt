@@ -1,7 +1,10 @@
 Subscriber subscriber0 Subscribe a
 Subscriber subscriber1 Subscribe b
-Subscriber subscriber2 Subscribe *
 Wait 500
 Status
-Publisher publisher0 Publish 20 Ontopic b Interval 100
-Publisher publisher1 Publish 20 Ontopic a Interval 100
+Publisher publisher00 Publish 10 Ontopic b Interval 500
+Publisher publisher10 Publish 10 Ontopic a Interval 500
+Subscriber subscriber2 Subscribe *
+Wait 2000
+Publisher publisher01 Publish 10 Ontopic a Interval 500
+Publisher publisher11 Publish 10 Ontopic b Interval 500
