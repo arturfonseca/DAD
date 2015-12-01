@@ -591,7 +591,13 @@ namespace BrokerConsole
                     {
                         _topicSites.Add(msg.topic, new List<string>());
                     }
-                    _topicSites[msg.topic].Add(msg.interested_site);
+                    //Discart possible duplicates
+                    if (_topicSites[msg.topic].Contains(msg.interested_site))
+                        return;
+                    else
+                    {
+                        _topicSites[msg.topic].Add(msg.interested_site);
+                    }                   
                 }
             }
            
