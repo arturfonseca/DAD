@@ -402,11 +402,13 @@ namespace PuppetMastersCoordinatorGUI
                         try
                         {
                             entry.Value.status();
+                            logCommandExternalThread(entry.Key + " Up \r\n");
                         }
                         catch (Exception)
                         {
                             logCommandExternalThread(entry.Key + " failed \r\n");
                         }
+                        
                     }
 
                     foreach (KeyValuePair<string, Publisher> entry in all_publishers)
@@ -414,6 +416,7 @@ namespace PuppetMastersCoordinatorGUI
                         try
                         {
                             entry.Value.status();
+                            logCommandExternalThread(entry.Key + " Up \r\n");
                         }
                         catch (Exception)
                         {
@@ -425,6 +428,7 @@ namespace PuppetMastersCoordinatorGUI
                         try
                         {
                             entry.Value.status();
+                            logCommandExternalThread(entry.Key + " Up \r\n");
                         }
                         catch (Exception)
                         {
