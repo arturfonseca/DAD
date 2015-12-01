@@ -347,7 +347,7 @@ namespace BrokerConsole
             catch (Exception)
             {
                 _alive = false;
-                ret += ("         " + _parentSite.brokers[0].getURI() + " is alive:" + _alive) + Environment.NewLine;
+                ret += ("         " + "Parent" + " is alive:" + _alive) + Environment.NewLine;
             }
             return ret;
 
