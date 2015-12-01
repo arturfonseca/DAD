@@ -42,7 +42,7 @@ namespace PuppetMastersCoordinatorGUI
         bool runningInstructions = false;
 
         //
-        bool faultTolerance = false;
+        bool faultTolerance = true;
 
         public Form1()
         {

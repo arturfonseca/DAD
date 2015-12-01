@@ -832,14 +832,14 @@ namespace BrokerConsole
             // TODO make all calls assyncs 
             lock (receivedMsg)
             {
-                if (receivedMsg.ContainsKey(msg.publisherName))
+                if (receivedMsg.ContainsKey(receivingMessage.publisherName))
                 {
-                    if (receivedMsg[msg.publisherName].Contains(msg.originalSeqnum))
+                    if (receivedMsg[receivingMessage.publisherName].Contains(receivingMessage.originalSeqnum))
                         return;
                 }
                 else
-                    receivedMsg.Add(msg.publisherName, new List<int>());
-                receivedMsg[msg.publisherName].Add(msg.originalSeqnum);
+                    receivedMsg.Add(receivingMessage.publisherName, new List<int>());
+                receivedMsg[receivingMessage.publisherName].Add(receivingMessage.originalSeqnum);
             }
 
 
@@ -1106,14 +1106,7 @@ namespace BrokerConsole
         }
         private void routing(int en, PublishMessage receivedMessage)
         {
-<<<<<<< HEAD
-           
 
-            
-
-=======
-            
->>>>>>> refs/remotes/origin/master
             PublishMessage sendingMessage = new PublishMessage(receivedMessage, _site);
             log(en, "Routing: received " + receivedMessage);
             log(en, "Routing sending " + sendingMessage);
