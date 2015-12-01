@@ -108,6 +108,8 @@ namespace BrokerConsole
         private object _TOQueueLock = new object();
         private List<PublishMessage> _TOQueue = new List<PublishMessage>();
         private Dictionary<string, int> _TOSubscriberFIFO = new Dictionary<string, int>();
+        private object _TORejectedLock = new object();
+        private List<PublishMessage> _TORejected = new List<PublishMessage>();
 
         //private List<PublishMessage> _totalOrderQueue = new List<PublishMessage>();
 
@@ -525,8 +527,8 @@ namespace BrokerConsole
         {
             var update = new TOUpdate() { originSite = _site, topic = topic, seqnum = seqnum };
             log(en, string.Format("[updateNetwork] Sending {0}", update));
-           
-            new updateTODelegate(this.updateTO).BeginInvoke(update, null, null);
+            updateTO(update);
+            //new updateTODelegate(this.updateTO).BeginInvoke(update, null, null);
         }
 
         public TOSeqnumRequest generateTOSeqnum(string topic)
@@ -822,17 +824,17 @@ namespace BrokerConsole
 
         }
 
-        public void publishWork(PublishMessage msg)
+        public void publishWork(PublishMessage receivingMessage)
         {
             // FLOODING implementation
             // TODO discart if duplicate message
             // TODO make all calls assyncs        
             int en = getEventnum();
-            log(en, "Processing " + msg);
+            log(en, "Processing " + receivingMessage);
             if (_orderingPolicy == OrderingPolicy.total)
             {
-                deliver(en, msg);
-                routing(en, msg);               
+                deliver(en, receivingMessage);
+                routing(en, receivingMessage);               
             }
             else if (_orderingPolicy == OrderingPolicy.fifo)
             {
@@ -840,13 +842,13 @@ namespace BrokerConsole
                 lock (_fifostructs)
                 {
 
-                    int index = _fifostructs.FindIndex(item => item._publhisherURI == msg.publisherURI);
+                    int index = _fifostructs.FindIndex(item => item._publhisherURI == receivingMessage.publisherURI);
                     if (index < 0)
                     {
                         // element does not exists
-                        _fifostructs.Add(new FIFOstruct(msg.publisherURI, 0));
+                        _fifostructs.Add(new FIFOstruct(receivingMessage.publisherURI, 0));
                         //getIndex Now
-                        index = _fifostructs.FindIndex(item => item._publhisherURI == msg.publisherURI);
+                        index = _fifostructs.FindIndex(item => item._publhisherURI == receivingMessage.publisherURI);
                     }
                     var fifo = _fifostructs[index];
                     /// Discard duplicates
@@ -857,7 +859,7 @@ namespace BrokerConsole
                         return;
                     }
                     */
-                    fifo.listOfmessages.Add(msg);
+                    fifo.listOfmessages.Add(receivingMessage);
                     fifo.listOfmessages = fifo.listOfmessages.OrderBy(item => item.seqnum).ToList();
                     var queueList = fifo.listOfmessages.Select(x => ""+ x.seqnum);
                     var qlstr = string.Join(",", queueList);
@@ -882,14 +884,15 @@ namespace BrokerConsole
             else
             {
                 //TODO DISCARD DUPLICATES
-                deliver(en, msg);
-                routing(en, msg);
+                deliver(en, receivingMessage);
+                routing(en, receivingMessage);
             }
         }
        
 
-        private void deliver(int en, PublishMessage msg)
+        private void deliver(int en, PublishMessage rmsg)
         {
+            var msg = new PublishMessage(rmsg, _site);
             // to avoid sending two times, we use a list
             List<string> sentURIs = new List<string>();
 
@@ -1061,6 +1064,8 @@ namespace BrokerConsole
                                 PublishDelegate d = new PublishDelegate(broker.publish);
                                 if (_orderingPolicy == OrderingPolicy.total)
                                 {
+                                    log(en, "Routing: received " + receivedMessage);
+                                    log(en, "Routing sending " + sendingMessage);
                                     d.BeginInvoke(sendingMessage, null, null);
                                     log(en, string.Format("[Filter][TOTAL] routed to site {0}", site.name));
                                 }
@@ -1085,8 +1090,10 @@ namespace BrokerConsole
         }
         private void routing(int en, PublishMessage receivedMessage)
         {
+            
             PublishMessage sendingMessage = new PublishMessage(receivedMessage, _site);
-
+            log(en, "Routing: received " + receivedMessage);
+            log(en, "Routing sending " + sendingMessage);
             if (_routingPolicy == RoutingPolicy.flooding)
             {                
                 flooding(en, receivedMessage, sendingMessage);
