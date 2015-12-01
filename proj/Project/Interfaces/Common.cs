@@ -77,6 +77,7 @@ namespace DADInterfaces
         void subscribe(string topic);
         void unsubscribe(string topic);
         void receive(PublishMessage p);
+        void setSite(Site s);
     }
 
     public interface ICoordinator

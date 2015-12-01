@@ -33,6 +33,7 @@ namespace SubscriberConsole
         private string _site;
         private string _uri;
         private Broker _broker;
+        private Site site;
         // used to order messages
         private int _seqnum = 0;
         private List<string> _subscribedTopics = new List<string>();
@@ -47,8 +48,9 @@ namespace SubscriberConsole
         private SubscriberForm _form;
         private object _eventnumLock = new object();
         private int _eventnum = 0;
+        private Dictionary<String, List<int>> receivedMsg = new Dictionary<String, List<int>>();
 
-        public SubscriberRemote(SubscriberForm form,PuppetMaster pm, string name, string site, string coordinatorURI,string processName)
+        public SubscriberRemote(SubscriberForm form, PuppetMaster pm, string name, string site, string coordinatorURI, string processName)
         {
             _form = form;
             _serviceName = name;
@@ -112,7 +114,7 @@ namespace SubscriberConsole
             }
             string subscribedTopics = "";
             foreach (string t in _subscribedTopics)
-                subscribedTopics += "\""+t + "\" ";
+                subscribedTopics += "\"" + t + "\" ";
             log("[STATUS] Broker is alive:" + _alive);
             log("[STATUS] Subscribing: " + subscribedTopics);
             log("[STATUS] Freeze:" + _freezed);
@@ -126,6 +128,10 @@ namespace SubscriberConsole
             return _site;
         }
 
+        public void setSite(Site s)
+        {
+            site = s;
+        }
         public void crash()
         {
             Process.GetCurrentProcess().Kill();
@@ -156,13 +162,27 @@ namespace SubscriberConsole
         }
 
 
-        
 
-        
+
+
 
         public void receive(PublishMessage p)
         {
-            bool freezed =false;
+            
+            lock (receivedMsg)
+            {
+                if (receivedMsg.ContainsKey(p.publisherName))
+                {
+                    if (receivedMsg[p.publisherName].Contains(p.originalSeqnum))
+                        return;
+                }
+                else
+                    receivedMsg.Add(p.publisherName, new List<int>());
+                receivedMsg[p.publisherName].Add(p.originalSeqnum);
+            }
+            
+
+            bool freezed = false;
             lock (_eventnumLock)
             {
                 p.eventnum = _eventnum;
@@ -175,7 +195,7 @@ namespace SubscriberConsole
                     freezed = true;
                     _freezedReceives.Add(p);
                 }
-                    
+
 
             }
             if (!freezed)
@@ -230,18 +250,18 @@ namespace SubscriberConsole
             }
             else
             {
-                //TEM DE FICAR AQUI O LOG
+
                 lock (c)
                 {
                     c.reportEvent(EventType.SubEvent, getURI(), m.publisherURI, m.topic, m.seqnum);
                     log(string.Format("{0}", m));
 
                 }
-                
+
             }
 
 
-           
+
         }
 
         public void imAlive()
@@ -280,8 +300,11 @@ namespace SubscriberConsole
                 _subscribedTopics.Add(topic);
                 SubscribeMessage msg = new SubscribeMessage() { sub = this, seqnum = _seqnum, topic = topic, uri = getURI() };
                 log(msg.ToString());
-                SubscribeDelegate pd = new SubscribeDelegate(_broker.subscribe);
-                pd.BeginInvoke(msg,null,null);
+                foreach (Broker b in site.getBrokers())
+                {
+                    SubscribeDelegate pd = new SubscribeDelegate(b.subscribe);
+                    pd.BeginInvoke(msg, null, null);
+                }
                 _seqnum += 1;
             }
         }
@@ -301,8 +324,12 @@ namespace SubscriberConsole
                 // TODO make all calls assyncs
                 UnsubscribeMessage msg = new UnsubscribeMessage() { sub = this, seqnum = _seqnum, topic = topic, uri = getURI() };
                 log(msg.ToString());
-                UnsubscribeDelegate pd = new UnsubscribeDelegate(_broker.unsubscribe);
-                pd.BeginInvoke(msg, null, null);
+                foreach(Broker b in site.getBrokers())
+                {
+                    UnsubscribeDelegate pd = new UnsubscribeDelegate(b.unsubscribe);
+                    pd.BeginInvoke(msg, null, null);
+                }
+               
                 _seqnum += 1;
             }
         }

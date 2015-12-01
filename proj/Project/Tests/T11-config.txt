@@ -10,4 +10,4 @@ Process broker1 is broker On site1 URL tcp://localhost:3334/broker
 Process broker2 is broker On site2 URL tcp://localhost:3335/broker
 Process broker3 is broker On site3 URL tcp://localhost:3336/broker
 Process publisher0 is publisher On site0 URL tcp://localhost:3337/pub
-Process subscriber1 is subscriber On site3 URL tcp://localhost:3338/sub
+Process subscriber0 is subscriber On site3 URL tcp://localhost:3338/sub
