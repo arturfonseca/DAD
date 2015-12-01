@@ -427,6 +427,7 @@ namespace BrokerConsole
         {
             int en = getEventnum();
             log(en, string.Format("[TOUpdate] {0}", msg));
+            //Propagate msg to childs
             lock (_childSites)
             {
                 foreach (var childsite in _childSites)
@@ -524,15 +525,7 @@ namespace BrokerConsole
         {
             var update = new TOUpdate() { originSite = _site, topic = topic, seqnum = seqnum };
             log(en, string.Format("[updateNetwork] Sending {0}", update));
-            foreach (var site in _childSites)
-            {
-                log(en, string.Format("[updateNetwork] Update sent to {0}",site));
-                foreach(var broker in site.brokers)
-                {
-                    var d = new updateTODelegate(broker.updateTO);
-                    d.BeginInvoke(update, null, null);
-                }
-            }
+           
             new updateTODelegate(this.updateTO).BeginInvoke(update, null, null);
         }
 
@@ -591,7 +584,13 @@ namespace BrokerConsole
                     {
                         _topicSites.Add(msg.topic, new List<string>());
                     }
-                    _topicSites[msg.topic].Add(msg.interested_site);
+                    //Discart possible duplicates
+                    if (_topicSites[msg.topic].Contains(msg.interested_site))
+                        return;
+                    else
+                    {
+                        _topicSites[msg.topic].Add(msg.interested_site);
+                    }                   
                 }
             }
            
