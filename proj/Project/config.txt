@@ -1,6 +1,6 @@
 RoutingPolicy filter
 Ordering TOTAL
-LoggingLevel full
+LoggingLevel light
 Site site0 Parent none
 Site site9 Parent site0
 Site site10 Parent site0

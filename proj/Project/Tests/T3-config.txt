@@ -1,4 +1,4 @@
-RoutingPolicy filtering
+RoutingPolicy filter
 Ordering NO
 LoggingLevel full
 Site site0 Parent none

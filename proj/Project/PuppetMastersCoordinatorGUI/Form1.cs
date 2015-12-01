@@ -26,9 +26,7 @@ namespace PuppetMastersCoordinatorGUI
         Dictionary<String, Site> site_site;
         Dictionary<String, String> site_parents;
         Dictionary<String, List<String>> site_childs;
-        Dictionary<String, Broker> site_brokers;
-        Dictionary<String, Broker> site_brokers1;
-        Dictionary<String, Broker> site_brokers2;
+        Dictionary<String, List<Broker>> site_brokers;
         Dictionary<String, List<Publisher>> site_publishers;
         Dictionary<String, List<Subscriber>> site_subscribers;
         Dictionary<String, Broker> all_brokers;
@@ -94,8 +92,14 @@ namespace PuppetMastersCoordinatorGUI
         {
             if (log == LoggingLevel.light && type == EventType.BroEvent)
                 return;
-            string str = type + " " + uri_processname[uri1] + ", " + uri_processname[uri2] + ", " + topic + ", " + seqnum;
-            logCommand(str);
+            //MIRROR BROKERS IGNORED
+            try
+            {
+                string str = type + " " + uri_processname[uri1] + ", " + uri_processname[uri2] + ", " + topic + ", " + seqnum;
+                logCommand(str);
+            }
+            catch (KeyNotFoundException) { }
+
         }
 
         delegate void stringIn(string s);
@@ -129,9 +133,7 @@ namespace PuppetMastersCoordinatorGUI
             site_site = new Dictionary<string, Site>();
             site_parents = new Dictionary<string, string>();
             site_childs = new Dictionary<string, List<string>>();
-            site_brokers = new Dictionary<String, Broker>();
-            site_brokers1 = new Dictionary<String, Broker>();
-            site_brokers2 = new Dictionary<String, Broker>();
+            site_brokers = new Dictionary<String, List<Broker>>();
             site_publishers = new Dictionary<String, List<Publisher>>();
             site_subscribers = new Dictionary<String, List<Subscriber>>();
             all_brokers = new Dictionary<String, Broker>();
@@ -241,20 +243,17 @@ namespace PuppetMastersCoordinatorGUI
                             uri_processname.Add(uri, processName);
                             break;
                         case "broker":
-
                             Broker b = pms[ip].createBroker(processName, serviceName, site, Int32.Parse(port), myaddr);
                             List<Broker> temp = new List<Broker>() { b };
                             if (faultTolerance)
                             {
                                 Broker b1 = pms[ip].createBroker(processName + "_1", serviceName, site, Int32.Parse(port) + 500, myaddr);
-                                site_brokers1.Add(site, b1);
                                 temp.Add(b1);
                                 Broker b2 = pms[ip].createBroker(processName + "_2", serviceName, site, Int32.Parse(port) + 600, myaddr);
-                                site_brokers2.Add(site, b2);
                                 temp.Add(b2);
                             }
                             all_brokers.Add(processName, b);
-                            site_brokers.Add(site, b);
+                            site_brokers.Add(site, temp);
                             site_site.Add(site, new Site() { name = site, brokers = temp });
                             if (ip == "localhost")
                                 uri = uri.Replace("localhost", LocalIPAddress().ToString());
@@ -280,11 +279,15 @@ namespace PuppetMastersCoordinatorGUI
                 else
                     MessageBox.Show("Error parsing config.file! at line:\n" + string.Format("'{0}'", line));
             }
-            foreach (KeyValuePair<string, Broker> entry in all_brokers)
+            foreach (KeyValuePair<string, List<Broker>> entry in site_brokers)
             {
-                entry.Value.setRoutingPolicy(rout);
-                entry.Value.setOrderingPolicy(ord);
-                entry.Value.setLoggingLevel(log);
+                foreach (Broker b in entry.Value)
+                {
+                    b.setRoutingPolicy(rout);
+                    b.setOrderingPolicy(ord);
+                    b.setLoggingLevel(log);
+                }
+
             }
 
             foreach (KeyValuePair<string, Subscriber> entry in all_subscribers)
@@ -296,79 +299,41 @@ namespace PuppetMastersCoordinatorGUI
             {
                 entry.Value.setOrderingPolicy(ord);
             }
+            foreach (Broker b in site_brokers[site_root])
+                b.setIsRoot();
 
-            site_brokers[site_root].setIsRoot();
 
             //Set publishers brokers
             foreach (KeyValuePair<string, List<Publisher>> entry in site_publishers)
             {
-                site_brokers[entry.Key].setPublishers(entry.Value);
+                foreach (Broker b in site_brokers[entry.Key])
+                    b.setPublishers(entry.Value);
+
                 foreach (Publisher p in entry.Value)
                 {
-                    p.setSiteBroker(site_brokers[entry.Key]);
+                    p.setSiteBroker(site_brokers[entry.Key][0]);
                     p.setSite(site_site[entry.Key]);
                 }
             }
             // Set subscriber brokers
             foreach (KeyValuePair<string, List<Subscriber>> entry in site_subscribers)
             {
-                site_brokers[entry.Key].setSubscribers(entry.Value);
+                foreach (Broker b in site_brokers[entry.Key])
+                    b.setSubscribers(entry.Value);
                 foreach (Subscriber s in entry.Value)
                 {
-                    s.setSiteBroker(site_brokers[entry.Key]);
+                    s.setSiteBroker(site_brokers[entry.Key][0]);
+                    s.setSite(site_site[entry.Key]);
                 }
+
             }
 
             //Set parents and childs
-            foreach (KeyValuePair<string, Broker> entry in site_brokers)
+            foreach (KeyValuePair<string, List<Broker>> entry in site_brokers)
             {
                 string site = entry.Key;
-                Broker broker = entry.Value;
-
-                if (site_childs.ContainsKey(site))
+                foreach (Broker b in entry.Value)
                 {
-                    List<Site> childs = new List<Site>();
-                    foreach (string str in site_childs[site])
-                    {
-                        if (site_site.ContainsKey(str)) // empty sites
-                            childs.Add(site_site[str]);
-
-                    }
-                    broker.setChildren(childs);
-
-                }
-
-                //assume we first read root site
-                if (site != site_root)
-                {
-                    string ps = site_parents[site];
-                    Site parentSite = site_site[ps];
-                    entry.Value.setParent(parentSite);
-                }
-            }
-            /*
-            if (faultTolerance)
-            {
-                //set configs
-                foreach (KeyValuePair<string, Broker> entry in site_brokers1)
-                {
-                    entry.Value.setRoutingPolicy(rout);
-                    entry.Value.setOrderingPolicy(ord);
-                    entry.Value.setLoggingLevel(log);
-                }
-                foreach (KeyValuePair<string, Broker> entry in site_brokers2)
-                {
-                    entry.Value.setRoutingPolicy(rout);
-                    entry.Value.setOrderingPolicy(ord);
-                    entry.Value.setLoggingLevel(log);
-                }
-
-                //Set parents and childs
-                foreach (KeyValuePair<string, Broker> entry in site_brokers1)
-                {
-                    string site = entry.Key;
-                    Broker broker = entry.Value;
-
                     if (site_childs.ContainsKey(site))
                     {
                         List<Site> childs = new List<Site>();
@@ -376,26 +341,18 @@ namespace PuppetMastersCoordinatorGUI
                         {
                             if (site_site.ContainsKey(str)) // empty sites
                                 childs.Add(site_site[str]);
-
                         }
-                        broker.setChildren(childs);
-
+                        b.setChildren(childs);
                     }
-
-                    //assume we first read root site
                     if (site != site_root)
                     {
                         string ps = site_parents[site];
-                        Site parentSite = site_site[ps];
-                        entry.Value.setParent(parentSite);
+                        b.setParent(site_site[ps]);
                     }
                 }
-               
-
-
             }
 
-     */
+
 
 
         }
@@ -405,7 +362,7 @@ namespace PuppetMastersCoordinatorGUI
         {
             try
             {
-                string input_file = ConfigurationManager.AppSettings["input"];
+                string input_file = ConfigurationManager.AppSettings["commands"];
                 string[] lines = System.IO.File.ReadAllLines(input_file);
                 if (runningInstructions == true)
                 {

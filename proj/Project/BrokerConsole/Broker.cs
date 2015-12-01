@@ -64,6 +64,7 @@ namespace BrokerConsole
         private Dictionary<string, Subscriber> _uriToSubs = new Dictionary<string, Subscriber>();
         // uri to Publisher
         private Dictionary<string, Publisher> _uriToPubs = new Dictionary<string, Publisher>();
+        private Dictionary<String, List<int>> receivedMsg = new Dictionary<String, List<int>>();
 
         /// <summary>
         /// Deliver Variables
@@ -827,7 +828,21 @@ namespace BrokerConsole
         {
             // FLOODING implementation
             // TODO discart if duplicate message
-            // TODO make all calls assyncs        
+            // TODO make all calls assyncs 
+            lock (receivedMsg)
+            {
+                if (receivedMsg.ContainsKey(msg.publisherName))
+                {
+                    if (receivedMsg[msg.publisherName].Contains(msg.originalSeqnum))
+                        return;
+                }
+                else
+                    receivedMsg.Add(msg.publisherName, new List<int>());
+                receivedMsg[msg.publisherName].Add(msg.originalSeqnum);
+            }
+
+
+
             int en = getEventnum();
             log(en, "Processing " + msg);
             if (_orderingPolicy == OrderingPolicy.total)
@@ -970,6 +985,7 @@ namespace BrokerConsole
 
         private void flooding(int en, PublishMessage receivedMessage, PublishMessage sendingMessage)
         {
+
             lock (_childSites)
             {
                 foreach (var site in _childSites)
@@ -1086,6 +1102,10 @@ namespace BrokerConsole
         }
         private void routing(int en, PublishMessage receivedMessage)
         {
+           
+
+            
+
             PublishMessage sendingMessage = new PublishMessage(receivedMessage, _site);
 
             if (_routingPolicy == RoutingPolicy.flooding)
