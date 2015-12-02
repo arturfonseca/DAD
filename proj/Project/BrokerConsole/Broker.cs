@@ -80,10 +80,8 @@ namespace BrokerConsole
         /// </summary>        
         // key = topic, value = list of interested sites
         Dictionary<string, List<string>> _topicSites = new Dictionary<string, List<string>>();
-        Dictionary<string, List<string>> _topicChildSites = new Dictionary<string, List<string>>();
         //Used in subscritions  <site.name, ListofTopicsPropagated>
-        Dictionary<string, List<string>> _siteToPropagatedSub = new Dictionary<string, List<string>>();
-
+        Dictionary<string, Dictionary<string, int>> _siteToPropagatedSub = new Dictionary<string, Dictionary<string, int>>();
         //FIFO
         // for each site list seqnum for each publisher
         private Dictionary<string, List<FIFOstruct>> _siteToFifoStruct = new Dictionary<string, List<FIFOstruct>>();
@@ -561,14 +559,7 @@ namespace BrokerConsole
         {
             string origin_site = msg.interested_site;
             int en = getEventnum();
-            if (origin_site == null)
-            {
-                log(en, "Subscribe " + msg.ToString());
-            }
-            else
-            {
-                log(en, "Propagate subscribe " + msg.ToString());
-            }
+           
             if (origin_site == null)
             {
                 lock (_topicSubscribers)
@@ -577,7 +568,14 @@ namespace BrokerConsole
                     {
                         _topicSubscribers.Add(msg.topic, new List<string>());
                     }
-                    _topicSubscribers[msg.topic].Add(msg.uri);
+                    //Discart possible duplicates
+                    if (_topicSubscribers[msg.topic].Contains(msg.uri))
+                        return;
+                    else
+                    {
+                        _topicSubscribers[msg.topic].Add(msg.uri);
+                    }
+                    
                 }
             }
             else
@@ -597,7 +595,15 @@ namespace BrokerConsole
                     }
                 }
             }
-
+            //Doon't print discarted msg
+            if (origin_site == null)
+            {
+                log(en, "[Subscribe] received" + msg.ToString());
+            }
+            else
+            {
+                log(en, "[Propagate subscribe] received" + msg.ToString());
+            }
 
             msg.interested_site = _site;
             // propagate subscribe to parent, taking advantage of tree strucure
@@ -611,18 +617,25 @@ namespace BrokerConsole
                         {
                             if (!_siteToPropagatedSub.ContainsKey(_parentSite.name))
                             {
-                                _siteToPropagatedSub.Add(_parentSite.name, new List<string>());
+                                _siteToPropagatedSub.Add(_parentSite.name, new Dictionary<string, int>());
                             }
 
-                            if (!_siteToPropagatedSub[_parentSite.name].Contains(msg.topic))
+                            if (!_siteToPropagatedSub[_parentSite.name].ContainsKey(msg.topic))
                             {
-                                _siteToPropagatedSub[_parentSite.name].Add(msg.topic);
-                                log(en, string.Format("Sending {0} to parent site {1}", msg, _parentSite.name));
+                                _siteToPropagatedSub[_parentSite.name].Add(msg.topic,1);
+                                log(en, string.Format("[Subscribe] Sending {0} to parent site {1}", msg, _parentSite.name));
                                 foreach (var b in _parentSite.brokers)
                                 {
                                     SubscribeDelegate sd = new SubscribeDelegate(b.subscribe);
                                     sd.BeginInvoke(msg, null, null);
                                 }
+                            }
+                            else
+                            {
+                                var num = _siteToPropagatedSub[_parentSite.name][msg.topic];
+                                num++;
+                                _siteToPropagatedSub[_parentSite.name][msg.topic] = num;
+
                             }
                         }
                     }
@@ -642,17 +655,191 @@ namespace BrokerConsole
                             {
                                 if (!_siteToPropagatedSub.ContainsKey(s.name))
                                 {
-                                    _siteToPropagatedSub.Add(s.name, new List<string>());
+                                    _siteToPropagatedSub.Add(s.name, new Dictionary<string, int>());
                                 }
 
-                                if (!_siteToPropagatedSub[s.name].Contains(msg.topic))
+                                if (!_siteToPropagatedSub[s.name].ContainsKey(msg.topic))
                                 {
-                                    _siteToPropagatedSub[s.name].Add(msg.topic);
-                                    log(en, string.Format("Sending {0} to child site {1}", msg, s.name));
+                                    _siteToPropagatedSub[s.name].Add(msg.topic, 1);
+                                    log(en, string.Format("[Subscribe] Sending {0} to child site {1}", msg, s.name));
                                     foreach (var b in s.brokers)
                                     {
                                         SubscribeDelegate sd = new SubscribeDelegate(b.subscribe);
                                         sd.BeginInvoke(msg, null, null);
+                                    }
+                                }
+                                else
+                                {
+                                    var num = _siteToPropagatedSub[s.name][msg.topic];
+                                    num++;
+                                    _siteToPropagatedSub[s.name][msg.topic] = num;
+
+                                }
+                            }
+                        }
+
+                    }
+                }
+            }
+
+           /* if (origin_site == null)
+            {
+                log(en, "Subscribe finished");
+            }
+            else
+            {
+                log(en, "Propagate subscribe finished");
+            }*/
+        }
+
+        public void unsubscribe(UnsubscribeMessage msg)
+        {
+            string origin_site = msg.interested_site;
+            int en = getEventnum();
+
+            //We should only propagate the unsubscriveMessage if there is no more sites 
+            //or subscribers that subscribe it
+
+            if (origin_site == null)
+            {
+                lock (_topicSubscribers)
+                {
+                    if (_topicSubscribers.ContainsKey(msg.topic))
+                    {
+                        if (_topicSubscribers[msg.topic].Contains(msg.uri))
+                        {
+                            _topicSubscribers[msg.topic].Remove(msg.uri);
+                        }
+                        else
+                        {
+                            //discart duplicated message
+                            return;
+                        }
+
+                        if (_topicSubscribers[msg.topic].Count == 0)
+                        {
+                            _topicSubscribers.Remove(msg.topic);
+                        }
+                    }
+                    else
+                    {
+                        //If you unsubscribe something you are not subscribed does not make sense propagate the message
+                        return;
+                    }
+                }
+            }
+            else
+            {
+                lock (_topicSites)
+                {
+                    if (_topicSites.ContainsKey(msg.topic))
+                    {
+                        if (_topicSites[msg.topic].Contains(msg.interested_site))
+                        {
+                            _topicSites[msg.topic].Remove(msg.interested_site);
+                        }
+                        else
+                        {
+                            //discart duplicated message
+                            return;
+                        }
+
+                        if (_topicSites[msg.topic].Count == 0)
+                        {
+                            _topicSites.Remove(msg.topic);
+                        }
+                    }
+                    else
+                    {
+                        //If you unsubscribe something you are not subscribed does not make sense propagate the message
+                        return;
+                    }
+                }
+            }
+
+            //Doon't print discarted msg
+            if (origin_site == null)
+            {
+                log(en, "[Unsubscribe] received" + msg.ToString());
+            }
+            else
+            {
+                log(en, "[Propagate unsubscribe] received" + msg.ToString());
+            }
+
+            msg.interested_site = _site;
+            // propagate subscribe to parent, taking advantage of tree strucure
+            lock (_parentSiteLock)
+            {
+                if (_parentSite != null)
+                {
+                    if (origin_site == null || _parentSite.name != origin_site)
+                    {
+                        lock (_siteToPropagatedSub)
+                        {
+                            if (_siteToPropagatedSub.ContainsKey(_parentSite.name))
+                            {
+                               
+                                var num = _siteToPropagatedSub[_parentSite.name][msg.topic];
+                                num--;
+                               
+                                _siteToPropagatedSub[_parentSite.name][msg.topic] = num;
+
+                                if (_siteToPropagatedSub[_parentSite.name][msg.topic] == 0)
+                                {
+                                    _siteToPropagatedSub[_parentSite.name].Remove(msg.topic);
+                                }
+
+                                //NO More interested sites in this topic can propagate to parent
+                                if (!_siteToPropagatedSub[_parentSite.name].ContainsKey(msg.topic))
+                                {
+                                    log(en, string.Format("[Unsubscribe] Sending {0} to parent site {1}", msg, _parentSite.name));
+                                    foreach (var b in _parentSite.brokers)
+                                    {
+                                        UnsubscribeDelegate sd = new UnsubscribeDelegate(b.unsubscribe);
+                                        sd.BeginInvoke(msg, null, null);
+                                    }
+                                }
+                            }
+                       
+                        }
+                    }
+                }
+            }
+
+            lock (_childSites)
+            {
+                foreach (var s in _childSites)
+                {
+
+                    lock (s)
+                    {
+                        if (origin_site == null || s.name != origin_site)
+                        {
+                            lock (_siteToPropagatedSub)
+                            {
+                                if (_siteToPropagatedSub.ContainsKey(s.name))
+                                {
+
+                                    var num = _siteToPropagatedSub[s.name][msg.topic];
+                                    num--;
+                                   
+                                    _siteToPropagatedSub[s.name][msg.topic] = num;
+
+                                    if (_siteToPropagatedSub[s.name][msg.topic] == 0)
+                                    {
+                                        _siteToPropagatedSub[s.name].Remove(msg.topic);
+                                    }
+
+                                    //NO More interested sites in this topic can propagate to child
+                                    if (!_siteToPropagatedSub[s.name].ContainsKey(msg.topic))
+                                    {
+                                        log(en, string.Format("[Unsubscribe] Sending {0} to site {1}", msg, s.name));
+                                        foreach (var b in s.brokers)
+                                        {
+                                            UnsubscribeDelegate sd = new UnsubscribeDelegate(b.unsubscribe);
+                                            sd.BeginInvoke(msg, null, null);
+                                        }
                                     }
                                 }
                             }
@@ -662,114 +849,6 @@ namespace BrokerConsole
                 }
             }
 
-            if (origin_site == null)
-            {
-                log(en, "Subscribe finished");
-            }
-            else
-            {
-                log(en, "Propagate subscribe finished");
-            }
-        }
-
-        public void unsubscribe(UnsubscribeMessage msg)
-        {
-            int en = getEventnum();
-            log(en, string.Format("Unsubscribe Received {0}", msg));
-            //We should only propagate the unsubscriveMessage if there is no more sites 
-            //or subscribers that subscribe it
-            bool isLastTopic = false;
-            bool remainingOneSubscrition = false;
-            lock (_topicSubscribers)
-            {
-                if (_topicSubscribers.ContainsKey(msg.topic))
-                {
-                    if (_topicSubscribers[msg.topic].Contains(msg.uri))
-                        _topicSubscribers[msg.topic].Remove(msg.uri);
-
-                    if (_topicSubscribers[msg.topic].Count == 0)
-                    {
-                        if (!_topicSites.ContainsKey(msg.topic))
-                        {
-                            isLastTopic = true;
-                        }
-                        else
-                        {
-                            if (_topicSites[msg.topic].Count == 1)
-                            {
-                                //propagateUnsubcribe to only this broker
-                                remainingOneSubscrition = true;
-                            }
-                        }
-
-                        _topicSubscribers.Remove(msg.topic);
-                    }
-                }
-                else
-                {
-                    //If you unsubscribe something you are not subscribed does not make sense propagate the message
-                    return;
-                }
-            }
-            if (isLastTopic)
-            {
-                msg.interested_site = _site;
-                // propagate unsubscribe only to parent, taking advantage of tree strucure
-                lock (_parentSiteLock)
-                {
-                    if (_parentSite != null)
-                    {
-                        log(en, string.Format("Sending {0} to parent site {1}", msg, _parentSite.name));
-                        foreach (Broker b in _parentSite.brokers)
-                        {
-                            UnsubscribeDelegate usd = new UnsubscribeDelegate(b.unsubscribe);
-                            usd.BeginInvoke(msg, null, null);
-                        }
-                    }
-                }
-                lock (_childSites)
-                {
-                    foreach (var s in _childSites)
-                    {
-                        lock (s)
-                        {
-                            log(en, string.Format("Sending {0} to child site {1}", msg, s.name));
-                            foreach (var b in s.brokers)
-                            {
-
-                                UnsubscribeDelegate usd = new UnsubscribeDelegate(b.unsubscribe);
-                                usd.BeginInvoke(msg, null, null);
-                            }
-                        }
-                    }
-                }
-            }
-            else
-            {
-                if (remainingOneSubscrition)
-                {
-                    msg.interested_site = _site;
-                    var site_names = _topicSites[msg.topic];
-                    //only exists 1 occurence
-                    if (site_names.Count == 1)
-                    {
-                        foreach (var s_name in site_names)
-                        {
-                            var site = _nameToSite[s_name];
-                            lock (site)
-                            {
-                                log(en, string.Format("Sending {0} to site {1}", msg, s_name));
-                                foreach (var b in site.brokers)
-                                {
-                                    UnsubscribeDelegate usd = new UnsubscribeDelegate(b.unsubscribe);
-                                    usd.BeginInvoke(msg, null, null);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            log(en, "Unsubscribed finished");
         }
 
         public void freeze()
