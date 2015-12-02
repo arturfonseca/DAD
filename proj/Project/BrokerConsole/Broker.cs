@@ -52,6 +52,7 @@ namespace BrokerConsole
         /// site configuration
         /// </summary>
         private Object _parentSiteLock = new object();
+        private Object _receivedLock = new object();
         private Site _parentSite;
         private List<Publisher> _publishers = new List<Publisher>();
         private List<Subscriber> _subscribers = new List<Subscriber>();
@@ -64,7 +65,7 @@ namespace BrokerConsole
         private Dictionary<string, Subscriber> _uriToSubs = new Dictionary<string, Subscriber>();
         // uri to Publisher
         private Dictionary<string, Publisher> _uriToPubs = new Dictionary<string, Publisher>();
-        private Dictionary<String, List<int>> receivedMsg = new Dictionary<String, List<int>>();
+        private Dictionary<String, HashSet<int>> receivedMsg = new Dictionary<String, HashSet<int>>();
 
         /// <summary>
         /// Deliver Variables
@@ -448,9 +449,9 @@ namespace BrokerConsole
                 _TOUpdates.Add(msg);
                 _TOUpdates = _TOUpdates.OrderBy(m => m.seqnum).ToList();
                 var x = _TOUpdates.Select(m => string.Format("({0},{1})", m.topic, m.seqnum));
-                log(en, string.Format("[TOUpdate] TOSeqnum:{0} TOUpdate:{1}",_TOSeqnum, string.Join(",", x)));
+                log(en, string.Format("[TOUpdate] TOSeqnum:{0} TOUpdate:{1}", _TOSeqnum, string.Join(",", x)));
                 while (_TOUpdates.Count != 0 && _TOSeqnum == _TOUpdates[0].seqnum)
-                {                    
+                {
                     if (_topicSubscribers.Keys.Any(t => equivalentTopic(msg.topic, t)))
                     {
                         log(en, string.Format("[TOUpdate] saved update"));
@@ -470,7 +471,7 @@ namespace BrokerConsole
                 x = _TOUpdates.Select(m => string.Format("({0},{1})", m.topic, m.seqnum));
                 log(en, string.Format("[TOUpdate] TOUpdate:{0}", string.Join(",", x)));
             }
-            
+
             TODeliver(en);
         }
 
@@ -492,20 +493,20 @@ namespace BrokerConsole
                     while (_TOQueue.Count != 0 && _TOWaiting.Count != 0)
                     {
                         var msg = _TOQueue[0];
-                        var upt = _TOWaiting[0];                        
+                        var upt = _TOWaiting[0];
                         if (msg.seqnum != upt.seqnum)
                             break;
                         _TOQueue.RemoveAt(0);
                         _TOWaiting.RemoveAt(0);
                         lock (_topicSubscribers)
                         {
-                            foreach(var subscribedTopic in _topicSubscribers.Keys)
+                            foreach (var subscribedTopic in _topicSubscribers.Keys)
                             {
                                 if (!equivalentTopic(msg.topic, subscribedTopic))
                                     continue;
-                                foreach(var subUri in _topicSubscribers[subscribedTopic])
+                                foreach (var subUri in _topicSubscribers[subscribedTopic])
                                 {
-                                    log(en, string.Format("[TODeliver] sent to {0}",subUri));                                    
+                                    log(en, string.Format("[TODeliver] sent to {0}", subUri));
                                     var sub = _uriToSubs[subUri];
                                     ReceiveDelegate rd = new ReceiveDelegate(sub.receive);
                                     msg.seqnum = _TOSubscriberFIFO[subUri]++;
@@ -524,7 +525,7 @@ namespace BrokerConsole
             }
         }
 
-        private void updateNetwork(int en, string topic,int seqnum)
+        private void updateNetwork(int en, string topic, int seqnum)
         {
             var update = new TOUpdate() { originSite = _site, topic = topic, seqnum = seqnum };
             log(en, string.Format("[updateNetwork] Sending {0}", update));
@@ -562,14 +563,14 @@ namespace BrokerConsole
             int en = getEventnum();
             if (origin_site == null)
             {
-                log(en, "Subscribe "+msg.ToString());
+                log(en, "Subscribe " + msg.ToString());
             }
             else
             {
-                log(en, "Propagate subscribe "+msg.ToString());
+                log(en, "Propagate subscribe " + msg.ToString());
             }
             if (origin_site == null)
-            {                
+            {
                 lock (_topicSubscribers)
                 {
                     if (!_topicSubscribers.ContainsKey(msg.topic))
@@ -593,10 +594,10 @@ namespace BrokerConsole
                     else
                     {
                         _topicSites[msg.topic].Add(msg.interested_site);
-                    }                   
+                    }
                 }
             }
-           
+
 
             msg.interested_site = _site;
             // propagate subscribe to parent, taking advantage of tree strucure
@@ -618,7 +619,7 @@ namespace BrokerConsole
                                 _siteToPropagatedSub[_parentSite.name].Add(msg.topic);
                                 log(en, string.Format("Sending {0} to parent site {1}", msg, _parentSite.name));
                                 foreach (var b in _parentSite.brokers)
-                                {                                                                      
+                                {
                                     SubscribeDelegate sd = new SubscribeDelegate(b.subscribe);
                                     sd.BeginInvoke(msg, null, null);
                                 }
@@ -627,12 +628,12 @@ namespace BrokerConsole
                     }
                 }
             }
-           
+
             lock (_childSites)
-            {         
+            {
                 foreach (var s in _childSites)
                 {
-                  
+
                     lock (s)
                     {
                         if (origin_site == null || s.name != origin_site)
@@ -668,13 +669,13 @@ namespace BrokerConsole
             else
             {
                 log(en, "Propagate subscribe finished");
-            }            
+            }
         }
 
         public void unsubscribe(UnsubscribeMessage msg)
         {
             int en = getEventnum();
-            log(en,string.Format("Unsubscribe Received {0}", msg));
+            log(en, string.Format("Unsubscribe Received {0}", msg));
             //We should only propagate the unsubscriveMessage if there is no more sites 
             //or subscribers that subscribe it
             bool isLastTopic = false;
@@ -720,7 +721,7 @@ namespace BrokerConsole
                     {
                         log(en, string.Format("Sending {0} to parent site {1}", msg, _parentSite.name));
                         foreach (Broker b in _parentSite.brokers)
-                        {                            
+                        {
                             UnsubscribeDelegate usd = new UnsubscribeDelegate(b.unsubscribe);
                             usd.BeginInvoke(msg, null, null);
                         }
@@ -735,7 +736,7 @@ namespace BrokerConsole
                             log(en, string.Format("Sending {0} to child site {1}", msg, s.name));
                             foreach (var b in s.brokers)
                             {
-                                
+
                                 UnsubscribeDelegate usd = new UnsubscribeDelegate(b.unsubscribe);
                                 usd.BeginInvoke(msg, null, null);
                             }
@@ -759,7 +760,7 @@ namespace BrokerConsole
                             {
                                 log(en, string.Format("Sending {0} to site {1}", msg, s_name));
                                 foreach (var b in site.brokers)
-                                {                                    
+                                {
                                     UnsubscribeDelegate usd = new UnsubscribeDelegate(b.unsubscribe);
                                     usd.BeginInvoke(msg, null, null);
                                 }
@@ -830,26 +831,33 @@ namespace BrokerConsole
             // FLOODING implementation
             // TODO discart if duplicate message
             // TODO make all calls assyncs 
-            lock (receivedMsg)
+
+
+            //TODO LOCKS HERE
+       
+            lock (_receivedLock)
             {
                 if (receivedMsg.ContainsKey(receivingMessage.publisherName))
                 {
-                    if (receivedMsg[receivingMessage.publisherName].Contains(receivingMessage.originalSeqnum))
+                    if (!receivedMsg[receivingMessage.publisherName].Contains(receivingMessage.originalSeqnum))
+                        receivedMsg[receivingMessage.publisherName].Add(receivingMessage.originalSeqnum);
+                    else
                         return;
                 }
                 else
-                    receivedMsg.Add(receivingMessage.publisherName, new List<int>());
-                receivedMsg[receivingMessage.publisherName].Add(receivingMessage.originalSeqnum);
+                {
+                    receivedMsg.Add(receivingMessage.publisherName, new HashSet<int>());
+                    receivedMsg[receivingMessage.publisherName].Add(receivingMessage.originalSeqnum);
+                }
             }
-
-
+          
 
             int en = getEventnum();
             log(en, "Processing " + receivingMessage);
             if (_orderingPolicy == OrderingPolicy.total)
             {
                 deliver(en, receivingMessage);
-                routing(en, receivingMessage);               
+                routing(en, receivingMessage);
             }
             else if (_orderingPolicy == OrderingPolicy.fifo)
             {
@@ -876,7 +884,7 @@ namespace BrokerConsole
                     */
                     fifo.listOfmessages.Add(receivingMessage);
                     fifo.listOfmessages = fifo.listOfmessages.OrderBy(item => item.seqnum).ToList();
-                    var queueList = fifo.listOfmessages.Select(x => ""+ x.seqnum);
+                    var queueList = fifo.listOfmessages.Select(x => "" + x.seqnum);
                     var qlstr = string.Join(",", queueList);
                     log(en, string.Format("FIFO seqnum:{0} queue:{1}", fifo._seq_num, qlstr));
                     foreach (PublishMessage _msg in fifo.listOfmessages.ToList())
@@ -903,7 +911,7 @@ namespace BrokerConsole
                 routing(en, receivingMessage);
             }
         }
-       
+
 
         private void deliver(int en, PublishMessage rmsg)
         {
@@ -927,7 +935,7 @@ namespace BrokerConsole
                         lock (_TOQueue)
                         {
                             _TOQueue.Add(msg);
-                        }                        
+                        }
                         break;
                     }
                     foreach (var uri in _topicSubscribers[subscribedTopic]) // subscriber uri
@@ -939,12 +947,12 @@ namespace BrokerConsole
                 }
             }
 
-            if(_orderingPolicy == OrderingPolicy.total)
+            if (_orderingPolicy == OrderingPolicy.total)
             {
                 TODeliver(en);
                 return;
             }
-               
+
 
             foreach (var uri in receivingSubscribers)
             {
@@ -982,7 +990,7 @@ namespace BrokerConsole
                     rd.BeginInvoke(msg, null, null);
                     log(en, string.Format("Delivered message to {0}", uri));
                 }
-            }           
+            }
         }
 
         private void flooding(int en, PublishMessage receivedMessage, PublishMessage sendingMessage)
@@ -992,7 +1000,7 @@ namespace BrokerConsole
             {
                 foreach (var site in _childSites)
                 {
-                 
+
                     lock (site)
                     {
                         if (site.name != receivedMessage.originSite)
@@ -1111,7 +1119,7 @@ namespace BrokerConsole
             log(en, "Routing: received " + receivedMessage);
             log(en, "Routing sending " + sendingMessage);
             if (_routingPolicy == RoutingPolicy.flooding)
-            {                
+            {
                 flooding(en, receivedMessage, sendingMessage);
             }
             else // routing policy is filtering

@@ -48,7 +48,8 @@ namespace SubscriberConsole
         private SubscriberForm _form;
         private object _eventnumLock = new object();
         private int _eventnum = 0;
-        private Dictionary<String, List<int>> receivedMsg = new Dictionary<String, List<int>>();
+        private Object _receivedLock = new object();
+        private Dictionary<String, HashSet<int>> receivedMsg = new Dictionary<String, HashSet<int>>();
 
         public SubscriberRemote(SubscriberForm form, PuppetMaster pm, string name, string site, string coordinatorURI, string processName)
         {
@@ -168,19 +169,24 @@ namespace SubscriberConsole
 
         public void receive(PublishMessage p)
         {
+
             
-            lock (receivedMsg)
+            lock (_receivedLock)
             {
                 if (receivedMsg.ContainsKey(p.publisherName))
                 {
-                    if (receivedMsg[p.publisherName].Contains(p.originalSeqnum))
+                    if (!receivedMsg[p.publisherName].Contains(p.originalSeqnum))
+                        receivedMsg[p.publisherName].Add(p.originalSeqnum);
+                    else
                         return;
                 }
                 else
-                    receivedMsg.Add(p.publisherName, new List<int>());
-                receivedMsg[p.publisherName].Add(p.originalSeqnum);
+                {
+                    receivedMsg.Add(p.publisherName, new HashSet<int>());
+                    receivedMsg[p.publisherName].Add(p.originalSeqnum);
+                }
             }
-            
+          
 
             bool freezed = false;
             lock (_eventnumLock)
