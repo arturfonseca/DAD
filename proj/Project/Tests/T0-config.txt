@@ -1,0 +1,13 @@
+RoutingPolicy filter
+Ordering TOTAL
+LoggingLevel full
+Site site0 Parent none
+Site site1 Parent site0
+Site site2 Parent site1
+Site site3 Parent site2
+Process broker0 is broker On site0 URL tcp://localhost:3333/broker
+Process broker1 is broker On site1 URL tcp://localhost:3334/broker
+Process broker2 is broker On site2 URL tcp://localhost:3335/broker
+Process broker3 is broker On site3 URL tcp://localhost:3336/broker
+Process publisher0 is publisher On site0 URL tcp://localhost:3339/pub
+Process subscriber0 is subscriber On site3 URL tcp://localhost:3340/sub

@@ -53,6 +53,7 @@ namespace BrokerConsole
         /// </summary>
         private Object _parentSiteLock = new object();
         private Object _receivedLock = new object();
+        private Object _receivedTOLock = new object();
         private Site _parentSite;
         private List<Publisher> _publishers = new List<Publisher>();
         private List<Subscriber> _subscribers = new List<Subscriber>();
@@ -66,6 +67,7 @@ namespace BrokerConsole
         // uri to Publisher
         private Dictionary<string, Publisher> _uriToPubs = new Dictionary<string, Publisher>();
         private Dictionary<String, HashSet<int>> receivedMsg = new Dictionary<String, HashSet<int>>();
+        private Dictionary<String, HashSet<int>> receivedMsgTOupdate = new Dictionary<String, HashSet<int>>();
 
         /// <summary>
         /// Deliver Variables
@@ -428,6 +430,23 @@ namespace BrokerConsole
 
         public void updateTO(TOUpdate msg)
         {
+            lock (_receivedTOLock)
+            {
+                if (receivedMsgTOupdate.ContainsKey(msg.topic))
+                {
+                    if (!receivedMsgTOupdate[msg.topic].Contains(msg.seqnum))
+                        receivedMsgTOupdate[msg.topic].Add(msg.seqnum);
+                    else
+                        return;
+                }
+                else
+                {
+                    receivedMsgTOupdate.Add(msg.topic, new HashSet<int>());
+                    receivedMsgTOupdate[msg.topic].Add(msg.seqnum);
+                }
+            }
+
+
             int en = getEventnum();
             log(en, string.Format("[TOUpdate] {0}", msg));
             //Propagate msg to childs
@@ -524,7 +543,7 @@ namespace BrokerConsole
             }
         }
 
-        private void updateNetwork(int en, string topic, int seqnum)
+        public void updateNetwork(int en, string topic, int seqnum)
         {
             var update = new TOUpdate() { originSite = _site, topic = topic, seqnum = seqnum };
             log(en, string.Format("[updateNetwork] Sending {0}", update));
@@ -551,7 +570,7 @@ namespace BrokerConsole
                             if (b.getProcessName() != _processName)
                             {
                                 b.setSeqNumber(_sequencerSeqnum);
-                                updateNetwork(b.getEventnum(), topic, req.seqnum);
+                                b.updateNetwork(b.getEventnum(), topic, req.seqnum);
                             }
                             
                         }
@@ -1249,7 +1268,7 @@ namespace BrokerConsole
         }
         public void setSeqNumber(int s)
         {
-            _sequencerSeqnum = s;
+             _sequencerSeqnum = s;
         }
 
         public void setMySite(Site s)

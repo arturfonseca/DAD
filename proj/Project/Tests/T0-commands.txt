@@ -1,0 +1,2 @@
+Subscriber subscriber0 Subscribe /testtopic
+Publisher publisher0 Publish 2 Ontopic /testtopic Interval 500

@@ -64,6 +64,7 @@ namespace DADInterfaces
         void setSeqNumber(int s);
         void setMySite(Site s);
         int getEventnum();
+        void updateNetwork(int en, string topic, int seqnum);
     }
     public interface Publisher : Node
     {
