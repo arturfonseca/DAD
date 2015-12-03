@@ -14,8 +14,8 @@ namespace DADInterfaces
     public delegate void StringInArgs(string s, params object[] args);
 
 
-    public enum RoutingPolicy { flooding, filter};
-    public enum OrderingPolicy { no, fifo, total};
+    public enum RoutingPolicy { flooding, filter };
+    public enum OrderingPolicy { no, fifo, total };
     public enum LoggingLevel { full, light };
 
     // A Node can be a Broker, Publisher or Subscriber
@@ -28,11 +28,11 @@ namespace DADInterfaces
         string getSite();
 
         void crash();
-        
+
         void freeze();
         void unfreeze();
         void imAlive();
-       
+
     }
 
     public delegate void PropagateUnsubscribeDelegate(PropagatedUnsubscribeMessage msg);
@@ -40,7 +40,7 @@ namespace DADInterfaces
     public delegate void SubscribeDelegate(SubscribeMessage msg);
     public delegate void UnsubscribeDelegate(UnsubscribeMessage msg);
     public delegate void updateTODelegate(TOUpdate m);
-    public interface Broker: Node
+    public interface Broker : Node
     {
         void setIsRoot();
         bool getIsRoot();
@@ -61,8 +61,10 @@ namespace DADInterfaces
         // method called by Publisher
         void publish(PublishMessage msg);
         TOSeqnumRequest generateTOSeqnum(String topic);
+        void setSeqNumber(int s);
+        void setMySite(Site s);
     }
-    public interface Publisher: Node
+    public interface Publisher : Node
     {
         void setSiteBroker(Broker site_broker);
         void publish(string topic, string msg, int quantity, int interval);
@@ -70,7 +72,7 @@ namespace DADInterfaces
         void setSite(Site s);
     }
     public delegate void ReceiveDelegate(PublishMessage p);
-    public interface Subscriber: Node
+    public interface Subscriber : Node
     {
         void setSiteBroker(Broker site_broker);
         void setOrderingPolicy(OrderingPolicy p);
@@ -91,9 +93,9 @@ namespace DADInterfaces
         List<Subscriber> getSubscribers();
         List<Publisher> getPublishers();
 
-        Broker createBroker(string processName, string serviceName, string site,int port,string addr);
-        Publisher createPublisher(string processName, string serviceName, string site,int port,string addr);
-        Subscriber createSubscriber(string processName, string serviceName, string site,int port,string addr);
+        Broker createBroker(string processName, string serviceName, string site, int port, string addr);
+        Publisher createPublisher(string processName, string serviceName, string site, int port, string addr);
+        Subscriber createSubscriber(string processName, string serviceName, string site, int port, string addr);
 
         // When a PuppetMaster createX it returns a remoteObjectX
         // But the only way to get a remoteObjectX is to wait

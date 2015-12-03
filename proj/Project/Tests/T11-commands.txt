@@ -1,2 +1,4 @@
 Subscriber subscriber0 Subscribe /testtopic
-Publisher publisher0 Publish 4 Ontopic /testtopic Interval 500
+Subscriber subscriber1 Subscribe /testtopic
+Publisher publisher0 Publish 25 Ontopic /testtopic Interval 500
+Publisher publisher0 Publish 25 Ontopic /aaa Interval 500

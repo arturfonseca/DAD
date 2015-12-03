@@ -111,6 +111,7 @@ namespace BrokerConsole
         private object _TORejectedLock = new object();
         private List<PublishMessage> _TORejected = new List<PublishMessage>();
 
+        private Site mySite;
         //private List<PublishMessage> _totalOrderQueue = new List<PublishMessage>();
 
         // Event counter is used to identify a thread of execution in the log of concurrent(intervaled) prints
@@ -542,13 +543,34 @@ namespace BrokerConsole
                 {
                     req = new TOSeqnumRequest() { sequencerURI = _processName, seqnum = _sequencerSeqnum };
                     _sequencerSeqnum++;
+                    /*
+                    foreach (Broker b in mySite.getBrokers())
+                    {
+                        try
+                        {
+                            b.setSeqNumber(_sequencerSeqnum);
+                        }
+                        catch (Exception) { }
+                    }
+                    */
                 }
                 updateNetwork(en, topic, req.seqnum);
             }
             else
             {
                 log(en, "generateTOSeqnum: Requesting to parent");
-                req = _parentSite.brokers[0].generateTOSeqnum(topic);
+                foreach (Broker b in _parentSite.getBrokers())
+                {
+                    try
+                    {
+                        req = b.generateTOSeqnum(topic);
+                        //break;
+                    }
+                    catch (Exception)
+                    {
+                    }
+                }
+
             }
             log(en, req.ToString());
             return req;
@@ -559,7 +581,7 @@ namespace BrokerConsole
         {
             string origin_site = msg.interested_site;
             int en = getEventnum();
-           
+
             if (origin_site == null)
             {
                 lock (_topicSubscribers)
@@ -575,7 +597,7 @@ namespace BrokerConsole
                     {
                         _topicSubscribers[msg.topic].Add(msg.uri);
                     }
-                    
+
                 }
             }
             else
@@ -622,7 +644,7 @@ namespace BrokerConsole
 
                             if (!_siteToPropagatedSub[_parentSite.name].ContainsKey(msg.topic))
                             {
-                                _siteToPropagatedSub[_parentSite.name].Add(msg.topic,1);
+                                _siteToPropagatedSub[_parentSite.name].Add(msg.topic, 1);
                                 log(en, string.Format("[Subscribe] Sending {0} to parent site {1}", msg, _parentSite.name));
                                 foreach (var b in _parentSite.brokers)
                                 {
@@ -682,14 +704,14 @@ namespace BrokerConsole
                 }
             }
 
-           /* if (origin_site == null)
-            {
-                log(en, "Subscribe finished");
-            }
-            else
-            {
-                log(en, "Propagate subscribe finished");
-            }*/
+            /* if (origin_site == null)
+             {
+                 log(en, "Subscribe finished");
+             }
+             else
+             {
+                 log(en, "Propagate subscribe finished");
+             }*/
         }
 
         public void unsubscribe(UnsubscribeMessage msg)
@@ -779,10 +801,10 @@ namespace BrokerConsole
                         {
                             if (_siteToPropagatedSub.ContainsKey(_parentSite.name))
                             {
-                               
+
                                 var num = _siteToPropagatedSub[_parentSite.name][msg.topic];
                                 num--;
-                               
+
                                 _siteToPropagatedSub[_parentSite.name][msg.topic] = num;
 
                                 if (_siteToPropagatedSub[_parentSite.name][msg.topic] == 0)
@@ -801,7 +823,7 @@ namespace BrokerConsole
                                     }
                                 }
                             }
-                       
+
                         }
                     }
                 }
@@ -823,7 +845,7 @@ namespace BrokerConsole
 
                                     var num = _siteToPropagatedSub[s.name][msg.topic];
                                     num--;
-                                   
+
                                     _siteToPropagatedSub[s.name][msg.topic] = num;
 
                                     if (_siteToPropagatedSub[s.name][msg.topic] == 0)
@@ -913,7 +935,7 @@ namespace BrokerConsole
 
 
             //TODO LOCKS HERE
-       
+
             lock (_receivedLock)
             {
                 if (receivedMsg.ContainsKey(receivingMessage.publisherName))
@@ -929,7 +951,7 @@ namespace BrokerConsole
                     receivedMsg[receivingMessage.publisherName].Add(receivingMessage.originalSeqnum);
                 }
             }
-          
+
 
             int en = getEventnum();
             log(en, "Processing " + receivingMessage);
@@ -1219,6 +1241,15 @@ namespace BrokerConsole
         public string getProcessName()
         {
             return _processName;
+        }
+        public void setSeqNumber(int s)
+        {
+            _sequencerSeqnum = s;
+        }
+
+        public void setMySite(Site s)
+        {
+            mySite = s;
         }
     }
 }

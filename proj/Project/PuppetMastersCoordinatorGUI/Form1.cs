@@ -42,7 +42,7 @@ namespace PuppetMastersCoordinatorGUI
         bool runningInstructions = false;
 
         //
-        bool faultTolerance = true;
+        bool faultTolerance;
 
         public Form1()
         {
@@ -119,6 +119,15 @@ namespace PuppetMastersCoordinatorGUI
 
         private void button1_Click(object sender, EventArgs e)
         {
+            if (ConfigurationManager.AppSettings["faultTolerance"] == "false")
+                faultTolerance = false;
+            else if (ConfigurationManager.AppSettings["faultTolerance"] == "true")
+                faultTolerance = true;
+            else
+                MessageBox.Show("Error on fault config");
+
+
+
             StreamWriter writetext = new StreamWriter(ConfigurationManager.AppSettings["logs"], false);
             writetext.Write("");
             writetext.Close();
@@ -300,7 +309,11 @@ namespace PuppetMastersCoordinatorGUI
                 entry.Value.setOrderingPolicy(ord);
             }
             foreach (Broker b in site_brokers[site_root])
+            {
                 b.setIsRoot();
+                b.setMySite(site_site[site_root]);
+            }
+              
 
 
             //Set publishers brokers
