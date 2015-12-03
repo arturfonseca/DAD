@@ -118,7 +118,7 @@ namespace BrokerConsole
         private int _eventnum = 0;
         private Object _eventnumLock = new Object();
 
-        private int getEventnum()
+        public int getEventnum()
         {
             lock (_eventnumLock)
             {
@@ -543,16 +543,21 @@ namespace BrokerConsole
                 {
                     req = new TOSeqnumRequest() { sequencerURI = _processName, seqnum = _sequencerSeqnum };
                     _sequencerSeqnum++;
-                    /*
+                    
                     foreach (Broker b in mySite.getBrokers())
                     {
                         try
                         {
-                            b.setSeqNumber(_sequencerSeqnum);
+                            if (b.getProcessName() != _processName)
+                            {
+                                b.setSeqNumber(_sequencerSeqnum);
+                                updateNetwork(b.getEventnum(), topic, req.seqnum);
+                            }
+                            
                         }
                         catch (Exception) { }
                     }
-                    */
+                    
                 }
                 updateNetwork(en, topic, req.seqnum);
             }
@@ -564,7 +569,7 @@ namespace BrokerConsole
                     try
                     {
                         req = b.generateTOSeqnum(topic);
-                        //break;
+                        break;
                     }
                     catch (Exception)
                     {

@@ -63,6 +63,7 @@ namespace DADInterfaces
         TOSeqnumRequest generateTOSeqnum(String topic);
         void setSeqNumber(int s);
         void setMySite(Site s);
+        int getEventnum();
     }
     public interface Publisher : Node
     {
