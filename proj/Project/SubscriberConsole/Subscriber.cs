@@ -28,11 +28,9 @@ namespace SubscriberConsole
 
     class SubscriberRemote : MarshalByRefObject, Subscriber
     {
-        private PuppetMaster _pm;
         private string _serviceName;
         private string _site;
         private string _uri;
-        private Broker _broker;
         private Site site;
         // used to order messages
         private int _seqnum = 0;
@@ -55,7 +53,6 @@ namespace SubscriberConsole
         {
             _form = form;
             _serviceName = name;
-            _pm = pm;
             _site = site;
             _orderingPolicy = OrderingPolicy.fifo;
             _processName = processName;
@@ -85,10 +82,6 @@ namespace SubscriberConsole
             Application.Run(form);
         }
 
-        public void setSiteBroker(Broker site_broker)
-        {
-            _broker = site_broker;
-        }
 
         public string getURI()
         {
@@ -106,7 +99,7 @@ namespace SubscriberConsole
             log("[STATUS] Trying to get broker status");
             try
             {
-                _broker.imAlive();
+                site.getBrokers()[0].imAlive();
                 _alive = true;
             }
             catch (Exception)
@@ -170,7 +163,7 @@ namespace SubscriberConsole
         public void receive(PublishMessage p)
         {
 
-            
+
             lock (_receivedLock)
             {
                 if (receivedMsg.ContainsKey(p.publisherName))
@@ -186,7 +179,7 @@ namespace SubscriberConsole
                     receivedMsg[p.publisherName].Add(p.originalSeqnum);
                 }
             }
-          
+
 
             bool freezed = false;
             lock (_eventnumLock)
@@ -330,12 +323,12 @@ namespace SubscriberConsole
                 // TODO make all calls assyncs
                 UnsubscribeMessage msg = new UnsubscribeMessage() { sub = this, seqnum = _seqnum, topic = topic, uri = getURI() };
                 log(msg.ToString());
-                foreach(Broker b in site.getBrokers())
+                foreach (Broker b in site.getBrokers())
                 {
                     UnsubscribeDelegate pd = new UnsubscribeDelegate(b.unsubscribe);
                     pd.BeginInvoke(msg, null, null);
                 }
-               
+
                 _seqnum += 1;
             }
         }

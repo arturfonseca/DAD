@@ -68,7 +68,6 @@ namespace DADInterfaces
     }
     public interface Publisher : Node
     {
-        void setSiteBroker(Broker site_broker);
         void publish(string topic, string msg, int quantity, int interval);
         void setOrderingPolicy(OrderingPolicy p);
         void setSite(Site s);
@@ -76,7 +75,6 @@ namespace DADInterfaces
     public delegate void ReceiveDelegate(PublishMessage p);
     public interface Subscriber : Node
     {
-        void setSiteBroker(Broker site_broker);
         void setOrderingPolicy(OrderingPolicy p);
         void subscribe(string topic);
         void unsubscribe(string topic);

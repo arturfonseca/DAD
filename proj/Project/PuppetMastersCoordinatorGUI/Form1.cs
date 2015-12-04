@@ -70,8 +70,6 @@ namespace PuppetMastersCoordinatorGUI
         private void getPMs()
         {
             // get puppet masters proxies
-            // TcpChannel channel = new TcpChannel();
-            //ChannelServices.RegisterChannel(channel, true);
             pms = new Dictionary<String, PuppetMaster>();
             string puppetMasterConfigFile = ConfigurationManager.AppSettings["puppetmasters"];
             string[] lines = null;
@@ -313,7 +311,7 @@ namespace PuppetMastersCoordinatorGUI
                 b.setIsRoot();
                 b.setMySite(site_site[site_root]);
             }
-              
+
 
 
             //Set publishers brokers
@@ -323,10 +321,8 @@ namespace PuppetMastersCoordinatorGUI
                     b.setPublishers(entry.Value);
 
                 foreach (Publisher p in entry.Value)
-                {
-                    p.setSiteBroker(site_brokers[entry.Key][0]);
                     p.setSite(site_site[entry.Key]);
-                }
+
             }
             // Set subscriber brokers
             foreach (KeyValuePair<string, List<Subscriber>> entry in site_subscribers)
@@ -334,10 +330,8 @@ namespace PuppetMastersCoordinatorGUI
                 foreach (Broker b in site_brokers[entry.Key])
                     b.setSubscribers(entry.Value);
                 foreach (Subscriber s in entry.Value)
-                {
-                    s.setSiteBroker(site_brokers[entry.Key][0]);
                     s.setSite(site_site[entry.Key]);
-                }
+
 
             }
 
@@ -403,8 +397,7 @@ namespace PuppetMastersCoordinatorGUI
         {
             foreach (String line in lines)
             {
-                //logCommand(line);
-
+                
                 logCommandExternalThread(line);
                 string[] keywords = line.Split(' ');
                 string instructionType = keywords[0];
@@ -421,7 +414,7 @@ namespace PuppetMastersCoordinatorGUI
                         {
                             logCommandExternalThread(entry.Key + " failed \r\n");
                         }
-                        
+
                     }
 
                     foreach (KeyValuePair<string, Publisher> entry in all_publishers)
@@ -593,10 +586,7 @@ namespace PuppetMastersCoordinatorGUI
                 .FirstOrDefault(ip => ip.AddressFamily == AddressFamily.InterNetwork);
         }
 
-        private void Form1_Load(object sender, EventArgs e)
-        {
-
-        }
+       
 
         private void button11_Click(object sender, EventArgs e)
         {
@@ -608,9 +598,6 @@ namespace PuppetMastersCoordinatorGUI
             logCommand(s);
         }
 
-        private void button12_Click(object sender, EventArgs e)
-        {
-
-        }
+       
     }
 }

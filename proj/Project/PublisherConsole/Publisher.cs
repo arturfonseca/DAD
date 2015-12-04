@@ -13,11 +13,9 @@ namespace PublisherConsole
 {
     class PublisherRemote : MarshalByRefObject, Publisher
     {
-        private PuppetMaster _pm;
         private string _serviceName;
         private string _site;
         private string _uri;
-        private Broker _broker;
         private int _eventnum = 0;
         private Object _eventnumLock = new Object();
         private ICoordinator c;
@@ -32,7 +30,6 @@ namespace PublisherConsole
         {
             _form = form;
             _serviceName = name;
-            _pm = pm;
             _site = site;
 
 
@@ -73,11 +70,7 @@ namespace PublisherConsole
         {
             Process.GetCurrentProcess().Kill();
         }
-
-
-
-
-
+        
 
         public string getSite()
         {
@@ -89,10 +82,6 @@ namespace PublisherConsole
             return _uri;
         }
 
-        public void setSiteBroker(Broker site_broker)
-        {
-            _broker = site_broker;
-        }
         public void setSite(Site s)
         {
             site = s;
@@ -105,7 +94,7 @@ namespace PublisherConsole
             log("[STATUS] Trying to get broker status");
             try
             {
-                _broker.imAlive();
+                site.getBrokers()[0].imAlive();
                 _alive = true;
             }
             catch (Exception)

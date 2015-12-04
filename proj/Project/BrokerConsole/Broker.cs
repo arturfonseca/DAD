@@ -35,7 +35,6 @@ namespace BrokerConsole
         private OrderingPolicy _orderingPolicy;
         private RoutingPolicy _routingPolicy;
         private LoggingLevel _loggingLevel;
-        private PuppetMaster _pm;
         private ICoordinator c;
         private string _coordinatorURI;
 
@@ -55,8 +54,6 @@ namespace BrokerConsole
         private Object _receivedLock = new object();
         private Object _receivedTOLock = new object();
         private Site _parentSite;
-        private List<Publisher> _publishers = new List<Publisher>();
-        private List<Subscriber> _subscribers = new List<Subscriber>();
         private List<Site> _childSites = new List<Site>();
 
         // translation from siteName to string
@@ -135,7 +132,6 @@ namespace BrokerConsole
             _form = form;
             _uri = uri;
             _serviceName = name;
-            _pm = pm;
             _site = site;
             _orderingPolicy = OrderingPolicy.fifo;
             _routingPolicy = RoutingPolicy.flooding;
@@ -212,7 +208,6 @@ namespace BrokerConsole
 
         public void setPublishers(List<Publisher> site_publishers)
         {
-            _publishers = site_publishers;
             foreach (Publisher p in site_publishers)
             {
                 _uriToPubs.Add(p.getURI(), p);
@@ -222,7 +217,6 @@ namespace BrokerConsole
 
         public void setSubscribers(List<Subscriber> site_subscribers)
         {
-            _subscribers = site_subscribers;
             foreach (Subscriber s in site_subscribers)
             {
                 var uri = s.getURI();
@@ -562,7 +556,7 @@ namespace BrokerConsole
                 {
                     req = new TOSeqnumRequest() { sequencerURI = _processName, seqnum = _sequencerSeqnum };
                     _sequencerSeqnum++;
-                    
+
                     foreach (Broker b in mySite.getBrokers())
                     {
                         try
@@ -572,11 +566,11 @@ namespace BrokerConsole
                                 b.setSeqNumber(_sequencerSeqnum);
                                 b.updateNetwork(b.getEventnum(), topic, req.seqnum);
                             }
-                            
+
                         }
                         catch (Exception) { }
                     }
-                    
+
                 }
                 updateNetwork(en, topic, req.seqnum);
             }
@@ -1268,7 +1262,7 @@ namespace BrokerConsole
         }
         public void setSeqNumber(int s)
         {
-             _sequencerSeqnum = s;
+            _sequencerSeqnum = s;
         }
 
         public void setMySite(Site s)
